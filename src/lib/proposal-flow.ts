@@ -1,7 +1,7 @@
 import * as StellarSdk from "@stellar/stellar-sdk";
 import { contract } from "@stellar/stellar-sdk";
-import { Err, Ok } from "@stellar/stellar-sdk/contract";
-import { parseBaseUnits } from "@/lib/money";
+import { Err, Ok, type ErrorMessage } from "@stellar/stellar-sdk/contract";
+import { formatBaseUnits, parseBaseUnits, parseNonNegativeBaseUnits } from "@/lib/money";
 import { isValidStellarAddress } from "@/lib/stellar";
 import {
   STELLAR_TESTNET_NETWORK_PASSPHRASE,
@@ -31,6 +31,9 @@ export type ProposalErrorKind =
   | "already-approved"
   | "proposal-not-found"
   | "proposal-not-pending"
+  | "proposal-not-approved"
+  | "already-executed"
+  | "insufficient-balance"
   | "simulation-failed"
   | "wallet-rejected"
   | "wallet-network"
@@ -91,6 +94,24 @@ export interface ApproveProposalReview {
   threshold: number;
 }
 
+export interface ExecuteProposalReview {
+  treasuryId: string;
+  treasuryName: string;
+  callerAddress: string;
+  proposalId: number;
+  status: ChainProposalStatus;
+  /** Exact amount in integer base units. */
+  amountBaseUnits: string;
+  recipient: string;
+  description: string;
+  assetContractId: string;
+  assetSymbol: string | null;
+  assetDecimals: number | null;
+  approvalCount: number;
+  threshold: number;
+  treasuryBalanceBaseUnits: string | null;
+}
+
 export type PrepareCreateOutcome =
   | {
       status:
@@ -115,6 +136,18 @@ export type PrepareApproveOutcome =
       error: ProposalError;
     }
   | { status: "ready"; review: ApproveProposalReview; preparedTxXdr: string };
+
+export type PrepareExecuteOutcome =
+  | {
+      status:
+        | "proposal-not-approved"
+        | "already-executed"
+        | "insufficient-balance"
+        | "proposal-not-found"
+        | "simulation-failed";
+      error: ProposalError;
+    }
+  | { status: "ready"; review: ExecuteProposalReview; preparedTxXdr: string };
 
 export type SignAndSendProposalOutcome =
   | { status: "submitted"; hash: string }
@@ -143,6 +176,17 @@ export type ConfirmApproveOutcome =
   | { status: "confirmation-pending"; hash: string }
   | { status: "failed"; hash: string | null; error: ProposalError };
 
+export type ConfirmExecuteOutcome =
+  | {
+      status: "confirmed";
+      hash: string;
+      approvalCount: number | null;
+      proposalStatus: ChainProposalStatus | null;
+      treasuryBalanceBaseUnits: string | null;
+    }
+  | { status: "confirmation-pending"; hash: string }
+  | { status: "failed"; hash: string | null; error: ProposalError };
+
 // ---------------------------------------------------------------------------
 // Executor seam. Wallet-mode proposal operations go through this interface.
 // ---------------------------------------------------------------------------
@@ -167,6 +211,12 @@ export interface ProposalExecutor {
   simulateApprove(input: {
     contractId: string;
     memberAddress: string;
+    proposalId: number;
+  }): Promise<{ preparedTxXdr: string }>;
+  /** Build and simulate the execute invocation. Throws on any simulation failure. */
+  simulateExecute(input: {
+    contractId: string;
+    callerAddress: string;
     proposalId: number;
   }): Promise<{ preparedTxXdr: string }>;
   /** Submit the wallet-signed invocation; returns the transaction hash. */
@@ -231,6 +281,34 @@ export interface ApproveFlowDeps {
   signTransaction: (transactionXdr: string) => Promise<WalletSignatureResult>;
 }
 
+export interface ExecuteFlowDeps {
+  executor: ProposalExecutor;
+  contractId: string;
+  treasuryName: string;
+  callerAddress: string;
+  proposalId: number;
+  reviewed: {
+    status: ChainProposalStatus;
+    amountBaseUnits: string;
+    recipient: string;
+    description: string;
+    assetContractId: string;
+    assetSymbol: string | null;
+    assetDecimals: number | null;
+    approvalCount: number;
+    threshold: number;
+    treasuryBalanceBaseUnits: string | null;
+  };
+  readProposal: (
+    proposalId: number,
+  ) => Promise<{
+    approvalCount: number;
+    status: ChainProposalStatus;
+  } | null>;
+  readBalance: () => Promise<bigint | null>;
+  signTransaction: (transactionXdr: string) => Promise<WalletSignatureResult>;
+}
+
 export interface CreateProposalFlow {
   prepare(input: {
     amountBaseUnits: unknown;
@@ -249,6 +327,12 @@ export interface ApproveFlow {
   prepare(): Promise<PrepareApproveOutcome>;
   signAndSend(preparedTxXdr: string, signedTxXdr?: string): Promise<SignAndSendProposalOutcome>;
   confirm(hash: string): Promise<ConfirmApproveOutcome>;
+}
+
+export interface ExecuteFlow {
+  prepare(): Promise<PrepareExecuteOutcome>;
+  signAndSend(preparedTxXdr: string, signedTxXdr?: string): Promise<SignAndSendProposalOutcome>;
+  confirm(hash: string): Promise<ConfirmExecuteOutcome>;
 }
 
 function errorOf(
@@ -311,6 +395,54 @@ function simulationError(
   context: "create" | "approve",
 ): ProposalError {
   return mapContractError(error, context);
+}
+
+function executeSimulationError(
+  error: unknown,
+  reviewed: ExecuteFlowDeps["reviewed"],
+): ProposalError {
+  const message = error instanceof Error ? error.message : String(error);
+  const match = message.match(CONTRACT_ERROR);
+  const discriminant = match ? Number(match[1]) : null;
+  switch (discriminant) {
+    case 7: {
+      const missing = reviewed.threshold - reviewed.approvalCount;
+      return missing > 0
+        ? errorOf(
+            "proposal-not-approved",
+            `This proposal needs ${missing} more approval${missing === 1 ? "" : "s"} before it can execute.`,
+          )
+        : errorOf(
+            "proposal-not-approved",
+            "This proposal is no longer approved and cannot be executed.",
+          );
+    }
+    case 9:
+      return errorOf(
+        "proposal-not-found",
+        "This proposal no longer exists on Testnet — nothing was changed.",
+      );
+    case 11:
+      return errorOf("already-executed", "This proposal has already been executed.");
+    case 12: {
+      const availableLabel =
+        reviewed.treasuryBalanceBaseUnits &&
+        /^[0-9]+$/.test(reviewed.treasuryBalanceBaseUnits)
+          ? formatBaseUnits(reviewed.treasuryBalanceBaseUnits)
+          : null;
+      return errorOf(
+        "insufficient-balance",
+        availableLabel
+          ? `Treasury has ${availableLabel} base units available, but ${formatBaseUnits(reviewed.amountBaseUnits)} base units are required.`
+          : `Treasury balance is not sufficient to execute this payment. ${formatBaseUnits(reviewed.amountBaseUnits)} base units are required.`,
+      );
+    }
+    default:
+      return errorOf(
+        "simulation-failed",
+        `Simulation failed — no payment was executed. (${message})`,
+      );
+  }
 }
 
 /** Shared by the flow signers and the dialogs that sign before submitting. */
@@ -722,6 +854,176 @@ export function approveFlow(deps: ApproveFlowDeps): ApproveFlow {
   return { prepare, signAndSend, confirm };
 }
 
+export function executeFlow(deps: ExecuteFlowDeps): ExecuteFlow {
+  const {
+    executor,
+    contractId,
+    callerAddress,
+    proposalId,
+    reviewed,
+    readProposal,
+    readBalance,
+    signTransaction,
+  } = deps;
+
+  async function prepare(): Promise<PrepareExecuteOutcome> {
+    if (reviewed.status === "executed") {
+      return {
+        status: "already-executed",
+        error: errorOf("already-executed", "This proposal has already been executed."),
+      };
+    }
+
+    if (reviewed.status !== "approved" || reviewed.approvalCount < reviewed.threshold) {
+      const missing = reviewed.threshold - reviewed.approvalCount;
+      return {
+        status: "proposal-not-approved",
+        error: errorOf(
+          "proposal-not-approved",
+          missing > 0
+            ? `This proposal needs ${missing} more approval${missing === 1 ? "" : "s"} before it can execute.`
+            : "This proposal is not approved and cannot be executed.",
+        ),
+      };
+    }
+
+    if (reviewed.treasuryBalanceBaseUnits !== null) {
+      try {
+        const available = parseNonNegativeBaseUnits(reviewed.treasuryBalanceBaseUnits);
+        const required = parseBaseUnits(reviewed.amountBaseUnits);
+        if (available < required) {
+          return {
+            status: "insufficient-balance",
+            error: errorOf(
+              "insufficient-balance",
+              `Treasury has ${formatBaseUnits(available)} base units available, but ${formatBaseUnits(required)} base units are required.`,
+            ),
+          };
+        }
+      } catch {
+        // Fall through to chain simulation when the preview balance is unreadable.
+      }
+    }
+
+    let prepared: { preparedTxXdr: string };
+    try {
+      prepared = await executor.simulateExecute({
+        contractId,
+        callerAddress,
+        proposalId,
+      });
+    } catch (error) {
+      const mapped = executeSimulationError(error, reviewed);
+      return {
+        status:
+          mapped.kind === "proposal-not-approved" ||
+          mapped.kind === "already-executed" ||
+          mapped.kind === "insufficient-balance" ||
+          mapped.kind === "proposal-not-found"
+            ? mapped.kind
+            : "simulation-failed",
+        error: mapped,
+      };
+    }
+
+    return {
+      status: "ready",
+      review: {
+        treasuryId: contractId,
+        treasuryName: deps.treasuryName,
+        callerAddress,
+        proposalId,
+        status: reviewed.status,
+        amountBaseUnits: reviewed.amountBaseUnits,
+        recipient: reviewed.recipient,
+        description: reviewed.description,
+        assetContractId: reviewed.assetContractId,
+        assetSymbol: reviewed.assetSymbol,
+        assetDecimals: reviewed.assetDecimals,
+        approvalCount: reviewed.approvalCount,
+        threshold: reviewed.threshold,
+        treasuryBalanceBaseUnits: reviewed.treasuryBalanceBaseUnits,
+      },
+      preparedTxXdr: prepared.preparedTxXdr,
+    };
+  }
+
+  async function signAndSend(
+    preparedTxXdr: string,
+    signedTxXdr?: string,
+  ): Promise<SignAndSendProposalOutcome> {
+    const signature = signedTxXdr
+      ? { status: "signed" as const, signedTxXdr }
+      : await signTransaction(preparedTxXdr);
+    if (signature.status !== "signed") {
+      return { status: "sign-failed", error: signatureError(signature) };
+    }
+    try {
+      const { hash } = await executor.submitInvocation(signature.signedTxXdr);
+      return { status: "submitted", hash };
+    } catch (error) {
+      return { status: "send-failed", error: sendError(error) };
+    }
+  }
+
+  async function confirm(hash: string): Promise<ConfirmExecuteOutcome> {
+    let result: "success" | "failed" | "pending";
+    try {
+      result = await executor.confirmInvocation(hash);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        status: "failed",
+        hash,
+        error: errorOf(
+          "unknown",
+          `Could not confirm the transaction — verify the hash on Testnet. (${message})`,
+        ),
+      };
+    }
+    if (result === "pending") {
+      return { status: "confirmation-pending", hash };
+    }
+    if (result === "failed") {
+      return {
+        status: "failed",
+        hash,
+        error: errorOf(
+          "transaction-failed",
+          "The transaction failed on Testnet — no payment was executed.",
+        ),
+      };
+    }
+
+    let proposal: { approvalCount: number; status: ChainProposalStatus } | null = null;
+    let balance: bigint | null = null;
+    try {
+      proposal = await readProposal(proposalId);
+    } catch {
+      proposal = null;
+    }
+    try {
+      balance = await readBalance();
+    } catch {
+      balance = null;
+    }
+
+    if (proposal === null || balance === null || proposal.status !== "executed") {
+      return { status: "confirmation-pending", hash };
+    }
+
+    return {
+      status: "confirmed",
+      hash,
+      approvalCount: proposal.approvalCount,
+      proposalStatus: proposal.status,
+      treasuryBalanceBaseUnits: balance.toString(),
+    };
+  }
+
+  return { prepare, signAndSend, confirm };
+}
+
 // ---------------------------------------------------------------------------
 // Stellar SDK implementation. Both operations simulate before any signing;
 // the wallet is never asked to sign a transaction that failed simulation.
@@ -742,6 +1044,13 @@ interface CreateProposalClientSpec {
 interface ApproveClientSpec {
   approve: (
     args: { member: string; proposal_id: bigint },
+    options?: contract.MethodOptions,
+  ) => Promise<contract.AssembledTransaction<unknown>>;
+}
+
+interface ExecuteClientSpec {
+  execute: (
+    args: { caller: string; proposal_id: bigint },
     options?: contract.MethodOptions,
   ) => Promise<contract.AssembledTransaction<unknown>>;
 }
@@ -767,6 +1076,33 @@ function simulationErrorOf(
     return new Error(simulation.error);
   }
   return null;
+}
+
+function contractResultError(result: Err<ErrorMessage>, fallback: string): Error {
+  const rawError: unknown = result.unwrapErr();
+  const message =
+    typeof rawError === "object" &&
+    rawError !== null &&
+    "message" in rawError &&
+    typeof rawError.message === "string"
+      ? rawError.message
+      : rawError instanceof Error
+        ? rawError.message
+        : String(rawError);
+
+  // `contract.Client` represents Result::Err as an Err wrapper containing the
+  // base64-encoded ScError payload (not a ScVal). Decode it so CoholdError
+  // discriminants remain available to the product error mapper even when
+  // simulation itself is not rejected by the RPC.
+  try {
+    const decoded = StellarSdk.xdr.ScError.fromXDR(message, "base64");
+    if (decoded.switch().name === "sceContract") {
+      return new Error(`Error(Contract, #${String(decoded.contractCode())})`);
+    }
+  } catch {
+    // Keep the provider's raw message when the result is not an ScError.
+  }
+  return new Error(message || fallback);
 }
 
 export function stellarProposalExecutor(
@@ -865,6 +1201,42 @@ export function stellarProposalExecutor(
       if (tx.needsNonInvokerSigningBy().length > 0) {
         throw new Error(
           "This approval needs multi-party authorization, which the MVP cannot sign.",
+        );
+      }
+      return { preparedTxXdr: tx.toXDR() };
+    },
+
+    async simulateExecute({ contractId, callerAddress, proposalId }) {
+      const client = await contract.Client.from<ExecuteClientSpec>({
+        contractId,
+        rpcUrl,
+        networkPassphrase,
+        publicKey: callerAddress,
+      });
+      const tx = await client.execute({
+        caller: callerAddress,
+        proposal_id: BigInt(proposalId),
+      });
+      const rejected = simulationErrorOf(tx);
+      if (rejected) throw rejected;
+      try {
+        const result: unknown = tx.result;
+        if (result instanceof Err) {
+          throw contractResultError(result, "Contract rejected the payment.");
+        }
+        if (result instanceof Ok) {
+          result.unwrap();
+        }
+      } catch (error) {
+        throw new Error(
+          error instanceof Error && error.message
+            ? error.message
+            : "Contract simulation failed",
+        );
+      }
+      if (tx.needsNonInvokerSigningBy().length > 0) {
+        throw new Error(
+          "This payment needs multi-party authorization, which the MVP cannot sign.",
         );
       }
       return { preparedTxXdr: tx.toXDR() };

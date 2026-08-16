@@ -1,10 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
+import * as StellarSdk from "@stellar/stellar-sdk";
+import { contract } from "@stellar/stellar-sdk";
+import { Err } from "@stellar/stellar-sdk/contract";
 import {
   approveFlow,
   createProposalFlow,
+  executeFlow,
   stellarProposalExecutor,
   type ApproveFlowDeps,
   type CreateProposalFlowDeps,
+  type ExecuteFlowDeps,
   type ProposalExecutor,
 } from "./proposal-flow";
 import type { ChainProposalStatus } from "./contract-adapter";
@@ -25,6 +30,7 @@ interface FakeExecutorCalls {
     description: string;
   }>;
   approve: Array<{ contractId: string; memberAddress: string; proposalId: number }>;
+  execute: Array<{ contractId: string; callerAddress: string; proposalId: number }>;
   submit: string[];
   confirm: string[];
 }
@@ -36,10 +42,11 @@ interface FakeExecutor extends ProposalExecutor {
 function fakeExecutor(overrides: {
   create?: () => Promise<{ preparedTxXdr: string; previewProposalId: bigint | null }>;
   approve?: () => Promise<{ preparedTxXdr: string }>;
+  execute?: () => Promise<{ preparedTxXdr: string }>;
   submit?: () => Promise<{ hash: string }>;
   confirm?: () => Promise<"success" | "failed" | "pending">;
 } = {}): FakeExecutor {
-  const calls: FakeExecutorCalls = { create: [], approve: [], submit: [], confirm: [] };
+  const calls: FakeExecutorCalls = { create: [], approve: [], execute: [], submit: [], confirm: [] };
   return {
     calls,
     async simulateCreateProposal(input) {
@@ -50,6 +57,11 @@ function fakeExecutor(overrides: {
     async simulateApprove(input) {
       calls.approve.push(input);
       if (overrides.approve) return overrides.approve();
+      return { preparedTxXdr: XDR };
+    },
+    async simulateExecute(input) {
+      calls.execute.push(input);
+      if (overrides.execute) return overrides.execute();
       return { preparedTxXdr: XDR };
     },
     async submitInvocation(signedTxXdr) {
@@ -131,6 +143,40 @@ function buildApproveDeps(overrides: Partial<ApproveFlowDeps> = {}): {
       approvalCount: 2,
       status: "approved" as ChainProposalStatus,
     })),
+    signTransaction: fakeSigner(signedResult()),
+    ...overrides,
+  };
+  return { executor, deps };
+}
+
+function buildExecuteDeps(overrides: Partial<ExecuteFlowDeps> = {}): {
+  executor: FakeExecutor;
+  deps: ExecuteFlowDeps;
+} {
+  const executor = fakeExecutor();
+  const deps: ExecuteFlowDeps = {
+    executor,
+    contractId: CONTRACT,
+    treasuryName: "Barkada Fund",
+    callerAddress: MEMBER,
+    proposalId: 1,
+    reviewed: {
+      status: "approved" as ChainProposalStatus,
+      amountBaseUnits: "250000000",
+      recipient: RECIPIENT,
+      description: "Venue deposit",
+      assetContractId: TOKEN,
+      assetSymbol: "USDC",
+      assetDecimals: 7,
+      approvalCount: 2,
+      threshold: 2,
+      treasuryBalanceBaseUnits: "10000000000",
+    },
+    readProposal: vi.fn(async () => ({
+      approvalCount: 2,
+      status: "approved" as ChainProposalStatus,
+    })),
+    readBalance: vi.fn(async () => 10_000_000_000n),
     signTransaction: fakeSigner(signedResult()),
     ...overrides,
   };
@@ -411,6 +457,118 @@ describe("approveFlow.prepare", () => {
   });
 });
 
+describe("executeFlow.prepare", () => {
+  it("rejects under-approved execution before any chain call and names approvals still required", async () => {
+    const { executor, deps } = buildExecuteDeps({
+      reviewed: {
+        status: "pending" as ChainProposalStatus,
+        amountBaseUnits: "250000000",
+        recipient: RECIPIENT,
+        description: "Venue deposit",
+        assetContractId: TOKEN,
+        assetSymbol: "USDC",
+        assetDecimals: 7,
+        approvalCount: 1,
+        threshold: 3,
+        treasuryBalanceBaseUnits: "10000000000",
+      },
+    });
+    const outcome = await executeFlow(deps).prepare();
+    expect(outcome.status).toBe("proposal-not-approved");
+    if (outcome.status === "proposal-not-approved") {
+      expect(outcome.error.kind).toBe("proposal-not-approved");
+      expect(outcome.error.message).toMatch(/2 more approvals/i);
+    }
+    expect(executor.calls.execute).toHaveLength(0);
+    expect(deps.signTransaction).not.toHaveBeenCalled();
+  });
+
+  it("rejects an already executed proposal before any signing", async () => {
+    const { executor, deps } = buildExecuteDeps({
+      reviewed: {
+        status: "executed" as ChainProposalStatus,
+        amountBaseUnits: "250000000",
+        recipient: RECIPIENT,
+        description: "Venue deposit",
+        assetContractId: TOKEN,
+        assetSymbol: "USDC",
+        assetDecimals: 7,
+        approvalCount: 2,
+        threshold: 2,
+        treasuryBalanceBaseUnits: "7500000000",
+      },
+    });
+    const outcome = await executeFlow(deps).prepare();
+    expect(outcome.status).toBe("already-executed");
+    if (outcome.status === "already-executed") {
+      expect(outcome.error.kind).toBe("already-executed");
+      expect(outcome.error.message).toMatch(/has already been executed/i);
+    }
+    expect(executor.calls.execute).toHaveLength(0);
+    expect(deps.signTransaction).not.toHaveBeenCalled();
+  });
+
+  it("rejects insufficient balance without signing and reports required vs available", async () => {
+    const { executor, deps } = buildExecuteDeps({
+      reviewed: {
+        status: "approved" as ChainProposalStatus,
+        amountBaseUnits: "250000000",
+        recipient: RECIPIENT,
+        description: "Venue deposit",
+        assetContractId: TOKEN,
+        assetSymbol: "USDC",
+        assetDecimals: 7,
+        approvalCount: 2,
+        threshold: 2,
+        treasuryBalanceBaseUnits: "100000000",
+      },
+    });
+    const outcome = await executeFlow(deps).prepare();
+    expect(outcome.status).toBe("insufficient-balance");
+    if (outcome.status === "insufficient-balance") {
+      expect(outcome.error.kind).toBe("insufficient-balance");
+      expect(outcome.error.message).toMatch(/available/i);
+      expect(outcome.error.message).toMatch(/required/i);
+    }
+    expect(executor.calls.execute).toHaveLength(0);
+    expect(deps.signTransaction).not.toHaveBeenCalled();
+  });
+
+  it("passes only the configured contract, caller, and proposal id to simulation", async () => {
+    const { executor, deps } = buildExecuteDeps();
+    const outcome = await executeFlow(deps).prepare();
+    expect(outcome.status).toBe("ready");
+    expect(executor.calls.execute).toEqual([
+      { contractId: CONTRACT, callerAddress: MEMBER, proposalId: 1 },
+    ]);
+  });
+
+  it("returns a review with exact amount, asset, source treasury, recipient, and threshold progress", async () => {
+    const { deps } = buildExecuteDeps();
+    const outcome = await executeFlow(deps).prepare();
+    expect(outcome.status).toBe("ready");
+    if (outcome.status === "ready") {
+      expect(outcome.review).toEqual({
+        treasuryId: CONTRACT,
+        treasuryName: "Barkada Fund",
+        callerAddress: MEMBER,
+        proposalId: 1,
+        status: "approved",
+        amountBaseUnits: "250000000",
+        recipient: RECIPIENT,
+        description: "Venue deposit",
+        assetContractId: TOKEN,
+        assetSymbol: "USDC",
+        assetDecimals: 7,
+        approvalCount: 2,
+        threshold: 2,
+        treasuryBalanceBaseUnits: "10000000000",
+      });
+      expect(outcome.preparedTxXdr).toBe(XDR);
+    }
+  });
+});
+
 describe("proposal flows signAndSend", () => {
   it("signs with the prepared transaction XDR and returns the submitted hash", async () => {
     const { executor, deps } = buildCreateDeps();
@@ -467,6 +625,14 @@ describe("proposal flows signAndSend", () => {
       expect(outcome.error.kind).toBe("wallet-unavailable");
     }
     expect(executor.calls.submit).toHaveLength(0);
+  });
+
+  it("signs execute transactions with the prepared transaction XDR and returns the submitted hash", async () => {
+    const { executor, deps } = buildExecuteDeps();
+    const outcome = await executeFlow(deps).signAndSend(XDR);
+    expect(outcome).toEqual({ status: "submitted", hash: "abc123hash" });
+    expect(deps.signTransaction).toHaveBeenCalledWith(XDR);
+    expect(executor.calls.submit).toEqual(["signed-xdr"]);
   });
 
   it("maps submission rejection to a product error", async () => {
@@ -644,6 +810,50 @@ describe("createProposalFlow.confirm", () => {
       expect(outcome.error.message).toMatch(/no proposal/i);
     }
   });
+
+});
+
+describe("executeFlow.confirm", () => {
+  it("reports execute success only after RPC success and fresh proposal and treasury reads", async () => {
+    const readProposal = vi.fn(async () => ({ approvalCount: 2, status: "executed" as ChainProposalStatus }));
+    const readBalance = vi.fn(async () => 9_750_000_000n);
+    const { deps } = buildExecuteDeps({ readProposal, readBalance });
+    const outcome = await executeFlow(deps).confirm("hash1");
+    expect(outcome).toEqual({
+      status: "confirmed",
+      hash: "hash1",
+      approvalCount: 2,
+      proposalStatus: "executed",
+      treasuryBalanceBaseUnits: "9750000000",
+    });
+    expect(readProposal).toHaveBeenCalledWith(1);
+    expect(readBalance).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps execute confirmation pending when a fresh read is unavailable", async () => {
+    const { deps } = buildExecuteDeps({
+      readProposal: vi.fn(async () => null),
+      readBalance: vi.fn(async () => null),
+    });
+    const outcome = await executeFlow(deps).confirm("hashslow");
+    expect(outcome).toEqual({ status: "confirmation-pending", hash: "hashslow" });
+  });
+
+  it("keeps execute confirmation pending when the fresh proposal is not executed yet", async () => {
+    const { deps } = buildExecuteDeps({
+      readProposal: vi.fn(async () => ({ approvalCount: 2, status: "approved" as ChainProposalStatus })),
+    });
+    const outcome = await executeFlow(deps).confirm("hashstale");
+    expect(outcome).toEqual({ status: "confirmation-pending", hash: "hashstale" });
+  });
+
+  it("keeps an execute confirmation pending with the hash", async () => {
+    const { deps } = buildExecuteDeps({
+      executor: fakeExecutor({ confirm: async () => "pending" }),
+    });
+    const outcome = await executeFlow(deps).confirm("hashslow");
+    expect(outcome).toEqual({ status: "confirmation-pending", hash: "hashslow" });
+  });
 });
 
 describe("approveFlow.confirm", () => {
@@ -691,7 +901,38 @@ describe("stellarProposalExecutor", () => {
     const executor = stellarProposalExecutor();
     expect(typeof executor.simulateCreateProposal).toBe("function");
     expect(typeof executor.simulateApprove).toBe("function");
+    expect(typeof executor.simulateExecute).toBe("function");
     expect(typeof executor.submitInvocation).toBe("function");
     expect(typeof executor.confirmInvocation).toBe("function");
+  });
+
+  it("preserves Soroban Result error discriminants from SDK simulation output", async () => {
+    const result = new Err({
+      message: StellarSdk.xdr.ScError.sceContract(7).toXDR("base64"),
+    });
+    const assembled = {
+      simulation: undefined,
+      result,
+      needsNonInvokerSigningBy: () => [],
+      toXDR: () => XDR,
+    };
+    const client = {
+      execute: vi.fn(async () => assembled),
+    };
+    const from = vi
+      .spyOn(contract.Client, "from")
+      .mockResolvedValue(client as never);
+
+    try {
+      await expect(
+        stellarProposalExecutor().simulateExecute({
+          contractId: CONTRACT,
+          callerAddress: MEMBER,
+          proposalId: 1,
+        }),
+      ).rejects.toThrow("Error(Contract, #7)");
+    } finally {
+      from.mockRestore();
+    }
   });
 });
