@@ -53,3 +53,16 @@ export function createTreasuryHref(): string {
 export function shouldOpenCreateTreasury(value: string | null): boolean {
   return value === "1";
 }
+
+export function walletExplorerUrl(kind: "account" | "contract", id: string): string {
+  return `https://stellar.expert/explorer/testnet/${kind}/${id}`;
+}
+
+/**
+ * Wallet-mode proposal deep link. The treasury contract is carried in the
+ * query so extra configured contracts never resolve against the primary one.
+ * Demo mode uses `APP_ROUTES.proposal(id)` directly.
+ */
+export function walletProposalHref(proposalId: string, treasuryId: string): string {
+  return `${APP_ROUTES.proposal(proposalId)}?treasury=${encodeURIComponent(treasuryId)}`;
+}

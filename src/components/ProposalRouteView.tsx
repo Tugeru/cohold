@@ -6,6 +6,8 @@ import { NotFoundStatus, ResourceStatus } from "@/components/ResourceStatus";
 import { OverviewSkeleton } from "@/components/Skeletons";
 import { WalletSetupState } from "@/components/WalletSetupState";
 import { useDemoData } from "@/context/DemoDataContext";
+import { coholdConfig } from "@/lib/cohold-config";
+import { WalletProposalView } from "@/components/WalletProposalView";
 import { APP_ROUTES } from "@/lib/app-routes";
 import { resourceStateFromResponse, type ResourceState } from "@/lib/resource-state";
 import { formatAddress, formatAmount, formatDate } from "@/lib/utils";
@@ -47,6 +49,10 @@ export function ProposalRouteView({ id }: { id: string }) {
     }, 0);
     return () => window.clearTimeout(timer);
   }, [canMutate, load, refreshToken]);
+
+  if (coholdConfig.mode === "wallet") {
+    return <WalletProposalView id={id} />;
+  }
 
   if (!canMutate) {
     return <WalletSetupState />;

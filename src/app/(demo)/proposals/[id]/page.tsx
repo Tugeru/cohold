@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import { ProposalRouteView } from "@/components/ProposalRouteView";
+import { OverviewSkeleton } from "@/components/Skeletons";
 
 export default async function ProposalDetailPage({
   params,
@@ -6,5 +8,9 @@ export default async function ProposalDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <ProposalRouteView id={id} />;
+  return (
+    <Suspense fallback={<OverviewSkeleton />}>
+      <ProposalRouteView id={id} />
+    </Suspense>
+  );
 }

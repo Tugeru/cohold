@@ -7,6 +7,8 @@ import { OverviewSkeleton } from "@/components/Skeletons";
 import { NotFoundStatus, ResourceStatus } from "@/components/ResourceStatus";
 import { WalletSetupState } from "@/components/WalletSetupState";
 import { useDemoData } from "@/context/DemoDataContext";
+import { coholdConfig } from "@/lib/cohold-config";
+import { WalletTreasuryView } from "@/components/WalletTreasuryView";
 import { APP_ROUTES } from "@/lib/app-routes";
 import { resourceStateFromResponse, type ResourceState } from "@/lib/resource-state";
 import { Treasury } from "@/types";
@@ -45,6 +47,10 @@ export function TreasuryRouteView({ id }: { id: string }) {
     }, 0);
     return () => window.clearTimeout(timer);
   }, [canMutate, load, refreshToken]);
+
+  if (coholdConfig.mode === "wallet") {
+    return <WalletTreasuryView id={id} />;
+  }
 
   if (!canMutate) {
     return <WalletSetupState />;
