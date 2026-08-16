@@ -54,7 +54,10 @@ export function shouldOpenCreateTreasury(value: string | null): boolean {
   return value === "1";
 }
 
-export function walletExplorerUrl(kind: "account" | "contract", id: string): string {
+export function walletExplorerUrl(
+  kind: "account" | "contract" | "tx",
+  id: string,
+): string {
   return `https://stellar.expert/explorer/testnet/${kind}/${id}`;
 }
 

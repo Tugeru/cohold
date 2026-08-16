@@ -5,6 +5,7 @@ import {
   createTreasuryHref,
   navKeyFromPathname,
   shouldOpenCreateTreasury,
+  walletExplorerUrl,
 } from "./app-routes";
 
 describe("APP_ROUTES", () => {
@@ -53,6 +54,20 @@ describe("navKeyFromPathname", () => {
   it("does not treat the public landing as an app nav item", () => {
     expect(navKeyFromPathname("/")).toBeNull();
     expect(navKeyFromPathname("/unknown")).toBeNull();
+  });
+});
+
+describe("walletExplorerUrl", () => {
+  it("links accounts, contracts, and transactions on Testnet expert", () => {
+    expect(walletExplorerUrl("account", "GABC")).toBe(
+      "https://stellar.expert/explorer/testnet/account/GABC",
+    );
+    expect(walletExplorerUrl("contract", "CABC")).toBe(
+      "https://stellar.expert/explorer/testnet/contract/CABC",
+    );
+    expect(walletExplorerUrl("tx", "hash1")).toBe(
+      "https://stellar.expert/explorer/testnet/tx/hash1",
+    );
   });
 });
 

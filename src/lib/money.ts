@@ -50,6 +50,38 @@ export function formatBaseUnits(input: BaseUnitInput): string {
   return parseNonNegativeBaseUnits(input).toLocaleString("en-US");
 }
 
+const HUMAN_AMOUNT = /^[0-9]+(\.[0-9]+)?$/;
+
+/**
+ * Parse a user-typed human amount ("12.5") into integer base units using the
+ * asset's decimals. String math only: the authoritative result never passes
+ * through a float. Zero, negative, malformed, and over-precise input is
+ * rejected before a transaction can be constructed.
+ */
+export function parseHumanAmountToBaseUnits(
+  input: unknown,
+  decimals: number,
+): bigint {
+  const raw = typeof input === "string" ? input.trim() : "";
+  const safeDecimals = Number.isSafeInteger(decimals) && decimals >= 0 ? decimals : 0;
+  if (!raw || !HUMAN_AMOUNT.test(raw)) {
+    throw new Error(
+      `Amount must be a number with up to ${safeDecimals} decimal places`,
+    );
+  }
+  const [whole = "", fraction = ""] = raw.split(".");
+  if (fraction.length > safeDecimals) {
+    throw new Error(
+      `Amount cannot have more than ${safeDecimals} decimal places for this asset`,
+    );
+  }
+  const units = BigInt(`${whole}${fraction.padEnd(safeDecimals, "0")}`);
+  if (units <= 0n) {
+    throw new Error("Amount must be greater than zero");
+  }
+  return units;
+}
+
 /**
  * Format integer base units using the asset's decimals without ever
  * converting the authoritative amount through a float. Display-only.

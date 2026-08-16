@@ -1,5 +1,39 @@
 import { describe, expect, it } from "vitest";
-import { formatBaseAmount, parseBaseUnits } from "./money";
+import {
+  formatBaseAmount,
+  parseBaseUnits,
+  parseHumanAmountToBaseUnits,
+} from "./money";
+
+describe("parseHumanAmountToBaseUnits", () => {
+  it("converts a human amount to integer base units using decimals", () => {
+    expect(parseHumanAmountToBaseUnits("0.5", 7)).toBe(5_000_000n);
+    expect(parseHumanAmountToBaseUnits("1", 7)).toBe(10_000_000n);
+    expect(parseHumanAmountToBaseUnits("1.0000000", 7)).toBe(10_000_000n);
+    expect(parseHumanAmountToBaseUnits("0042.0000000", 7)).toBe(420_000_000n);
+  });
+
+  it("supports zero-decimal assets", () => {
+    expect(parseHumanAmountToBaseUnits("42", 0)).toBe(42n);
+  });
+
+  it("rejects zero, negative, malformed, and over-precise input", () => {
+    expect(() => parseHumanAmountToBaseUnits("0", 7)).toThrow();
+    expect(() => parseHumanAmountToBaseUnits("0.0000000", 7)).toThrow();
+    expect(() => parseHumanAmountToBaseUnits("-1", 7)).toThrow();
+    expect(() => parseHumanAmountToBaseUnits("abc", 7)).toThrow();
+    expect(() => parseHumanAmountToBaseUnits("1.", 7)).toThrow();
+    expect(() => parseHumanAmountToBaseUnits(".5", 7)).toThrow();
+    expect(() => parseHumanAmountToBaseUnits("1,5", 7)).toThrow();
+    expect(() => parseHumanAmountToBaseUnits("1e3", 7)).toThrow();
+    expect(() => parseHumanAmountToBaseUnits("1.00000001", 7)).toThrow();
+    expect(() => parseHumanAmountToBaseUnits("  ", 7)).toThrow();
+  });
+
+  it("keeps i128-scale amounts exact above 2^53", () => {
+    expect(parseHumanAmountToBaseUnits("9007199254740993", 0)).toBe(9_007_199_254_740_993n);
+  });
+});
 
 describe("parseBaseUnits", () => {
   it("accepts a positive integer string as bigint base units", () => {

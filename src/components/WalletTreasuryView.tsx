@@ -15,6 +15,7 @@ import { useWallet } from "@/context/WalletContext";
 import { WalletSetupState } from "@/components/WalletSetupState";
 import { NotFoundStatus } from "@/components/ResourceStatus";
 import { OverviewSkeleton } from "@/components/Skeletons";
+import { WalletContributeDialog } from "@/components/WalletContributeDialog";
 import {
   WalletApprovalRail,
   WalletApprovalChip,
@@ -22,6 +23,7 @@ import {
 } from "@/components/WalletChainStatus";
 import {
   ArrowLeft,
+  Plus,
   RefreshCw,
   ShieldCheck,
   Users,
@@ -44,10 +46,11 @@ type TreasuryDetailState =
 
 export function WalletTreasuryView({ id }: { id: string }) {
   const config = coholdConfig;
-  const { freighterAddress } = useWallet();
+  const { freighterAddress, canPerformStateChange, walletActionBlockReason } = useWallet();
   const rpc = useMemo(() => stellarCoholdRpc(), []);
   const [state, setState] = useState<TreasuryDetailState>({ status: "loading" });
   const [loadKey, setLoadKey] = useState(0);
+  const [isContributeOpen, setIsContributeOpen] = useState(false);
 
   const refresh = useCallback(() => setLoadKey((key) => key + 1), []);
 
@@ -140,6 +143,19 @@ export function WalletTreasuryView({ id }: { id: string }) {
 
   const { view, proposals } = state;
   const walletAddress = freighterAddress?.toUpperCase() ?? null;
+  const isMember = Boolean(
+    walletAddress && view.membersAuthoritative && view.members.includes(walletAddress),
+  );
+  const canContribute = isMember && canPerformStateChange;
+  const addFundsTooltip = !walletAddress
+    ? "Connect Freighter to add funds."
+    : !canPerformStateChange
+      ? (walletActionBlockReason ?? "Connect Freighter to add funds.")
+      : !view.membersAuthoritative
+        ? "Member list unavailable — connect Freighter to verify membership."
+        : isMember
+          ? undefined
+          : "Only members can add funds to this treasury.";
   const balanceLabel =
     view.balance === null
       ? "Unavailable"
@@ -177,13 +193,25 @@ export function WalletTreasuryView({ id }: { id: string }) {
             </a>
           </p>
         </div>
-        <button
-          onClick={refresh}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800"
-        >
-          <RefreshCw className="h-3.5 w-3.5" />
-          Refresh from chain
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsContributeOpen(true)}
+            disabled={!canContribute}
+            title={addFundsTooltip}
+            aria-disabled={!canContribute}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-800 disabled:text-slate-500"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add funds
+          </button>
+          <button
+            onClick={refresh}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Refresh from chain
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-5 md:grid-cols-3">
@@ -319,6 +347,15 @@ export function WalletTreasuryView({ id }: { id: string }) {
           <p className="mt-3 text-sm text-slate-500">No proposals yet on this contract.</p>
         )}
       </div>
+
+      {isContributeOpen && (
+        <WalletContributeDialog
+          treasury={view}
+          rpc={rpc}
+          onClose={() => setIsContributeOpen(false)}
+          onConfirmed={refresh}
+        />
+      )}
     </div>
   );
 }
