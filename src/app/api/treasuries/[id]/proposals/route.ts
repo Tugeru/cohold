@@ -7,22 +7,24 @@ import {
   proposalApprovals,
   auditLogs,
 } from "@/db/schema";
-import { generateStellarTxHash } from "@/lib/utils";
 import { parseBaseUnits } from "@/lib/money";
-import { coholdConfig, isStateChangingAllowed } from "@/lib/cohold-config";
+import { coholdConfig } from "@/lib/cohold-config";
+import {
+  demoMutationDenied,
+  resolveDemoActor,
+  syntheticDemoSuccess,
+} from "@/lib/demo-adapter";
 import { isValidStellarAddress } from "@/lib/stellar";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 export async function POST(
   req: NextRequest,
   props: { params: Promise<{ id: string }> }
 ) {
   try {
-    if (!isStateChangingAllowed(coholdConfig)) {
-      return NextResponse.json(
-        { success: false, error: "Wallet mode setup is incomplete; state changes are disabled" },
-        { status: 503 }
-      );
+    const denied = demoMutationDenied(coholdConfig);
+    if (denied) {
+      return NextResponse.json(denied, { status: 403 });
     }
     const { id: treasuryId } = await props.params;
     const body = await req.json();
@@ -93,21 +95,17 @@ export async function POST(
     }
 
     const treasury = tList[0];
-    const proposerUpper = proposerAddress.trim().toUpperCase();
-
-    // Verify proposer is a member (FR-3 / Non-member proposal rejected)
-    const memList = await db
+    const members = await db
       .select()
       .from(treasuryMembers)
-      .where(
-        and(
-          eq(treasuryMembers.treasuryId, treasuryId),
-          eq(treasuryMembers.address, proposerUpper)
-        )
-      )
-      .limit(1);
-
-    if (memList.length === 0) {
+      .where(eq(treasuryMembers.treasuryId, treasuryId));
+    const actor = resolveDemoActor({
+      actorAddress: proposerAddress,
+      signature: body.signature,
+      label: proposerLabel,
+      members: members.map((row) => row.address),
+    });
+    if (!actor.allowed) {
       return NextResponse.json(
         {
           success: false,
@@ -117,9 +115,21 @@ export async function POST(
       );
     }
 
-    const member = memList[0];
+    const member = members.find(
+      (row) => row.address.toUpperCase() === actor.actorAddress
+    );
+    if (!member) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Address ${proposerAddress} is not a member of this treasury and cannot create proposals.`,
+        },
+        { status: 403 }
+      );
+    }
+    const proposerUpper = actor.actorAddress;
     const proposalId = `prop-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
-    const txHash = generateStellarTxHash();
+    const { txHash, proof } = syntheticDemoSuccess();
 
     // If threshold is 1, it's immediately approved
     const isImmediatelyApproved = treasury.threshold <= 1;
@@ -151,7 +161,7 @@ export async function POST(
       treasuryId,
       approverAddress: proposerUpper,
       approverLabel: proposerLabel || member.label,
-      signature: `sig_auto_proposer_${Date.now()}`,
+      signature: proof,
       txHash,
       createdAt: new Date(),
     });

@@ -25,7 +25,7 @@ export function WalletSetupState() {
           {!isModeConfigured
             ? "NEXT_PUBLIC_COHOLD_MODE must be either demo or wallet. State-changing controls remain disabled until the configuration is corrected."
             : isConfigured
-            ? "The Testnet contract and token identifiers are configured, but wallet transaction wiring is not enabled in this shell. State-changing controls remain disabled so fixture data cannot be mistaken for chain state."
+            ? "The Testnet contract and token identifiers are configured. Create Treasury and demo reset stay in demo mode; wallet-mode creation is out of this change. State-changing controls remain disabled so fixture data cannot be mistaken for chain state."
             : "Cohold is running in wallet mode, but its Testnet contract and token identifiers are not configured. Spending, deposits, proposals, and approvals are disabled until the setup is complete."}
         </p>
         {!isModeConfigured ? (

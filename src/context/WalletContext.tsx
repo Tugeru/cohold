@@ -8,7 +8,8 @@ import React, {
   useCallback,
 } from "react";
 import { Persona } from "@/types";
-import { DEFAULT_PERSONAS } from "@/lib/personas";
+import { coholdConfig } from "@/lib/cohold-config";
+import { demoPersonas, initialDemoActor } from "@/lib/demo-adapter";
 import {
   fetchStellarAccountBalances,
   isValidStellarAddress,
@@ -30,8 +31,10 @@ interface WalletContextType {
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
-  const [personas] = useState<Persona[]>(DEFAULT_PERSONAS);
-  const [activePersona, setActivePersona] = useState<Persona>(DEFAULT_PERSONAS[0]); // Maria (President) by default
+  const [personas] = useState<Persona[]>(() => demoPersonas(coholdConfig));
+  const [activePersona, setActivePersona] = useState<Persona>(
+    () => initialDemoActor(coholdConfig)
+  );
   const [isFreighterConnected, setIsFreighterConnected] = useState(false);
   const [freighterAddress, setFreighterAddress] = useState<string | null>(null);
   const [testnetBalance, setTestnetBalance] = useState<string | null>(null);
@@ -96,7 +99,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const disconnectFreighter = () => {
     setIsFreighterConnected(false);
     setFreighterAddress(null);
-    setActivePersona(DEFAULT_PERSONAS[0]);
+    setActivePersona(initialDemoActor(coholdConfig));
   };
 
   const isMemberOf = (memberAddresses: string[]): boolean => {

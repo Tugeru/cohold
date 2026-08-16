@@ -6,21 +6,23 @@ import {
   contributions,
   auditLogs,
 } from "@/db/schema";
-import { generateStellarTxHash } from "@/lib/utils";
 import { parseBaseUnits, parseNonNegativeBaseUnits } from "@/lib/money";
-import { coholdConfig, isStateChangingAllowed } from "@/lib/cohold-config";
-import { eq, and } from "drizzle-orm";
+import { coholdConfig } from "@/lib/cohold-config";
+import {
+  demoMutationDenied,
+  resolveDemoActor,
+  syntheticDemoSuccess,
+} from "@/lib/demo-adapter";
+import { eq } from "drizzle-orm";
 
 export async function POST(
   req: NextRequest,
   props: { params: Promise<{ id: string }> }
 ) {
   try {
-    if (!isStateChangingAllowed(coholdConfig)) {
-      return NextResponse.json(
-        { success: false, error: "Wallet mode setup is incomplete; state changes are disabled" },
-        { status: 503 }
-      );
+    const denied = demoMutationDenied(coholdConfig);
+    if (denied) {
+      return NextResponse.json(denied, { status: 403 });
     }
     const { id: treasuryId } = await props.params;
     const body = await req.json();
@@ -62,19 +64,17 @@ export async function POST(
 
     const treasury = tList[0];
 
-    // Verify member exists in treasury (FR-2 / MVP constraint: Non-member contribution rejected)
-    const memList = await db
+    const members = await db
       .select()
       .from(treasuryMembers)
-      .where(
-        and(
-          eq(treasuryMembers.treasuryId, treasuryId),
-          eq(treasuryMembers.address, memberAddress.trim().toUpperCase())
-        )
-      )
-      .limit(1);
-
-    if (memList.length === 0) {
+      .where(eq(treasuryMembers.treasuryId, treasuryId));
+    const actor = resolveDemoActor({
+      actorAddress: memberAddress,
+      signature: body.signature,
+      label: memberLabel,
+      members: members.map((row) => row.address),
+    });
+    if (!actor.allowed) {
       return NextResponse.json(
         {
           success: false,
@@ -84,7 +84,19 @@ export async function POST(
       );
     }
 
-    const member = memList[0];
+    const member = members.find(
+      (row) => row.address.toUpperCase() === actor.actorAddress
+    );
+    if (!member) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Address ${memberAddress} is not an authorized member of this treasury.`,
+        },
+        { status: 403 }
+      );
+    }
+
     let currentBalance: bigint;
     try {
       currentBalance = parseNonNegativeBaseUnits(treasury.balance);
@@ -95,7 +107,7 @@ export async function POST(
       );
     }
     const newBalance = (currentBalance + amountUnits).toString();
-    const txHash = generateStellarTxHash();
+    const { txHash } = syntheticDemoSuccess();
 
     // Update treasury balance
     await db

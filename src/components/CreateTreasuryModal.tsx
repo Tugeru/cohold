@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useWallet } from "@/context/WalletContext";
-import { DEFAULT_PERSONAS } from "@/lib/personas";
+import { DEMO_PERSONAS } from "@/lib/demo-adapter";
 import { isValidStellarAddress } from "@/lib/stellar";
 import { parseNonNegativeBaseUnits } from "@/lib/money";
 import {
@@ -57,13 +57,13 @@ export function CreateTreasuryModal({
       avatar: activePersona.avatar,
     },
     {
-      address: DEFAULT_PERSONAS[1].address,
+      address: DEMO_PERSONAS[1].address,
       label: "Juan Dela Cruz (Treasurer)",
       role: "Treasurer",
       avatar: "👨‍💻",
     },
     {
-      address: DEFAULT_PERSONAS[2].address,
+      address: DEMO_PERSONAS[2].address,
       label: "Chloe Lim (Secretary)",
       role: "Secretary",
       avatar: "👩‍🔬",
@@ -84,10 +84,10 @@ export function CreateTreasuryModal({
       setDescription("Shared student council budget for campus events, logistics, and student activities.");
       setCategory("student_org");
       setMembers([
-        { address: DEFAULT_PERSONAS[0].address, label: "Maria Santos (President)", role: "President", avatar: "👩‍💼" },
-        { address: DEFAULT_PERSONAS[1].address, label: "Juan Dela Cruz (Treasurer)", role: "Treasurer", avatar: "👨‍💻" },
-        { address: DEFAULT_PERSONAS[2].address, label: "Chloe Lim (Secretary)", role: "Secretary", avatar: "👩‍🔬" },
-        { address: DEFAULT_PERSONAS[3].address, label: "Daniel Tan (Auditor)", role: "Auditor", avatar: "🧑‍⚖️" },
+        { address: DEMO_PERSONAS[0].address, label: "Maria Santos (President)", role: "President", avatar: "👩‍💼" },
+        { address: DEMO_PERSONAS[1].address, label: "Juan Dela Cruz (Treasurer)", role: "Treasurer", avatar: "👨‍💻" },
+        { address: DEMO_PERSONAS[2].address, label: "Chloe Lim (Secretary)", role: "Secretary", avatar: "👩‍🔬" },
+        { address: DEMO_PERSONAS[3].address, label: "Daniel Tan (Auditor)", role: "Auditor", avatar: "🧑‍⚖️" },
       ]);
       setThreshold(3);
     } else if (presetType === "business") {
@@ -95,8 +95,8 @@ export function CreateTreasuryModal({
       setDescription("Operating funds for software subscriptions, contractor payouts, and hardware.");
       setCategory("small_business");
       setMembers([
-        { address: DEFAULT_PERSONAS[4].address, label: "Alex Rivera (Lead Partner)", role: "Lead Partner", avatar: "👨‍💼" },
-        { address: DEFAULT_PERSONAS[5].address, label: "Samira Patel (CFO Partner)", role: "CFO", avatar: "👩‍💻" },
+        { address: DEMO_PERSONAS[4].address, label: "Alex Rivera (Lead Partner)", role: "Lead Partner", avatar: "👨‍💼" },
+        { address: DEMO_PERSONAS[5].address, label: "Samira Patel (CFO Partner)", role: "CFO", avatar: "👩‍💻" },
         { address: "GAKJ9R1T3V5X7Z9B1D3F5H7J9L1N3P5R7T9V1X3Z5B7D9F1H3J5L7N9P", label: "Kenji Sato (Tech Lead)", role: "Tech Lead", avatar: "🧑‍💻" },
       ]);
       setThreshold(2);
@@ -105,11 +105,11 @@ export function CreateTreasuryModal({
       setDescription("Community-funded solar street lighting and neighborhood improvement budget.");
       setCategory("community_fund");
       setMembers([
-        { address: DEFAULT_PERSONAS[0].address, label: "Maria Santos", role: "Chair", avatar: "👩‍💼" },
-        { address: DEFAULT_PERSONAS[1].address, label: "Juan Dela Cruz", role: "Treasurer", avatar: "👨‍💻" },
-        { address: DEFAULT_PERSONAS[2].address, label: "Chloe Lim", role: "Secretary", avatar: "👩‍🔬" },
-        { address: DEFAULT_PERSONAS[3].address, label: "Daniel Tan", role: "Auditor", avatar: "🧑‍⚖️" },
-        { address: DEFAULT_PERSONAS[4].address, label: "Alex Rivera", role: "Resident Rep", avatar: "👨‍💼" },
+        { address: DEMO_PERSONAS[0].address, label: "Maria Santos", role: "Chair", avatar: "👩‍💼" },
+        { address: DEMO_PERSONAS[1].address, label: "Juan Dela Cruz", role: "Treasurer", avatar: "👨‍💻" },
+        { address: DEMO_PERSONAS[2].address, label: "Chloe Lim", role: "Secretary", avatar: "👩‍🔬" },
+        { address: DEMO_PERSONAS[3].address, label: "Daniel Tan", role: "Auditor", avatar: "🧑‍⚖️" },
+        { address: DEMO_PERSONAS[4].address, label: "Alex Rivera", role: "Resident Rep", avatar: "👨‍💼" },
       ]);
       setThreshold(4);
     } else if (presetType === "capstone") {
@@ -117,9 +117,9 @@ export function CreateTreasuryModal({
       setDescription("Server hosting, domain registration, and API keys for AI research capstone.");
       setCategory("project_team");
       setMembers([
-        { address: DEFAULT_PERSONAS[0].address, label: "Maria Santos", role: "Team Lead", avatar: "👩‍💼" },
-        { address: DEFAULT_PERSONAS[1].address, label: "Juan Dela Cruz", role: "Backend Dev", avatar: "👨‍💻" },
-        { address: DEFAULT_PERSONAS[2].address, label: "Chloe Lim", role: "Frontend Dev", avatar: "👩‍🔬" },
+        { address: DEMO_PERSONAS[0].address, label: "Maria Santos", role: "Team Lead", avatar: "👩‍💼" },
+        { address: DEMO_PERSONAS[1].address, label: "Juan Dela Cruz", role: "Backend Dev", avatar: "👨‍💻" },
+        { address: DEMO_PERSONAS[2].address, label: "Chloe Lim", role: "Frontend Dev", avatar: "👩‍🔬" },
       ]);
       setThreshold(2);
     }
@@ -128,7 +128,7 @@ export function CreateTreasuryModal({
   const addMember = () => {
     // Pick an unused persona if available, or empty
     const usedAddrs = new Set(members.map((m) => m.address.toUpperCase()));
-    const unused = DEFAULT_PERSONAS.find((p) => !usedAddrs.has(p.address.toUpperCase()));
+    const unused = DEMO_PERSONAS.find((p) => !usedAddrs.has(p.address.toUpperCase()));
 
     if (unused) {
       setMembers([

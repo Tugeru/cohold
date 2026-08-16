@@ -9,30 +9,35 @@ import {
   auditLogs,
 } from "@/db/schema";
 import { ensureDatabaseSeeded } from "@/lib/db-seed";
-import { coholdConfig, isStateChangingAllowed } from "@/lib/cohold-config";
+import { coholdConfig } from "@/lib/cohold-config";
+import { resetDemoFixtures } from "@/lib/demo-adapter";
+
+async function restoreCanonicalDemoDataset() {
+  await db.delete(proposalApprovals);
+  await db.delete(proposals);
+  await db.delete(contributions);
+  await db.delete(auditLogs);
+  await db.delete(treasuryMembers);
+  await db.delete(treasuries);
+  await ensureDatabaseSeeded();
+}
 
 export async function POST() {
   try {
-    if (!isStateChangingAllowed(coholdConfig)) {
+    const result = await resetDemoFixtures(
+      coholdConfig,
+      restoreCanonicalDemoDataset
+    );
+    if (!result.ok) {
       return NextResponse.json(
-        { success: false, error: "Wallet mode setup is incomplete; state changes are disabled" },
-        { status: 503 }
+        { success: false, error: result.error },
+        { status: 403 }
       );
     }
-    // Delete in cascade order
-    await db.delete(proposalApprovals);
-    await db.delete(proposals);
-    await db.delete(contributions);
-    await db.delete(auditLogs);
-    await db.delete(treasuryMembers);
-    await db.delete(treasuries);
-
-    // Re-seed
-    await ensureDatabaseSeeded();
 
     return NextResponse.json({
       success: true,
-      message: "Database successfully reset to demo scenario.",
+      message: result.message,
     });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Reset failed";

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { coholdConfig } from "@/lib/cohold-config";
 import { useWallet } from "@/context/WalletContext";
 import { formatAddress } from "@/lib/utils";
 import { getStellarExpertUrl } from "@/lib/stellar";
@@ -176,7 +177,7 @@ export function WalletSettingsView({ onResetDemo }: WalletSettingsViewProps) {
         )}
       </div>
 
-      {/* Switch Signer Persona Grid */}
+      {coholdConfig.mode === "demo" && (
       <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-5 sm:p-6 space-y-4">
         <div>
           <h2 className="text-base font-bold text-white">
@@ -219,6 +220,7 @@ export function WalletSettingsView({ onResetDemo }: WalletSettingsViewProps) {
           })}
         </div>
       </div>
+      )}
 
       {/* Freighter Extension Connection Card */}
       <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-5 sm:p-6 space-y-4">
@@ -257,26 +259,27 @@ export function WalletSettingsView({ onResetDemo }: WalletSettingsViewProps) {
         </div>
       </div>
 
-      {/* Reset State Card */}
-      <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-5 sm:p-6 space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h2 className="text-base font-bold text-white">Reset Demo Database</h2>
-            <p className="text-xs text-slate-400">
-              Restore initial PRD Section 26 demo data (IT Society Event Fund, Venue Deposit 4,500 units, 2/3 approvals)
-            </p>
-          </div>
+      {coholdConfig.mode === "demo" && (
+        <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-5 sm:p-6 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="text-base font-bold text-white">Reset Demo Database</h2>
+              <p className="text-xs text-slate-400">
+                Restore initial PRD Section 26 demo data (IT Society Event Fund, Venue Deposit 4,500 units, 2/3 approvals). No Testnet balance changed.
+              </p>
+            </div>
 
-          <button
-            onClick={handleReset}
-            disabled={isResetting}
-            className="flex items-center gap-2 rounded-xl bg-slate-800 hover:bg-slate-750 px-4 py-2.5 text-xs font-semibold text-slate-200 border border-slate-700 transition self-start sm:self-auto"
-          >
-            <RotateCcw className={`h-4 w-4 ${isResetting ? "animate-spin text-emerald-400" : ""}`} />
-            <span>{isResetting ? "Resetting..." : "Reset to Default State"}</span>
-          </button>
+            <button
+              onClick={handleReset}
+              disabled={isResetting}
+              className="flex items-center gap-2 rounded-xl bg-slate-800 hover:bg-slate-750 px-4 py-2.5 text-xs font-semibold text-slate-200 border border-slate-700 transition self-start sm:self-auto"
+            >
+              <RotateCcw className={`h-4 w-4 ${isResetting ? "animate-spin text-emerald-400" : ""}`} />
+              <span>{isResetting ? "Resetting..." : "Reset to Default State"}</span>
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

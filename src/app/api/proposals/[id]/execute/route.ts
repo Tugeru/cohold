@@ -5,9 +5,9 @@ import {
   proposals,
   auditLogs,
 } from "@/db/schema";
-import { generateStellarTxHash } from "@/lib/utils";
 import { parseBaseUnits, parseNonNegativeBaseUnits } from "@/lib/money";
-import { coholdConfig, isStateChangingAllowed } from "@/lib/cohold-config";
+import { coholdConfig } from "@/lib/cohold-config";
+import { demoMutationDenied, syntheticDemoSuccess } from "@/lib/demo-adapter";
 import { eq } from "drizzle-orm";
 
 export async function POST(
@@ -15,11 +15,9 @@ export async function POST(
   props: { params: Promise<{ id: string }> }
 ) {
   try {
-    if (!isStateChangingAllowed(coholdConfig)) {
-      return NextResponse.json(
-        { success: false, error: "Wallet mode setup is incomplete; state changes are disabled" },
-        { status: 503 }
-      );
+    const denied = demoMutationDenied(coholdConfig);
+    if (denied) {
+      return NextResponse.json(denied, { status: 403 });
     }
     const { id: proposalId } = await props.params;
     const body = await req.json();
@@ -109,7 +107,7 @@ export async function POST(
     }
 
     const newBalance = (currentBalance - proposalAmount).toString();
-    const executionTxHash = generateStellarTxHash();
+    const { txHash: executionTxHash } = syntheticDemoSuccess();
     const now = new Date();
 
     // Deduct treasury balance

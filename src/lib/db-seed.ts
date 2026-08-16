@@ -9,7 +9,7 @@ import {
 } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { generateContractAddress, generateStellarTxHash } from "./utils";
-import { DEFAULT_PERSONAS } from "./personas";
+import { DEMO_PERSONAS } from "./demo-adapter";
 
 export async function ensureDatabaseSeeded() {
   try {
@@ -18,12 +18,12 @@ export async function ensureDatabaseSeeded() {
       return; // Already seeded
     }
 
-    const maria = DEFAULT_PERSONAS[0]; // President
-    const juan = DEFAULT_PERSONAS[1]; // Treasurer
-    const chloe = DEFAULT_PERSONAS[2]; // Secretary
-    const daniel = DEFAULT_PERSONAS[3]; // Auditor
-    const alex = DEFAULT_PERSONAS[4]; // Lead Partner
-    const samira = DEFAULT_PERSONAS[5]; // CFO
+    const maria = DEMO_PERSONAS[0]; // President
+    const juan = DEMO_PERSONAS[1]; // Treasurer
+    const chloe = DEMO_PERSONAS[2]; // Secretary
+    const daniel = DEMO_PERSONAS[3]; // Auditor
+    const alex = DEMO_PERSONAS[4]; // Lead Partner
+    const samira = DEMO_PERSONAS[5]; // CFO
 
     // 1. IT Society Event Fund (PRD Section 26 Demo Treasury)
     const itSocietyId = "tr-it-society-event-fund";
@@ -513,7 +513,7 @@ export async function ensureDatabaseSeeded() {
     // 4 approvals on Solar project (needs 1 more!)
     const approvers = [samira.address, maria.address, juan.address, alex.address];
     for (let i = 0; i < approvers.length; i++) {
-      const p = DEFAULT_PERSONAS.find((x) => x.address === approvers[i]);
+      const p = DEMO_PERSONAS.find((x) => x.address === approvers[i]);
       await db.insert(proposalApprovals).values({
         id: `app-comm-${i + 1}`,
         proposalId: commPropId,
