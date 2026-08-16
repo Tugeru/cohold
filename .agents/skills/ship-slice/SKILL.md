@@ -2,7 +2,6 @@
 name: ship-slice
 description: Ship one vertical slice — a GitHub issue cutting a parent spec into a mergeable increment — from ticket to merged main.
 argument-hint: "Which issue/ticket number is the slice?"
-disable-model-invocation: true
 ---
 
 # Ship Slice
@@ -11,9 +10,9 @@ Ship one vertical slice from ticket to merged `main`: orient, cut the branch, bu
 
 ## 1. Orient the slice
 
-- `gh issue view <N>` for the ticket, then its parent issue. The ticket's acceptance criteria are the contract; the parent's vertical-slice plan names what belongs to later slices.
-- Read the OpenSpec change the ticket points at (`openspec/changes/<name>/`): `tasks.md` for the slice's task and commit hints, `specs/` for capability specs.
-- Confirm every `Blocked by` issue is closed. Stop and hand back if not. If this ticket itself has open sub-issues, it is a parent — stop and point at `/slice-relay`.
+- `gh issue view <N>` for the open ticket, then resolve its parent issue. Confirm every `Blocked by` issue is closed; stop and hand back if not. If this ticket itself has open sub-issues, it is a parent — stop and point at `/slice-relay`.
+- Before mapping files or creating a branch, run [slice-relay's lease audit](../slice-relay/SURVEY.md#claims). `owned` proceeds. `held` names the verified owner and stops before Git work. `claimable` acquires the current worktree's lease through the shared procedure, then proceeds only after it returns `owned`. `unverifiable` or a lookup failure stops with the affected evidence.
+- The ticket's acceptance criteria are the contract; the parent's vertical-slice plan names what belongs to later slices. Read the OpenSpec change the ticket points at (`openspec/changes/<name>/`): `tasks.md` for the slice's task and commit hints, `specs/` for capability specs.
 - Map every acceptance criterion to the files that will implement it.
 
 Done when: every acceptance criterion has an owning change, and every deliberately deferred item is named with the ticket that owns it.
@@ -35,7 +34,7 @@ Done when: focused tests pass and changed files are typecheck and lint clean.
 
 ## 4. Run the review loop
 
-- `/code-review` against `origin/main`; it runs Standards and Spec as parallel read-only subagents.
+- **Mandatory:** invoke `/code-review` with its code-reviewer subagents against `origin/main`; the primary workflow must not substitute a self-review. It runs Standards and Spec as parallel read-only subagents.
 - Accept or reject every finding. Accepted findings get fixed. Rejected ones must be out-of-slice per the parent's plan — record the rationale now; it ships in the PR body.
 - Material changes restart the loop. Repeat until a round reports no accepted findings.
 
@@ -53,6 +52,7 @@ Done when: every command passes and migration preflight counts are recorded for 
 ## 6. Ship
 
 - Commit the logical groups from step 3 with conventional messages (`/git-commit`).
+- Before pushing: `git fetch origin`; if the branch is behind `origin/main` (`git rev-list --count HEAD..origin/main` > 0), rebase onto it: `git rebase origin/main`, resolve conflicts as they arise, then re-run step 5's verification. Push only when the branch contains the current `origin/main`.
 - Push; open the PR with `Closes #<N>` and a body recording the review loop, deferred findings, and verification evidence.
 - Poll `gh pr checks` until green; resolve every review comment, bot and human, before merging.
 - Merge to `main`; leave the parent issue untouched. If this session is a slice-relay, return to it. Otherwise name the parent's remaining open unblocked children and stop.
