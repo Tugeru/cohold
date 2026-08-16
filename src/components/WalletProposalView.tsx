@@ -16,6 +16,7 @@ import { useWallet } from "@/context/WalletContext";
 import { WalletSetupState } from "@/components/WalletSetupState";
 import { NotFoundStatus } from "@/components/ResourceStatus";
 import { OverviewSkeleton } from "@/components/Skeletons";
+import { WalletApproveDialog } from "@/components/WalletProposalDialogs";
 import {
   WalletApprovalRail,
   WalletApprovalChip,
@@ -29,6 +30,7 @@ import {
   User,
   Send,
   CalendarClock,
+  BadgeCheck,
 } from "lucide-react";
 
 type ProposalDetailState =
@@ -48,10 +50,11 @@ export function WalletProposalView({ id }: { id: string }) {
     () => resolveWalletProposalTreasury(config, treasuryParam),
     [config, treasuryParam],
   );
-  const { freighterAddress } = useWallet();
+  const { freighterAddress, canPerformStateChange, walletActionBlockReason } = useWallet();
   const rpc = useMemo(() => stellarCoholdRpc(), []);
   const [state, setState] = useState<ProposalDetailState>({ status: "loading" });
   const [loadKey, setLoadKey] = useState(0);
+  const [isApproveOpen, setIsApproveOpen] = useState(false);
 
   const refresh = useCallback(() => setLoadKey((key) => key + 1), []);
   const validId = PROPOSAL_ID_PATTERN.test(id) && Number.isSafeInteger(Number(id));
@@ -122,6 +125,34 @@ export function WalletProposalView({ id }: { id: string }) {
   const displayAmount = proposal.tokenSymbol
     ? formatBaseAmount(proposal.amount, proposal.tokenDecimals ?? 7, proposal.tokenSymbol)
     : `${proposal.amount} base units`;
+  const walletAddress = freighterAddress?.toUpperCase() ?? null;
+  const isMember = Boolean(
+    walletAddress && treasury.membersAuthoritative && treasury.members.includes(walletAddress),
+  );
+  const canApprove =
+    isMember &&
+    proposal.currentUserApproval === "not-approved" &&
+    proposal.status === "pending" &&
+    canPerformStateChange;
+  let approveBlockReason: string | null = null;
+  if (proposal.status !== "pending") {
+    approveBlockReason = "This proposal is no longer pending — it cannot receive more approvals.";
+  } else if (proposal.currentUserApproval === "approved") {
+    approveBlockReason = "You already approved this proposal. Each member can approve once.";
+  } else if (!walletAddress) {
+    approveBlockReason = "Connect Freighter on Stellar Testnet to approve this proposal.";
+  } else if (!canPerformStateChange) {
+    approveBlockReason =
+      walletActionBlockReason ?? "Connect Freighter on Stellar Testnet to approve this proposal.";
+  } else if (!treasury.membersAuthoritative) {
+    approveBlockReason =
+      "Membership could not be verified from the chain — connect Freighter and retry.";
+  } else if (!isMember) {
+    approveBlockReason = "Only members of this treasury can approve proposals.";
+  } else if (proposal.currentUserApproval === "unknown") {
+    approveBlockReason =
+      "Your approval status could not be verified on Testnet — refresh from chain and try again.";
+  }
 
   return (
     <div className="space-y-6">
@@ -233,11 +264,48 @@ export function WalletProposalView({ id }: { id: string }) {
         </dl>
       </div>
 
+      <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold text-slate-200">Approve this proposal</h2>
+            <p className="mt-1 text-xs text-slate-500">
+              {proposal.status === "pending"
+                ? "Your signature counts toward the treasury threshold."
+                : "Approvals are closed for this proposal."}
+            </p>
+            {approveBlockReason && (
+              <p className="mt-2 flex items-start gap-1.5 text-xs text-amber-300/90">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                {approveBlockReason}
+              </p>
+            )}
+          </div>
+          <button
+            onClick={() => setIsApproveOpen(true)}
+            disabled={!canApprove}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-800 disabled:text-slate-500"
+          >
+            <BadgeCheck className="h-3.5 w-3.5" />
+            Approve proposal
+          </button>
+        </div>
+      </div>
+
       {freighterAddress && (
         <p className="text-xs text-slate-500">
           Reads use the connected wallet ({freighterAddress.slice(0, 10)}…) for your approval
           status. Amount, recipient, proposer, and approvals always come from the contract.
         </p>
+      )}
+
+      {isApproveOpen && (
+        <WalletApproveDialog
+          proposal={proposal}
+          treasury={treasury}
+          rpc={rpc}
+          onClose={() => setIsApproveOpen(false)}
+          onConfirmed={refresh}
+        />
       )}
     </div>
   );

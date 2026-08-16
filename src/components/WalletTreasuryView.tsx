@@ -16,6 +16,7 @@ import { WalletSetupState } from "@/components/WalletSetupState";
 import { NotFoundStatus } from "@/components/ResourceStatus";
 import { OverviewSkeleton } from "@/components/Skeletons";
 import { WalletContributeDialog } from "@/components/WalletContributeDialog";
+import { WalletCreateProposalDialog } from "@/components/WalletProposalDialogs";
 import {
   WalletApprovalRail,
   WalletApprovalChip,
@@ -51,6 +52,7 @@ export function WalletTreasuryView({ id }: { id: string }) {
   const [state, setState] = useState<TreasuryDetailState>({ status: "loading" });
   const [loadKey, setLoadKey] = useState(0);
   const [isContributeOpen, setIsContributeOpen] = useState(false);
+  const [isCreateProposalOpen, setIsCreateProposalOpen] = useState(false);
 
   const refresh = useCallback(() => setLoadKey((key) => key + 1), []);
 
@@ -147,6 +149,7 @@ export function WalletTreasuryView({ id }: { id: string }) {
     walletAddress && view.membersAuthoritative && view.members.includes(walletAddress),
   );
   const canContribute = isMember && canPerformStateChange;
+  const canPropose = isMember && canPerformStateChange;
   const addFundsTooltip = !walletAddress
     ? "Connect Freighter to add funds."
     : !canPerformStateChange
@@ -156,6 +159,15 @@ export function WalletTreasuryView({ id }: { id: string }) {
         : isMember
           ? undefined
           : "Only members can add funds to this treasury.";
+  const proposeTooltip = !walletAddress
+    ? "Connect Freighter to create proposals."
+    : !canPerformStateChange
+      ? (walletActionBlockReason ?? "Connect Freighter to create proposals.")
+      : !view.membersAuthoritative
+        ? "Member list unavailable — connect Freighter to verify membership."
+        : isMember
+          ? undefined
+          : "Only members can create proposals in this treasury.";
   const balanceLabel =
     view.balance === null
       ? "Unavailable"
@@ -194,6 +206,16 @@ export function WalletTreasuryView({ id }: { id: string }) {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsCreateProposalOpen(true)}
+            disabled={!canPropose}
+            title={proposeTooltip}
+            aria-disabled={!canPropose}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-200 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:text-slate-500"
+          >
+            <FileSpreadsheet className="h-3.5 w-3.5" />
+            New proposal
+          </button>
           <button
             onClick={() => setIsContributeOpen(true)}
             disabled={!canContribute}
@@ -353,6 +375,14 @@ export function WalletTreasuryView({ id }: { id: string }) {
           treasury={view}
           rpc={rpc}
           onClose={() => setIsContributeOpen(false)}
+          onConfirmed={refresh}
+        />
+      )}
+      {isCreateProposalOpen && (
+        <WalletCreateProposalDialog
+          treasury={view}
+          rpc={rpc}
+          onClose={() => setIsCreateProposalOpen(false)}
           onConfirmed={refresh}
         />
       )}

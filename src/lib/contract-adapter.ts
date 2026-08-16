@@ -1,5 +1,6 @@
 import * as StellarSdk from "@stellar/stellar-sdk";
 import { contract } from "@stellar/stellar-sdk";
+import { Err, Ok } from "@stellar/stellar-sdk/contract";
 import {
   STELLAR_TESTNET_NETWORK_PASSPHRASE,
   STELLAR_TESTNET_RPC_URL,
@@ -153,6 +154,18 @@ function toBigInt(value: unknown): bigint | null {
     return BigInt(value.trim());
   }
   return null;
+}
+
+/**
+ * The SDK wraps Result-typed contract returns in Ok/Err instances: a
+ * contract rejection (Err) is a successful simulation carrying a value,
+ * not a thrown host error. Unwrap Ok and null Err so the normalizers see
+ * raw values and a rejection reads as "absent".
+ */
+function unwrapResultValue(value: unknown): unknown {
+  if (value instanceof Ok) return value.unwrap();
+  if (value instanceof Err) return null;
+  return value;
 }
 
 /**
@@ -597,7 +610,9 @@ export function stellarCoholdRpc(
       try {
         const client = await coholdClient(contractId);
         const tx = await client.get_config();
-        return normalizeTreasuryConfigResult(tx.result);
+        const result = unwrapResultValue(tx.result);
+        if (result === null) return null;
+        return normalizeTreasuryConfigResult(result);
       } catch {
         return null;
       }
@@ -639,7 +654,9 @@ export function stellarCoholdRpc(
       try {
         const client = await coholdClient(contractId);
         const tx = await client.get_proposal({ proposal_id: BigInt(proposalId) });
-        return normalizeProposalResult(tx.result);
+        const result = unwrapResultValue(tx.result);
+        if (result === null) return null;
+        return normalizeProposalResult(result);
       } catch {
         return null;
       }

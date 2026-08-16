@@ -225,7 +225,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       ? "Connect Freighter before changing state."
       : !isWalletNetworkAllowed
       ? "Switch Freighter to Stellar Testnet before signing."
-      : "Wallet-mode state changes require the on-chain transaction path.";
+      : null;
 
   return (
     <WalletContext.Provider
