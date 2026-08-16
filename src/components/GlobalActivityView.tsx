@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import { formatAddress, formatDate, timeAgo } from "@/lib/utils";
 import { getStellarExpertUrl } from "@/lib/stellar";
 import {
@@ -33,7 +33,7 @@ export function GlobalActivityView() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "contributions" | "proposals" | "approvals" | "payments">("all");
 
-  const fetchActivity = async () => {
+  const fetchActivity = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch(`/api/activity?action=${filter}`);
@@ -46,11 +46,14 @@ export function GlobalActivityView() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter]);
 
   useEffect(() => {
-    fetchActivity();
-  }, [filter]);
+    const timer = window.setTimeout(() => {
+      void fetchActivity();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchActivity]);
 
   const getActionBadge = (action: string) => {
     switch (action) {

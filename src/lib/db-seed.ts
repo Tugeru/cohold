@@ -7,23 +7,25 @@ import {
   contributions,
   auditLogs,
 } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { generateContractAddress, generateStellarTxHash } from "./utils";
-import { DEFAULT_PERSONAS } from "./personas";
+import { generateContractAddress } from "./utils";
+import { DEMO_PERSONAS, syntheticDemoSuccess } from "./demo-adapter";
+import { coholdConfig, isStateChangingAllowed } from "./cohold-config";
 
 export async function ensureDatabaseSeeded() {
+  if (!isStateChangingAllowed(coholdConfig)) return;
+
   try {
     const existing = await db.select().from(treasuries).limit(1);
     if (existing.length > 0) {
       return; // Already seeded
     }
 
-    const maria = DEFAULT_PERSONAS[0]; // President
-    const juan = DEFAULT_PERSONAS[1]; // Treasurer
-    const chloe = DEFAULT_PERSONAS[2]; // Secretary
-    const daniel = DEFAULT_PERSONAS[3]; // Auditor
-    const alex = DEFAULT_PERSONAS[4]; // Lead Partner
-    const samira = DEFAULT_PERSONAS[5]; // CFO
+    const maria = DEMO_PERSONAS[0]; // President
+    const juan = DEMO_PERSONAS[1]; // Treasurer
+    const chloe = DEMO_PERSONAS[2]; // Secretary
+    const daniel = DEMO_PERSONAS[3]; // Auditor
+    const alex = DEMO_PERSONAS[4]; // Lead Partner
+    const samira = DEMO_PERSONAS[5]; // CFO
 
     // 1. IT Society Event Fund (PRD Section 26 Demo Treasury)
     const itSocietyId = "tr-it-society-event-fund";
@@ -98,7 +100,7 @@ export async function ensureDatabaseSeeded() {
         memberLabel: "Juan Dela Cruz (Treasurer)",
         amount: "5000",
         note: "Q1 Organization Semester Dues Collection",
-        txHash: generateStellarTxHash(),
+        txHash: syntheticDemoSuccess().txHash,
         createdAt: new Date(Date.now() - 6 * 86400000),
       },
       {
@@ -108,7 +110,7 @@ export async function ensureDatabaseSeeded() {
         memberLabel: "Maria Santos (President)",
         amount: "5000",
         note: "Sponsorship Grant Contribution",
-        txHash: generateStellarTxHash(),
+        txHash: syntheticDemoSuccess().txHash,
         createdAt: new Date(Date.now() - 5 * 86400000),
       },
     ]);
@@ -142,8 +144,8 @@ export async function ensureDatabaseSeeded() {
         treasuryId: itSocietyId,
         approverAddress: juan.address,
         approverLabel: "Juan Dela Cruz (Treasurer)",
-        signature: "sig_ed25519_juan_soroban_auth_pass",
-        txHash: generateStellarTxHash(),
+        signature: "demo-synthetic",
+        txHash: syntheticDemoSuccess().txHash,
         createdAt: new Date(Date.now() - 2 * 86400000),
       },
       {
@@ -152,8 +154,8 @@ export async function ensureDatabaseSeeded() {
         treasuryId: itSocietyId,
         approverAddress: maria.address,
         approverLabel: "Maria Santos (President)",
-        signature: "sig_ed25519_maria_soroban_auth_pass",
-        txHash: generateStellarTxHash(),
+        signature: "demo-synthetic",
+        txHash: syntheticDemoSuccess().txHash,
         createdAt: new Date(Date.now() - 1 * 86400000),
       },
     ]);
@@ -186,15 +188,15 @@ export async function ensureDatabaseSeeded() {
         treasuryId: itSocietyId,
         approverAddress: chloe.address,
         approverLabel: "Chloe Lim (Secretary)",
-        signature: "sig_ed25519_chloe_soroban_auth_pass",
-        txHash: generateStellarTxHash(),
+        signature: "demo-synthetic",
+        txHash: syntheticDemoSuccess().txHash,
         createdAt: new Date(Date.now() - 12 * 3600000),
       },
     ]);
 
     // Proposal 3: Guest Speaker Honorarium (Already Executed)
     const speakerPropId = "prop-speaker-honorarium-1200";
-    const execTx = generateStellarTxHash();
+    const execTx = syntheticDemoSuccess().txHash;
     await db.insert(proposals).values({
       id: speakerPropId,
       treasuryId: itSocietyId,
@@ -224,8 +226,8 @@ export async function ensureDatabaseSeeded() {
         treasuryId: itSocietyId,
         approverAddress: maria.address,
         approverLabel: "Maria Santos (President)",
-        signature: "sig_maria_1",
-        txHash: generateStellarTxHash(),
+        signature: "demo-synthetic",
+        txHash: syntheticDemoSuccess().txHash,
         createdAt: new Date(Date.now() - 4 * 86400000),
       },
       {
@@ -234,8 +236,8 @@ export async function ensureDatabaseSeeded() {
         treasuryId: itSocietyId,
         approverAddress: juan.address,
         approverLabel: "Juan Dela Cruz (Treasurer)",
-        signature: "sig_juan_1",
-        txHash: generateStellarTxHash(),
+        signature: "demo-synthetic",
+        txHash: syntheticDemoSuccess().txHash,
         createdAt: new Date(Date.now() - 4 * 86400000),
       },
       {
@@ -244,8 +246,8 @@ export async function ensureDatabaseSeeded() {
         treasuryId: itSocietyId,
         approverAddress: daniel.address,
         approverLabel: "Daniel Tan (Auditor)",
-        signature: "sig_daniel_1",
-        txHash: generateStellarTxHash(),
+        signature: "demo-synthetic",
+        txHash: syntheticDemoSuccess().txHash,
         createdAt: new Date(Date.now() - 3 * 86400000),
       },
     ]);
@@ -263,7 +265,7 @@ export async function ensureDatabaseSeeded() {
           members: 4,
           contract: itSocietyContract,
         }),
-        txHash: generateStellarTxHash(),
+        txHash: syntheticDemoSuccess().txHash,
         createdAt: new Date(Date.now() - 7 * 86400000),
       },
       {
@@ -273,7 +275,7 @@ export async function ensureDatabaseSeeded() {
         actorAddress: juan.address,
         actorLabel: "Juan Dela Cruz (Treasurer)",
         details: JSON.stringify({ amount: "5000", newBalance: "5000" }),
-        txHash: generateStellarTxHash(),
+        txHash: syntheticDemoSuccess().txHash,
         createdAt: new Date(Date.now() - 6 * 86400000),
       },
       {
@@ -283,7 +285,7 @@ export async function ensureDatabaseSeeded() {
         actorAddress: maria.address,
         actorLabel: "Maria Santos (President)",
         details: JSON.stringify({ amount: "5000", newBalance: "10000" }),
-        txHash: generateStellarTxHash(),
+        txHash: syntheticDemoSuccess().txHash,
         createdAt: new Date(Date.now() - 5 * 86400000),
       },
       {
@@ -297,7 +299,7 @@ export async function ensureDatabaseSeeded() {
           title: "Grand Hall Venue Deposit",
           amount: "4500",
         }),
-        txHash: generateStellarTxHash(),
+        txHash: syntheticDemoSuccess().txHash,
         createdAt: new Date(Date.now() - 2 * 86400000),
       },
       {
@@ -311,7 +313,7 @@ export async function ensureDatabaseSeeded() {
           approvalCount: 2,
           threshold: 3,
         }),
-        txHash: generateStellarTxHash(),
+        txHash: syntheticDemoSuccess().txHash,
         createdAt: new Date(Date.now() - 1 * 86400000),
       },
     ]);
@@ -377,7 +379,7 @@ export async function ensureDatabaseSeeded() {
         memberLabel: "Alex Rivera (Lead Partner)",
         amount: "15000",
         note: "Partner Capital Contribution A",
-        txHash: generateStellarTxHash(),
+        txHash: syntheticDemoSuccess().txHash,
         createdAt: new Date(Date.now() - 13 * 86400000),
       },
       {
@@ -387,7 +389,7 @@ export async function ensureDatabaseSeeded() {
         memberLabel: "Samira Patel (CFO Partner)",
         amount: "9500",
         note: "Partner Capital Contribution B",
-        txHash: generateStellarTxHash(),
+        txHash: syntheticDemoSuccess().txHash,
         createdAt: new Date(Date.now() - 12 * 86400000),
       },
     ]);
@@ -420,8 +422,8 @@ export async function ensureDatabaseSeeded() {
         treasuryId: nexusId,
         approverAddress: alex.address,
         approverLabel: "Alex Rivera (Lead Partner)",
-        signature: "sig_alex_1",
-        txHash: generateStellarTxHash(),
+        signature: "demo-synthetic",
+        txHash: syntheticDemoSuccess().txHash,
         createdAt: new Date(Date.now() - 1 * 86400000),
       },
     ]);
@@ -485,7 +487,7 @@ export async function ensureDatabaseSeeded() {
         memberLabel: "Maria Santos (Chair)",
         amount: "85000",
         note: "Community matching grant & resident collections",
-        txHash: generateStellarTxHash(),
+        txHash: syntheticDemoSuccess().txHash,
         createdAt: new Date(Date.now() - 19 * 86400000),
       },
     ]);
@@ -513,15 +515,15 @@ export async function ensureDatabaseSeeded() {
     // 4 approvals on Solar project (needs 1 more!)
     const approvers = [samira.address, maria.address, juan.address, alex.address];
     for (let i = 0; i < approvers.length; i++) {
-      const p = DEFAULT_PERSONAS.find((x) => x.address === approvers[i]);
+      const p = DEMO_PERSONAS.find((x) => x.address === approvers[i]);
       await db.insert(proposalApprovals).values({
         id: `app-comm-${i + 1}`,
         proposalId: commPropId,
         treasuryId: commId,
         approverAddress: approvers[i],
         approverLabel: p ? `${p.role} (${p.name})` : "Committee Member",
-        signature: `sig_comm_${i + 1}`,
-        txHash: generateStellarTxHash(),
+        signature: "demo-synthetic",
+        txHash: syntheticDemoSuccess().txHash,
         createdAt: new Date(Date.now() - (3 - i * 0.5) * 86400000),
       });
     }

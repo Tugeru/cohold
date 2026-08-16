@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useWallet } from "@/context/WalletContext";
 import { Treasury, TreasuryMember } from "@/types";
+import { parseBaseUnits } from "@/lib/money";
 import {
   X,
   Coins,
@@ -25,7 +26,7 @@ export function ContributeModal({
   treasury,
   onSuccess,
 }: ContributeModalProps) {
-  const { activePersona } = useWallet();
+  const { activePersona, canPerformStateChange, walletActionBlockReason } = useWallet();
   const [amount, setAmount] = useState("1000");
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(false);
@@ -43,9 +44,11 @@ export function ContributeModal({
     e.preventDefault();
     setError(null);
 
-    const numAmount = parseFloat(amount);
-    if (isNaN(numAmount) || numAmount <= 0) {
-      setError("Please enter an amount greater than zero (FR-2).");
+    let amountUnits: bigint;
+    try {
+      amountUnits = parseBaseUnits(amount);
+    } catch {
+      setError("Please enter a positive integer base-unit amount (FR-2).");
       return;
     }
 
@@ -53,6 +56,11 @@ export function ContributeModal({
       setError(
         `Address ${activePersona.name} (${activePersona.role}) is not an authorized member of this treasury. Only members may deposit funds in MVP.`
       );
+      return;
+    }
+
+    if (!canPerformStateChange) {
+      setError(walletActionBlockReason || "Wallet action is blocked.");
       return;
     }
 
@@ -64,7 +72,7 @@ export function ContributeModal({
         body: JSON.stringify({
           memberAddress: activePersona.address,
           memberLabel: `${activePersona.name} (${activePersona.role})`,
-          amount: numAmount.toString(),
+          amount: amountUnits.toString(),
           note: note.trim(),
         }),
       });
@@ -141,12 +149,12 @@ export function ContributeModal({
             </label>
             <div className="relative">
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="1000"
                 min="1"
-                step="any"
                 className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2.5 text-base font-mono text-white placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
               />
               <div className="absolute right-3.5 top-2.5 text-xs font-bold text-slate-400">

@@ -269,7 +269,7 @@ export function TreasuryList({
                       Contract Balance
                     </div>
                     <div className="text-lg font-bold font-mono text-emerald-400">
-                      {parseFloat(t.balance).toLocaleString()} {t.tokenSymbol}
+                      {formatAmount(t.balance, t.tokenSymbol)}
                     </div>
                   </div>
                   <div className="text-right">

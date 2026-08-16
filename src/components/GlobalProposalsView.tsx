@@ -35,7 +35,11 @@ export function GlobalProposalsView({
   onSelectTreasury,
   onRefresh,
 }: GlobalProposalsViewProps) {
-  const { activePersona } = useWallet();
+  const {
+    activePersona,
+    canPerformStateChange,
+    walletActionBlockReason,
+  } = useWallet();
   const [activeFilter, setActiveFilter] = useState<
     "needs_my_approval" | "pending" | "approved" | "executed" | "all"
   >("needs_my_approval");
@@ -53,6 +57,16 @@ export function GlobalProposalsView({
   const showToast = (type: "success" | "error", title: string, text: string) => {
     setToastMessage({ type, title, text });
     setTimeout(() => setToastMessage(null), 6000);
+  };
+
+  const walletActionAllowed = () => {
+    if (canPerformStateChange) return true;
+    showToast(
+      "error",
+      "Wallet action blocked",
+      walletActionBlockReason || "Wallet action is blocked."
+    );
+    return false;
   };
 
   // Filter proposals
@@ -73,6 +87,7 @@ export function GlobalProposalsView({
 
   // Handle Approve
   const handleApprove = async (p: Proposal) => {
+    if (!walletActionAllowed()) return;
     setActionLoading(`approve-${p.id}`);
     try {
       const res = await fetch(`/api/proposals/${p.id}/approve`, {
@@ -114,6 +129,7 @@ export function GlobalProposalsView({
   // Handle Execute Confirm
   const handleExecuteConfirmed = async () => {
     if (!executingProposal) return;
+    if (!walletActionAllowed()) return;
     const { proposal, treasury } = executingProposal;
     setActionLoading(`execute-${proposal.id}`);
     try {
@@ -147,6 +163,7 @@ export function GlobalProposalsView({
   };
 
   const openExecutionDialog = (p: Proposal) => {
+    if (!walletActionAllowed()) return;
     const t = treasuries.find((item) => item.id === p.treasuryId);
     if (!t) {
       showToast("error", "Treasury Error", "Treasury details not found");

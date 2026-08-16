@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import { useWallet } from "@/context/WalletContext";
 import { Treasury } from "@/types";
 import { isValidStellarAddress } from "@/lib/stellar";
+import { parseBaseUnits } from "@/lib/money";
+import { formatAmount } from "@/lib/utils";
 import {
   X,
   FileSpreadsheet,
@@ -28,7 +30,7 @@ export function CreateProposalModal({
   treasury,
   onSuccess,
 }: CreateProposalModalProps) {
-  const { activePersona } = useWallet();
+  const { activePersona, canPerformStateChange, walletActionBlockReason } = useWallet();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -74,9 +76,11 @@ export function CreateProposalModal({
       return;
     }
 
-    const numAmount = parseFloat(amount);
-    if (isNaN(numAmount) || numAmount <= 0) {
-      setError("Amount must be greater than zero (FR-3).");
+    let amountUnits: bigint;
+    try {
+      amountUnits = parseBaseUnits(amount);
+    } catch {
+      setError("Amount must be a positive integer base-unit value (FR-3).");
       return;
     }
 
@@ -90,6 +94,11 @@ export function CreateProposalModal({
       return;
     }
 
+    if (!canPerformStateChange) {
+      setError(walletActionBlockReason || "Wallet action is blocked.");
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch(`/api/treasuries/${treasury.id}/proposals`, {
@@ -99,7 +108,7 @@ export function CreateProposalModal({
           title: title.trim(),
           description: description.trim(),
           category,
-          amount: numAmount.toString(),
+          amount: amountUnits.toString(),
           proposerAddress: activePersona.address,
           proposerLabel: `${activePersona.name} (${activePersona.role})`,
           recipientAddress: recipientAddress.trim().toUpperCase(),
@@ -241,16 +250,16 @@ export function CreateProposalModal({
                 Requested Amount ({treasury.tokenSymbol}) *
               </label>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="4500"
                 min="1"
-                step="any"
                 className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2 text-sm text-white font-mono focus:border-emerald-500 focus:outline-none"
               />
               <div className="text-[10px] text-slate-400 mt-1">
-                Available treasury balance: {parseFloat(treasury.balance).toLocaleString()} {treasury.tokenSymbol}
+                Available treasury balance: {formatAmount(treasury.balance, treasury.tokenSymbol)}
               </div>
             </div>
 

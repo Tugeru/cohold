@@ -2,10 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import {
   treasuries,
+  treasuryMembers,
   proposals,
   auditLogs,
 } from "@/db/schema";
-import { generateStellarTxHash } from "@/lib/utils";
+import { parseBaseUnits, parseNonNegativeBaseUnits } from "@/lib/money";
+import { coholdConfig } from "@/lib/cohold-config";
+import {
+  demoMutationDenied,
+  resolveDemoActor,
+  syntheticDemoSuccess,
+} from "@/lib/demo-adapter";
 import { eq } from "drizzle-orm";
 
 export async function POST(
@@ -13,9 +20,13 @@ export async function POST(
   props: { params: Promise<{ id: string }> }
 ) {
   try {
+    const denied = demoMutationDenied(coholdConfig);
+    if (denied) {
+      return NextResponse.json(denied, { status: 403 });
+    }
     const { id: proposalId } = await props.params;
     const body = await req.json();
-    const { executorAddress = "GD7VXZK2PZ4O4NKL66S5YEM53H7M2T4YV77LQO7JEQN2J3QZ5XG6P4RD", executorLabel = "Signer" } = body;
+    const { executorAddress, executorLabel } = body;
 
     // Fetch proposal
     const pList = await db
@@ -32,6 +43,52 @@ export async function POST(
     }
 
     const proposal = pList[0];
+
+    // Demo execution still requires the caller to be a treasury member. The
+    // request body identifies the simulated actor but never authorizes one.
+    const tList = await db
+      .select()
+      .from(treasuries)
+      .where(eq(treasuries.id, proposal.treasuryId))
+      .limit(1);
+
+    if (tList.length === 0) {
+      return NextResponse.json(
+        { success: false, error: "Treasury not found" },
+        { status: 404 }
+      );
+    }
+
+    const treasury = tList[0];
+    const members = await db
+      .select()
+      .from(treasuryMembers)
+      .where(eq(treasuryMembers.treasuryId, proposal.treasuryId));
+    const actor = resolveDemoActor({
+      actorAddress: executorAddress,
+      label: executorLabel,
+      members: members.map((row) => row.address),
+    });
+
+    if (!actor.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Address ${executorAddress ?? "unknown"} is not an authorized member of this treasury.`,
+        },
+        { status: 403 }
+      );
+    }
+
+    const member = members.find(
+      (row) => row.address.toUpperCase() === actor.actorAddress
+    );
+    if (!member) {
+      return NextResponse.json(
+        { success: false, error: "Executor is not an authorized member of this treasury." },
+        { status: 403 }
+      );
+    }
 
     // Invariant 5: Prevent Double Execution
     if (proposal.status === "executed") {
@@ -62,23 +119,17 @@ export async function POST(
       );
     }
 
-    // Fetch treasury
-    const tList = await db
-      .select()
-      .from(treasuries)
-      .where(eq(treasuries.id, proposal.treasuryId))
-      .limit(1);
-
-    if (tList.length === 0) {
+    let currentBalance: bigint;
+    let proposalAmount: bigint;
+    try {
+      currentBalance = parseNonNegativeBaseUnits(treasury.balance);
+      proposalAmount = parseBaseUnits(proposal.amount);
+    } catch {
       return NextResponse.json(
-        { success: false, error: "Treasury not found" },
-        { status: 404 }
+        { success: false, error: "Treasury or proposal amount is not a valid base-unit value" },
+        { status: 500 }
       );
     }
-
-    const treasury = tList[0];
-    const currentBalance = parseFloat(treasury.balance) || 0;
-    const proposalAmount = parseFloat(proposal.amount) || 0;
 
     // Invariant 6: Solvency & Asset Conservation
     if (currentBalance < proposalAmount) {
@@ -92,7 +143,7 @@ export async function POST(
     }
 
     const newBalance = (currentBalance - proposalAmount).toString();
-    const executionTxHash = generateStellarTxHash();
+    const { txHash: executionTxHash } = syntheticDemoSuccess();
     const now = new Date();
 
     // Deduct treasury balance
@@ -110,7 +161,7 @@ export async function POST(
       .set({
         status: "executed",
         executedAt: now,
-        executedBy: executorAddress,
+        executedBy: actor.actorAddress,
         executionTxHash,
         updatedAt: now,
       })
@@ -121,8 +172,8 @@ export async function POST(
       id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       treasuryId: treasury.id,
       action: "PAYMENT_EXECUTED",
-      actorAddress: executorAddress,
-      actorLabel: executorLabel,
+      actorAddress: actor.actorAddress,
+      actorLabel: executorLabel || member.label || "Member",
       details: JSON.stringify({
         proposalId,
         title: proposal.title,

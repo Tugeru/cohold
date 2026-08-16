@@ -95,6 +95,8 @@ The recipient does not need to be a treasury member.
 ```text
 User
  ↓
+
+=======
 Next.js App Router
  ↓
 Freighter Wallet
@@ -177,6 +179,7 @@ Responsible for:
 - Stellar Testnet
 - Stellar RPC endpoint
 - deployed Cohold contract (wallet mode)
+
 - configured Testnet asset/token contract
 
 ---
@@ -193,6 +196,7 @@ The MVP shall use the following fixed constraints:
 - Approval threshold is immutable after treasury creation
 - All members have equal voting weight
 - Creating a proposal counts as the proposer's approval
+
 - Approved proposals may be executed permissionlessly
 - Individual contribution withdrawal is not supported
 - Treasury funds may move only through approved proposals

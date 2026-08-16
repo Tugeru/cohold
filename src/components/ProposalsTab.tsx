@@ -34,7 +34,11 @@ export function ProposalsTab({
   onRefresh,
   onCreateProposal,
 }: ProposalsTabProps) {
-  const { activePersona } = useWallet();
+  const {
+    activePersona,
+    canPerformStateChange,
+    walletActionBlockReason,
+  } = useWallet();
   const [filter, setFilter] = useState<"all" | "pending" | "approved" | "executed">("all");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<{
@@ -66,8 +70,19 @@ export function ProposalsTab({
     }, 6000);
   };
 
+  const walletActionAllowed = () => {
+    if (canPerformStateChange) return true;
+    showToast(
+      "error",
+      "Wallet action blocked",
+      walletActionBlockReason || "Wallet action is blocked."
+    );
+    return false;
+  };
+
   // 1. Handle Approve Proposal (FR-4, FR-5)
   const handleApprove = async (proposal: Proposal) => {
+    if (!walletActionAllowed()) return;
     if (!isMember) {
       showToast(
         "error",
@@ -118,6 +133,7 @@ export function ProposalsTab({
 
   // 2. Handle Execute Proposal (FR-6, FR-7)
   const handleExecute = async (proposal: Proposal) => {
+    if (!walletActionAllowed()) return;
     setActionLoading(`execute-${proposal.id}`);
     try {
       const res = await fetch(`/api/proposals/${proposal.id}/execute`, {
@@ -151,6 +167,7 @@ export function ProposalsTab({
 
   // 3. Attempt Premature Execution (Demonstrates Soroban Invariant 3 Rejection)
   const handleAttemptPrematureExecution = async (proposal: Proposal) => {
+    if (!walletActionAllowed()) return;
     setActionLoading(`test-premature-${proposal.id}`);
     try {
       const res = await fetch(`/api/proposals/${proposal.id}/execute`, {
@@ -181,6 +198,7 @@ export function ProposalsTab({
 
   // 4. Attempt Double Execution (Demonstrates Soroban Invariant 5 Rejection)
   const handleAttemptDoubleExecution = async (proposal: Proposal) => {
+    if (!walletActionAllowed()) return;
     setActionLoading(`test-double-${proposal.id}`);
     try {
       const res = await fetch(`/api/proposals/${proposal.id}/execute`, {

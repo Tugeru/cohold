@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { formatBaseUnits, type BaseUnitInput } from "@/lib/money";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -11,17 +12,16 @@ export function formatAddress(address: string, chars = 4): string {
   return `${address.slice(0, chars + 2)}...${address.slice(-chars)}`;
 }
 
-export function formatAmount(amount: string | number, symbol = "DEMO_UNITS"): string {
-  const num = typeof amount === "string" ? parseFloat(amount) : amount;
-  if (isNaN(num)) return `0 ${symbol}`;
-  return `${num.toLocaleString("en-US", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  })} ${symbol}`;
+export function formatAmount(amount: BaseUnitInput, symbol = "DEMO_UNITS"): string {
+  try {
+    return `${formatBaseUnits(amount)} ${symbol}`;
+  } catch {
+    return `0 ${symbol}`;
+  }
 }
 
 export function formatNumber(amount: string | number): string {
-  const num = typeof amount === "string" ? parseFloat(amount) : amount;
+  const num = typeof amount === "string" ? Number(amount) : amount;
   if (isNaN(num)) return "0";
   return num.toLocaleString("en-US", {
     minimumFractionDigits: 0,

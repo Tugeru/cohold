@@ -464,6 +464,7 @@ Add Funds and transaction confirmations may use dialogs or sheets instead of ded
 
 ## 11.1 Landing Page
 
+
 **Purpose:** Explain Cohold clearly and encourage the user to explore a treasury or try the demo.
 
 ### Primary Message
@@ -479,12 +480,14 @@ Supporting copy should explain that shared money can be governed collectively in
 
 ### Primary Actions
 
+
 Mode-dependent:
 
 - **Demo mode:** Create Treasury, View Demo
 - **Wallet mode:** Connect wallet, Open the configured Testnet treasury
 
 Do not present wallet-mode Create Treasury as a working on-chain action in this MVP slice.
+
 
 ### Required Sections
 

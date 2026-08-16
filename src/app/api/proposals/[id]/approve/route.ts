@@ -7,7 +7,12 @@ import {
   proposalApprovals,
   auditLogs,
 } from "@/db/schema";
-import { generateStellarTxHash } from "@/lib/utils";
+import { coholdConfig } from "@/lib/cohold-config";
+import {
+  demoMutationDenied,
+  resolveDemoActor,
+  syntheticDemoSuccess,
+} from "@/lib/demo-adapter";
 import { eq, and } from "drizzle-orm";
 
 export async function POST(
@@ -15,18 +20,13 @@ export async function POST(
   props: { params: Promise<{ id: string }> }
 ) {
   try {
+    const denied = demoMutationDenied(coholdConfig);
+    if (denied) {
+      return NextResponse.json(denied, { status: 403 });
+    }
     const { id: proposalId } = await props.params;
     const body = await req.json();
     const { approverAddress, approverLabel, signature } = body;
-
-    if (!approverAddress) {
-      return NextResponse.json(
-        { success: false, error: "Approver address is required" },
-        { status: 400 }
-      );
-    }
-
-    const approverUpper = approverAddress.trim().toUpperCase();
 
     // Fetch proposal
     const pList = await db
@@ -65,19 +65,17 @@ export async function POST(
       );
     }
 
-    // Verify approver is a treasury member (FR-4)
-    const memList = await db
+    const members = await db
       .select()
       .from(treasuryMembers)
-      .where(
-        and(
-          eq(treasuryMembers.treasuryId, proposal.treasuryId),
-          eq(treasuryMembers.address, approverUpper)
-        )
-      )
-      .limit(1);
-
-    if (memList.length === 0) {
+      .where(eq(treasuryMembers.treasuryId, proposal.treasuryId));
+    const actor = resolveDemoActor({
+      actorAddress: approverAddress,
+      signature,
+      label: approverLabel,
+      members: members.map((row) => row.address),
+    });
+    if (!actor.allowed) {
       return NextResponse.json(
         {
           success: false,
@@ -87,7 +85,20 @@ export async function POST(
       );
     }
 
-    const member = memList[0];
+    const member = members.find(
+      (row) => row.address.toUpperCase() === actor.actorAddress
+    );
+    if (!member) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Address ${approverAddress} is not an authorized member of this treasury.`,
+        },
+        { status: 403 }
+      );
+    }
+
+    const approverUpper = actor.actorAddress;
 
     // Check duplicate approval (FR-4, Invariant 2: One member can count as only one approval)
     const existingApproval = await db
@@ -118,7 +129,7 @@ export async function POST(
       .where(eq(proposalApprovals.proposalId, proposalId));
 
     const newApprovalCount = currentApprovals.length + 1;
-    const txHash = generateStellarTxHash();
+    const { txHash, proof } = syntheticDemoSuccess();
 
     // Record approval
     await db.insert(proposalApprovals).values({
@@ -127,7 +138,7 @@ export async function POST(
       treasuryId: proposal.treasuryId,
       approverAddress: approverUpper,
       approverLabel: approverLabel || member.label,
-      signature: signature || `sig_soroban_auth_${Date.now()}`,
+      signature: proof,
       txHash,
       createdAt: new Date(),
     });

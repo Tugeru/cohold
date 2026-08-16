@@ -141,6 +141,7 @@ The MVP will **not** include:
 - on-chain Create Treasury from the wallet-mode app (demo-only until a follow-on deploy/factory change);
 - a factory that holds many treasuries in one contract instance.
 
+
 ---
 
 ## 7. Target Users
