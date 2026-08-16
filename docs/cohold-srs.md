@@ -95,20 +95,24 @@ The recipient does not need to be a treasury member.
 ```text
 User
  ↓
-React + Vite Web Application
+
+=======
+Next.js App Router
  ↓
 Freighter Wallet
  ↓
-Stellar SDK / Generated Contract Client
+Stellar SDK / typed contract client
  ↓
 Stellar RPC
  ↓
-Cohold Soroban Contract
+Cohold Soroban contract (one treasury per instance)
  ↓
 Stellar Asset Contract / Test Token
  ↓
 Stellar Testnet
 ```
+
+Demo mode may use fixture adapters and a local database. Those paths are not authoritative for funds or approvals.
 
 ### 5.2 Component Responsibilities
 
@@ -120,7 +124,8 @@ Responsible for:
 - treasury and proposal views;
 - transaction feedback;
 - client-side validation;
-- user-readable errors.
+- user-readable errors;
+- demo vs wallet mode labeling.
 
 #### Wallet Layer
 
@@ -164,16 +169,17 @@ Responsible for:
 - `soroban-sdk`
 - Stellar CLI
 - Node.js
-- pnpm
+- npm
 - React
 - TypeScript
-- Vite
+- Next.js App Router
 
 ### Network
 
 - Stellar Testnet
 - Stellar RPC endpoint
-- deployed Cohold contract
+- deployed Cohold contract (wallet mode)
+
 - configured Testnet asset/token contract
 
 ---
@@ -189,11 +195,14 @@ The MVP shall use the following fixed constraints:
 - Membership is immutable after treasury creation
 - Approval threshold is immutable after treasury creation
 - All members have equal voting weight
-- Proposal creators may approve their own proposals
+- Creating a proposal counts as the proposer's approval
+
 - Approved proposals may be executed permissionlessly
 - Individual contribution withdrawal is not supported
 - Treasury funds may move only through approved proposals
 - No traditional backend is required for authoritative state
+- Wallet mode operates on one or more env-configured contract IDs; each instance is one treasury
+- On-chain Create Treasury from the wallet app is deferred
 - No real PHP, GCash, Maya, card, or bank integration
 - No Mainnet deployment
 - No KYC

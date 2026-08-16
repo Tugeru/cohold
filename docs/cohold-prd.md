@@ -137,7 +137,10 @@ The MVP will **not** include:
 - fiat conversion;
 - native mobile applications;
 - advanced analytics;
-- a traditional application backend unless a blocking requirement emerges.
+- a traditional application backend as an authority for funds or approvals;
+- on-chain Create Treasury from the wallet-mode app (demo-only until a follow-on deploy/factory change);
+- a factory that holds many treasuries in one contract instance.
+
 
 ---
 
