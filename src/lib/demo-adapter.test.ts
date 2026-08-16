@@ -176,6 +176,37 @@ describe("mutation routes stay demo-scoped", () => {
     const getBlock = source.slice(source.indexOf("export async function GET"), source.indexOf("export async function POST"));
     expect(getBlock).not.toContain("demoMutationDenied");
   });
+
+  it.each([
+    "src/app/api/proposals/[id]/execute/route.ts",
+    "src/app/api/proposals/[id]/cancel/route.ts",
+  ])("validates the request actor before mutating in %s", (path) => {
+    const source = readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
+    expect(source).toContain("resolveDemoActor");
+    expect(source).not.toMatch(/executorAddress\s*=\s*[\"']/);
+    expect(source).not.toMatch(/memberAddress\s*\|\|/);
+  });
+});
+
+describe("fixture writes stay adapter-scoped", () => {
+  it("does not seed the database or Soroban-looking proofs in wallet mode", () => {
+    const seed = readFileSync(new URL("./db-seed.ts", import.meta.url), "utf8");
+    expect(seed).toContain("isStateChangingAllowed");
+    expect(seed).not.toContain("generateStellarTxHash");
+    expect(seed).not.toMatch(/sig_[^\n]*(soroban|auth_pass)/i);
+    expect(seed.indexOf("isStateChangingAllowed")).toBeLessThan(
+      seed.indexOf("await db.select")
+    );
+  });
+
+  it("routes the interactive demo transaction hash through the adapter", () => {
+    const demoTour = readFileSync(
+      new URL("../../src/components/DemoTourModal.tsx", import.meta.url),
+      "utf8"
+    );
+    expect(demoTour).toContain("syntheticDemoSuccess");
+    expect(demoTour).not.toContain("generateStellarTxHash");
+  });
 });
 
 describe("fixture personas are adapter-sourced", () => {

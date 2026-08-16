@@ -17,7 +17,8 @@ import {
   Zap,
   ExternalLink,
 } from "lucide-react";
-import { formatAddress, generateStellarTxHash } from "@/lib/utils";
+import { formatAddress } from "@/lib/utils";
+import { syntheticDemoSuccess } from "@/lib/demo-adapter";
 
 interface DemoTourModalProps {
   isOpen: boolean;
@@ -109,7 +110,7 @@ export function DemoTourModal({
         "With 3 of 4 approvals recorded on Soroban, the payment is fully authorized. Let's trigger execution to transfer 4,500 units to the Venue recipient.",
       actionText: "🚀 Execute Authorized Payment",
       action: () => {
-        const hash = generateStellarTxHash();
+        const hash = syntheticDemoSuccess().txHash;
         setBalance(5500);
         setStatus("executed");
         setTxHash(hash);

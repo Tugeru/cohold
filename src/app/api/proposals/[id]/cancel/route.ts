@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { proposals, auditLogs } from "@/db/schema";
+import { proposals, treasuryMembers, auditLogs } from "@/db/schema";
 import { coholdConfig } from "@/lib/cohold-config";
-import { demoMutationDenied, syntheticDemoSuccess } from "@/lib/demo-adapter";
+import {
+  demoMutationDenied,
+  resolveDemoActor,
+  syntheticDemoSuccess,
+} from "@/lib/demo-adapter";
 import { eq } from "drizzle-orm";
 
 export async function POST(
@@ -33,6 +37,36 @@ export async function POST(
 
     const proposal = pList[0];
 
+    const members = await db
+      .select()
+      .from(treasuryMembers)
+      .where(eq(treasuryMembers.treasuryId, proposal.treasuryId));
+    const actor = resolveDemoActor({
+      actorAddress: memberAddress,
+      label: memberLabel,
+      members: members.map((row) => row.address),
+    });
+
+    if (!actor.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Address ${memberAddress ?? "unknown"} is not an authorized member of this treasury.`,
+        },
+        { status: 403 }
+      );
+    }
+
+    const member = members.find(
+      (row) => row.address.toUpperCase() === actor.actorAddress
+    );
+    if (!member) {
+      return NextResponse.json(
+        { success: false, error: "Cancelling actor is not an authorized member of this treasury." },
+        { status: 403 }
+      );
+    }
+
     if (proposal.status === "executed") {
       return NextResponse.json(
         { success: false, error: "Cannot cancel an already executed proposal." },
@@ -48,7 +82,7 @@ export async function POST(
       .set({
         status: "cancelled",
         cancelledAt: now,
-        cancelledBy: memberAddress || "Admin",
+        cancelledBy: actor.actorAddress,
         updatedAt: now,
       })
       .where(eq(proposals.id, proposalId));
@@ -57,8 +91,8 @@ export async function POST(
       id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       treasuryId: proposal.treasuryId,
       action: "PROPOSAL_CANCELLED",
-      actorAddress: memberAddress || "Proposer",
-      actorLabel: memberLabel || "Proposer",
+      actorAddress: actor.actorAddress,
+      actorLabel: memberLabel || member.label || "Member",
       details: JSON.stringify({
         proposalId,
         title: proposal.title,
