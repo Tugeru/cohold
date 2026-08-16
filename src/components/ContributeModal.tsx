@@ -26,7 +26,7 @@ export function ContributeModal({
   treasury,
   onSuccess,
 }: ContributeModalProps) {
-  const { activePersona } = useWallet();
+  const { activePersona, canPerformStateChange, walletActionBlockReason } = useWallet();
   const [amount, setAmount] = useState("1000");
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(false);
@@ -56,6 +56,11 @@ export function ContributeModal({
       setError(
         `Address ${activePersona.name} (${activePersona.role}) is not an authorized member of this treasury. Only members may deposit funds in MVP.`
       );
+      return;
+    }
+
+    if (!canPerformStateChange) {
+      setError(walletActionBlockReason || "Wallet action is blocked.");
       return;
     }
 

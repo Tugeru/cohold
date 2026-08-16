@@ -12,8 +12,23 @@ import { coholdConfig } from "@/lib/cohold-config";
 import { demoPersonas, initialDemoActor } from "@/lib/demo-adapter";
 import {
   fetchStellarAccountBalances,
-  isValidStellarAddress,
+  STELLAR_TESTNET_NETWORK_PASSPHRASE,
 } from "@/lib/stellar";
+import {
+  connectFreighter as connectWallet,
+  restoreFreighter,
+  signFreighterTransaction,
+  type WalletConnectionResult,
+  type WalletSignatureResult,
+} from "@/lib/wallet-adapter";
+
+export type WalletStatus =
+  | "disconnected"
+  | "connecting"
+  | "connected"
+  | "wrong-network"
+  | "cancelled"
+  | "error";
 
 interface WalletContextType {
   activePersona: Persona;
@@ -23,6 +38,14 @@ interface WalletContextType {
   freighterAddress: string | null;
   connectFreighter: () => Promise<void>;
   disconnectFreighter: () => void;
+  walletStatus: WalletStatus;
+  walletNetwork: string | null;
+  walletNetworkPassphrase: string | null;
+  walletMessage: string | null;
+  isWalletNetworkAllowed: boolean;
+  canPerformStateChange: boolean;
+  walletActionBlockReason: string | null;
+  signTransaction: (transactionXdr: string) => Promise<WalletSignatureResult>;
   testnetBalance: string | null;
   refreshBalance: () => Promise<void>;
   isMemberOf: (memberAddresses: string[]) => boolean;
@@ -32,13 +55,62 @@ const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [personas] = useState<Persona[]>(() => demoPersonas(coholdConfig));
-  const [activePersona, setActivePersona] = useState<Persona>(
+  const [activePersona, setActivePersonaState] = useState<Persona>(
     () => initialDemoActor(coholdConfig)
   );
   const [isFreighterConnected, setIsFreighterConnected] = useState(false);
   const [freighterAddress, setFreighterAddress] = useState<string | null>(null);
+  const [walletStatus, setWalletStatus] = useState<WalletStatus>("disconnected");
+  const [walletNetwork, setWalletNetwork] = useState<string | null>(null);
+  const [walletNetworkPassphrase, setWalletNetworkPassphrase] = useState<string | null>(null);
+  const [walletMessage, setWalletMessage] = useState<string | null>(null);
   const [testnetBalance, setTestnetBalance] = useState<string | null>(null);
-  const activePersonaAddress = activePersona?.address;
+  const activePersonaAddress = freighterAddress ?? activePersona?.address;
+
+  const walletPersona = useCallback((address: string): Persona => ({
+    id: "wallet-actor",
+    name: "Connected wallet",
+    role: "Wallet signer",
+    address,
+    avatar: "◎",
+    color: "cyan",
+    isFreighter: true,
+  }), []);
+
+  const applyConnectionResult = useCallback(
+    (result: WalletConnectionResult) => {
+      if (result.status === "connected" || result.status === "wrong-network") {
+        setFreighterAddress(result.address);
+        setIsFreighterConnected(true);
+        setWalletNetwork(result.network);
+        setWalletNetworkPassphrase(result.networkPassphrase);
+        setWalletStatus(result.status);
+        setWalletMessage(
+          result.status === "wrong-network"
+            ? "Switch Freighter to Stellar Testnet before signing."
+            : null
+  );
+        if (coholdConfig.mode === "wallet") {
+          setActivePersonaState(walletPersona(result.address));
+        }
+        return;
+      }
+
+      if (result.status === "not-installed" || result.status === "error") {
+        setIsFreighterConnected(false);
+        setFreighterAddress(null);
+        setWalletNetwork(null);
+        setWalletNetworkPassphrase(null);
+        setTestnetBalance(null);
+        if (coholdConfig.mode === "wallet") {
+          setActivePersonaState(initialDemoActor(coholdConfig));
+        }
+      }
+      setWalletStatus(result.status === "not-installed" ? "disconnected" : result.status);
+      setWalletMessage(result.message);
+    },
+    [walletPersona]
+  );
 
   const refreshBalance = useCallback(async () => {
     if (!activePersonaAddress) return;
@@ -62,51 +134,98 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     return () => window.clearTimeout(timer);
   }, [refreshBalance]);
 
-  const connectFreighter = async () => {
-    try {
-      // Check if freighter api is in browser window
-      const freighter = (window as unknown as { freighter?: { getPublicKey: () => Promise<string>; isConnected: () => Promise<boolean> } }).freighter;
-      if (freighter) {
-        const isConn = await freighter.isConnected();
-        if (isConn) {
-          const pubKey = await freighter.getPublicKey();
-          if (pubKey && isValidStellarAddress(pubKey)) {
-            setFreighterAddress(pubKey);
-            setIsFreighterConnected(true);
-            const freighterPersona: Persona = {
-              id: "freighter-connected",
-              name: "Freighter Wallet",
-              role: "Hardware / Extension Signer",
-              address: pubKey,
-              avatar: "🚀",
-              color: "cyan",
-              isFreighter: true,
-            };
-            setActivePersona(freighterPersona);
-            return;
-          }
-        }
-      }
-      // If Freighter not available, simulate connecting a custom user wallet
-      alert(
-        "Freighter extension not detected in this browser session. You can use any of the pre-configured multi-party signer personas (Maria, Juan, Chloe, Daniel, etc.) or install Freighter."
-      );
-    } catch (err) {
-      console.warn("Freighter connection error:", err);
-    }
-  };
+  const connectFreighter = useCallback(async () => {
+    setWalletStatus("connecting");
+    setWalletMessage(null);
+    const result = await connectWallet();
+    applyConnectionResult(result);
+  }, [applyConnectionResult]);
 
-  const disconnectFreighter = () => {
+  useEffect(() => {
+    let cancelled = false;
+    void restoreFreighter().then((result) => {
+      if (!cancelled && result.status !== "not-installed") {
+        applyConnectionResult(result);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [applyConnectionResult]);
+
+  const disconnectFreighter = useCallback(() => {
     setIsFreighterConnected(false);
     setFreighterAddress(null);
-    setActivePersona(initialDemoActor(coholdConfig));
-  };
+    setWalletStatus("disconnected");
+    setWalletNetwork(null);
+    setWalletNetworkPassphrase(null);
+    setWalletMessage(null);
+    setTestnetBalance(null);
+    setActivePersonaState(initialDemoActor(coholdConfig));
+  }, []);
+
+  const setActivePersona = useCallback((persona: Persona) => {
+    if (coholdConfig.mode === "demo" && !isFreighterConnected) {
+      setActivePersonaState(persona);
+    }
+  }, [isFreighterConnected]);
+
+  const signTransaction = useCallback(async (transactionXdr: string) => {
+    if (!isFreighterConnected || !freighterAddress) {
+      const result: WalletSignatureResult = {
+        status: "not-connected",
+        message: "Connect Freighter before signing",
+      };
+      setWalletStatus("error");
+      setWalletMessage(result.message);
+      return result;
+    }
+
+    if (walletNetworkPassphrase !== STELLAR_TESTNET_NETWORK_PASSPHRASE) {
+      const result: WalletSignatureResult = {
+        status: "wrong-network",
+        network: walletNetwork ?? "unknown",
+        networkPassphrase: walletNetworkPassphrase ?? "",
+      };
+      setWalletStatus("wrong-network");
+      setWalletMessage("Switch Freighter to Stellar Testnet before signing.");
+      return result;
+    }
+
+    const result = await signFreighterTransaction(transactionXdr, undefined, freighterAddress);
+    if (result.status === "cancelled") {
+      setWalletStatus("cancelled");
+      setWalletMessage("Signature cancelled");
+    } else if (result.status === "signed") {
+      setWalletStatus("connected");
+      setWalletMessage(null);
+    } else if (result.status === "wrong-network") {
+      setWalletStatus("wrong-network");
+      setWalletMessage("Switch Freighter to Stellar Testnet before signing.");
+    } else {
+      setWalletStatus("error");
+      setWalletMessage(result.message);
+    }
+    return result;
+  }, [freighterAddress, isFreighterConnected, walletNetwork, walletNetworkPassphrase]);
 
   const isMemberOf = (memberAddresses: string[]): boolean => {
     if (!activePersona?.address || !Array.isArray(memberAddresses)) return false;
     const activeUpper = activePersona.address.toUpperCase();
     return memberAddresses.some((addr) => addr.toUpperCase() === activeUpper);
   };
+
+  const isWalletNetworkAllowed =
+    isFreighterConnected &&
+    walletNetworkPassphrase === STELLAR_TESTNET_NETWORK_PASSPHRASE;
+  const walletActionBlockReason =
+    coholdConfig.mode !== "wallet"
+      ? null
+      : !isFreighterConnected
+      ? "Connect Freighter before changing state."
+      : !isWalletNetworkAllowed
+      ? "Switch Freighter to Stellar Testnet before signing."
+      : "Wallet-mode state changes require the on-chain transaction path.";
 
   return (
     <WalletContext.Provider
@@ -118,6 +237,14 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         freighterAddress,
         connectFreighter,
         disconnectFreighter,
+        walletStatus,
+        walletNetwork,
+        walletNetworkPassphrase,
+        walletMessage,
+        isWalletNetworkAllowed,
+        canPerformStateChange: walletActionBlockReason === null,
+        walletActionBlockReason,
+        signTransaction,
         testnetBalance,
         refreshBalance,
         isMemberOf,

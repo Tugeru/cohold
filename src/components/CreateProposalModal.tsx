@@ -30,7 +30,7 @@ export function CreateProposalModal({
   treasury,
   onSuccess,
 }: CreateProposalModalProps) {
-  const { activePersona } = useWallet();
+  const { activePersona, canPerformStateChange, walletActionBlockReason } = useWallet();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -91,6 +91,11 @@ export function CreateProposalModal({
 
     if (!isMember) {
       setError("Only authorized members of this treasury can submit proposals (FR-3).");
+      return;
+    }
+
+    if (!canPerformStateChange) {
+      setError(walletActionBlockReason || "Wallet action is blocked.");
       return;
     }
 

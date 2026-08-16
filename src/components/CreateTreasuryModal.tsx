@@ -36,7 +36,7 @@ export function CreateTreasuryModal({
   onClose,
   onSuccess,
 }: CreateTreasuryModalProps) {
-  const { activePersona } = useWallet();
+  const { activePersona, canPerformStateChange, walletActionBlockReason } = useWallet();
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
   // Form State
@@ -225,6 +225,11 @@ export function CreateTreasuryModal({
     } catch {
       setError("Initial deposit must be a non-negative integer base-unit amount.");
       setStep(1);
+      return;
+    }
+
+    if (!canPerformStateChange) {
+      setError(walletActionBlockReason || "Wallet action is blocked.");
       return;
     }
 
