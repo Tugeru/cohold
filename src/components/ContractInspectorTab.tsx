@@ -6,7 +6,7 @@ import {
   RUST_SOROBAN_CONTRACT_CODE,
   CONTRACT_SECURITY_INVARIANTS,
 } from "@/lib/soroban-contract";
-import { formatAddress } from "@/lib/utils";
+import { formatAddress, formatAmount } from "@/lib/utils";
 import { getStellarExpertUrl } from "@/lib/stellar";
 import {
   Code2,
@@ -128,7 +128,7 @@ export function ContractInspectorTab({ treasury }: ContractInspectorTabProps) {
             <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-4">
               <div className="text-xs text-slate-400 font-medium">Contract Balance</div>
               <div className="text-xl font-bold font-mono text-emerald-400 mt-1">
-                {parseFloat(treasury.balance).toLocaleString()} {treasury.tokenSymbol}
+                {formatAmount(treasury.balance, treasury.tokenSymbol)}
               </div>
               <div className="text-[10px] text-slate-500 mt-1">DataKey::ContractBalance</div>
             </div>
@@ -243,7 +243,7 @@ export function ContractInspectorTab({ treasury }: ContractInspectorTabProps) {
             <div className="rounded-xl border border-slate-800 bg-slate-950 p-3 space-y-1">
               <div className="font-mono font-bold text-cyan-400">DataKey::ContractBalance -&gt; i128</div>
               <p className="text-slate-400 text-[11px]">
-                Maintains authoritative internal treasury token balance ({parseFloat(treasury.balance).toLocaleString()} {treasury.tokenSymbol}).
+                Maintains authoritative internal treasury token balance ({formatAmount(treasury.balance, treasury.tokenSymbol)}).
               </p>
             </div>
           </div>

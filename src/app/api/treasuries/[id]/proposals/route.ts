@@ -8,6 +8,8 @@ import {
   auditLogs,
 } from "@/db/schema";
 import { generateStellarTxHash } from "@/lib/utils";
+import { parseBaseUnits } from "@/lib/money";
+import { coholdConfig, isStateChangingAllowed } from "@/lib/cohold-config";
 import { isValidStellarAddress } from "@/lib/stellar";
 import { eq, and } from "drizzle-orm";
 
@@ -16,6 +18,12 @@ export async function POST(
   props: { params: Promise<{ id: string }> }
 ) {
   try {
+    if (!isStateChangingAllowed(coholdConfig)) {
+      return NextResponse.json(
+        { success: false, error: "Wallet mode setup is incomplete; state changes are disabled" },
+        { status: 503 }
+      );
+    }
     const { id: treasuryId } = await props.params;
     const body = await req.json();
     const {
@@ -43,10 +51,15 @@ export async function POST(
       );
     }
 
-    const numAmount = parseFloat(amount);
-    if (isNaN(numAmount) || numAmount <= 0) {
+    let amountUnits: bigint;
+    try {
+      amountUnits = parseBaseUnits(amount);
+    } catch {
       return NextResponse.json(
-        { success: false, error: "Proposal amount must be greater than zero (FR-3)" },
+        {
+          success: false,
+          error: "Proposal amount must be a positive integer base-unit value (FR-3)",
+        },
         { status: 400 }
       );
     }
@@ -119,7 +132,7 @@ export async function POST(
       title: title.trim(),
       description: description.trim(),
       category: category.trim(),
-      amount: numAmount.toString(),
+      amount: amountUnits.toString(),
       proposerAddress: proposerUpper,
       proposerLabel: proposerLabel || member.label,
       recipientAddress: recipientAddress.trim().toUpperCase(),
@@ -153,7 +166,7 @@ export async function POST(
       details: JSON.stringify({
         proposalId,
         title: title.trim(),
-        amount: numAmount.toString(),
+        amount: amountUnits.toString(),
         recipient: recipientAddress.trim().toUpperCase(),
         initialStatus,
       }),

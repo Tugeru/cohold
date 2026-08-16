@@ -7,6 +7,8 @@ import {
   auditLogs,
 } from "@/db/schema";
 import { generateStellarTxHash } from "@/lib/utils";
+import { parseBaseUnits, parseNonNegativeBaseUnits } from "@/lib/money";
+import { coholdConfig, isStateChangingAllowed } from "@/lib/cohold-config";
 import { eq, and } from "drizzle-orm";
 
 export async function POST(
@@ -14,6 +16,12 @@ export async function POST(
   props: { params: Promise<{ id: string }> }
 ) {
   try {
+    if (!isStateChangingAllowed(coholdConfig)) {
+      return NextResponse.json(
+        { success: false, error: "Wallet mode setup is incomplete; state changes are disabled" },
+        { status: 503 }
+      );
+    }
     const { id: treasuryId } = await props.params;
     const body = await req.json();
     const { memberAddress, memberLabel, amount, note } = body;
@@ -25,10 +33,15 @@ export async function POST(
       );
     }
 
-    const numAmount = parseFloat(amount);
-    if (isNaN(numAmount) || numAmount <= 0) {
+    let amountUnits: bigint;
+    try {
+      amountUnits = parseBaseUnits(amount);
+    } catch {
       return NextResponse.json(
-        { success: false, error: "Contribution amount must be greater than zero (FR-2)" },
+        {
+          success: false,
+          error: "Contribution amount must be a positive integer base-unit value (FR-2)",
+        },
         { status: 400 }
       );
     }
@@ -72,8 +85,16 @@ export async function POST(
     }
 
     const member = memList[0];
-    const currentBalance = parseFloat(treasury.balance) || 0;
-    const newBalance = (currentBalance + numAmount).toString();
+    let currentBalance: bigint;
+    try {
+      currentBalance = parseNonNegativeBaseUnits(treasury.balance);
+    } catch {
+      return NextResponse.json(
+        { success: false, error: "Treasury balance is not a valid base-unit value" },
+        { status: 500 }
+      );
+    }
+    const newBalance = (currentBalance + amountUnits).toString();
     const txHash = generateStellarTxHash();
 
     // Update treasury balance
@@ -91,7 +112,7 @@ export async function POST(
       treasuryId,
       memberAddress: member.address,
       memberLabel: memberLabel || member.label,
-      amount: numAmount.toString(),
+      amount: amountUnits.toString(),
       note: note ? note.trim() : null,
       txHash,
       createdAt: new Date(),
@@ -105,7 +126,7 @@ export async function POST(
       actorAddress: member.address,
       actorLabel: memberLabel || member.label,
       details: JSON.stringify({
-        amount: numAmount.toString(),
+        amount: amountUnits.toString(),
         tokenSymbol: treasury.tokenSymbol,
         previousBalance: currentBalance.toString(),
         newBalance,

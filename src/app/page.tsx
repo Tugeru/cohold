@@ -14,6 +14,9 @@ import { CreateTreasuryModal } from "@/components/CreateTreasuryModal";
 import { ContractModal } from "@/components/ContractModal";
 import { DemoTourModal } from "@/components/DemoTourModal";
 import { OverviewSkeleton } from "@/components/Skeletons";
+import { EnvironmentBadge } from "@/components/EnvironmentBadge";
+import { WalletSetupState } from "@/components/WalletSetupState";
+import { coholdConfig, isStateChangingAllowed } from "@/lib/cohold-config";
 import {
   LayoutDashboard,
   Coins,
@@ -28,6 +31,7 @@ import {
 } from "lucide-react";
 
 function MainApp() {
+  const canMutate = isStateChangingAllowed(coholdConfig);
   const [currentView, setCurrentView] = useState<NavView>("overview");
   const [treasuries, setTreasuries] = useState<Treasury[]>([]);
   const [allProposals, setAllProposals] = useState<
@@ -82,15 +86,22 @@ function MainApp() {
   }, []);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (!canMutate) return;
+    const timer = window.setTimeout(() => {
+      void fetchData();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [canMutate, fetchData]);
 
   useEffect(() => {
-    if (selectedTreasuryId) {
-      fetchTreasuryDetail(selectedTreasuryId);
-    } else {
-      setSelectedTreasury(null);
-    }
+    const timer = window.setTimeout(() => {
+      if (selectedTreasuryId) {
+        void fetchTreasuryDetail(selectedTreasuryId);
+      } else {
+        setSelectedTreasury(null);
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [selectedTreasuryId, fetchTreasuryDetail]);
 
   const handleSelectTreasury = (id: string | null) => {
@@ -173,6 +184,7 @@ function MainApp() {
         onOpenDemoTour={() => setIsDemoTourOpen(true)}
         onOpenContractModal={() => setIsContractModalOpen(true)}
         pendingProposalsCount={pendingProposalsCount}
+        canMutate={canMutate}
       />
 
       {/* Main Content Layout with Desktop Persistent Sidebar */}
@@ -219,21 +231,21 @@ function MainApp() {
               Actions
             </div>
 
-            <button
+            {canMutate && <button
               onClick={() => setIsCreateModalOpen(true)}
               className="w-full flex items-center gap-2 rounded-xl bg-emerald-600 px-3 py-2.5 text-xs font-bold text-white hover:bg-emerald-500 shadow-md shadow-emerald-600/20 transition"
             >
               <PlusCircle className="h-4 w-4" />
               <span>Create Treasury</span>
-            </button>
+            </button>}
 
-            <button
+            {canMutate && <button
               onClick={() => setIsDemoTourOpen(true)}
               className="w-full flex items-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-850 border border-amber-500/30 px-3 py-2 text-xs font-semibold text-amber-300 transition"
             >
               <PlayCircle className="h-4 w-4 text-amber-400" />
               <span>Run PRD §26 Demo</span>
-            </button>
+            </button>}
 
             <button
               onClick={() => setIsContractModalOpen(true)}
@@ -246,17 +258,16 @@ function MainApp() {
 
           {/* Network context badge */}
           <div className="mt-auto pt-6 border-t border-slate-800/80 text-[11px] text-slate-400 space-y-1 px-3">
-            <div className="flex items-center gap-1.5 text-emerald-400 font-semibold">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Stellar Testnet</span>
-            </div>
+            <EnvironmentBadge />
             <div className="text-slate-400">Soroban SDK v21+</div>
           </div>
         </aside>
 
         {/* Main Content Area */}
         <main className="flex-1 min-w-0">
-          {loading && treasuries.length === 0 ? (
+          {!canMutate ? (
+            <WalletSetupState />
+          ) : loading && treasuries.length === 0 ? (
             <OverviewSkeleton />
           ) : error && treasuries.length === 0 ? (
             <div className="rounded-3xl border border-rose-500/40 bg-rose-500/10 p-8 text-center space-y-3">
@@ -328,7 +339,7 @@ function MainApp() {
           </div>
 
           <div className="flex items-center gap-4 text-[11px] text-slate-400">
-            <span>Stellar Soroban Testnet</span>
+            <EnvironmentBadge />
             <span>·</span>
             <span>Zero Unilateral Custody</span>
             <span>·</span>
@@ -343,18 +354,18 @@ function MainApp() {
       </footer>
 
       {/* Global Modals */}
-      <CreateTreasuryModal
+      {canMutate && <CreateTreasuryModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSuccess={handleTreasuryCreated}
-      />
+      />}
 
       <ContractModal
         isOpen={isContractModalOpen}
         onClose={() => setIsContractModalOpen(false)}
       />
 
-      <DemoTourModal
+      {canMutate && <DemoTourModal
         isOpen={isDemoTourOpen}
         onClose={() => setIsDemoTourOpen(false)}
         onRefreshData={() => {
@@ -363,7 +374,7 @@ function MainApp() {
             fetchTreasuryDetail(selectedTreasuryId);
           }
         }}
-      />
+      />}
     </div>
   );
 }

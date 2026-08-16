@@ -8,6 +8,7 @@ import {
   auditLogs,
 } from "@/db/schema";
 import { generateStellarTxHash } from "@/lib/utils";
+import { coholdConfig, isStateChangingAllowed } from "@/lib/cohold-config";
 import { eq, and } from "drizzle-orm";
 
 export async function POST(
@@ -15,6 +16,12 @@ export async function POST(
   props: { params: Promise<{ id: string }> }
 ) {
   try {
+    if (!isStateChangingAllowed(coholdConfig)) {
+      return NextResponse.json(
+        { success: false, error: "Wallet mode setup is incomplete; state changes are disabled" },
+        { status: 503 }
+      );
+    }
     const { id: proposalId } = await props.params;
     const body = await req.json();
     const { approverAddress, approverLabel, signature } = body;

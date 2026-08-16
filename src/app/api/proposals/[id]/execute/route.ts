@@ -6,6 +6,8 @@ import {
   auditLogs,
 } from "@/db/schema";
 import { generateStellarTxHash } from "@/lib/utils";
+import { parseBaseUnits, parseNonNegativeBaseUnits } from "@/lib/money";
+import { coholdConfig, isStateChangingAllowed } from "@/lib/cohold-config";
 import { eq } from "drizzle-orm";
 
 export async function POST(
@@ -13,6 +15,12 @@ export async function POST(
   props: { params: Promise<{ id: string }> }
 ) {
   try {
+    if (!isStateChangingAllowed(coholdConfig)) {
+      return NextResponse.json(
+        { success: false, error: "Wallet mode setup is incomplete; state changes are disabled" },
+        { status: 503 }
+      );
+    }
     const { id: proposalId } = await props.params;
     const body = await req.json();
     const { executorAddress = "GD7VXZK2PZ4O4NKL66S5YEM53H7M2T4YV77LQO7JEQN2J3QZ5XG6P4RD", executorLabel = "Signer" } = body;
@@ -77,8 +85,17 @@ export async function POST(
     }
 
     const treasury = tList[0];
-    const currentBalance = parseFloat(treasury.balance) || 0;
-    const proposalAmount = parseFloat(proposal.amount) || 0;
+    let currentBalance: bigint;
+    let proposalAmount: bigint;
+    try {
+      currentBalance = parseNonNegativeBaseUnits(treasury.balance);
+      proposalAmount = parseBaseUnits(proposal.amount);
+    } catch {
+      return NextResponse.json(
+        { success: false, error: "Treasury or proposal amount is not a valid base-unit value" },
+        { status: 500 }
+      );
+    }
 
     // Invariant 6: Solvency & Asset Conservation
     if (currentBalance < proposalAmount) {

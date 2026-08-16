@@ -13,6 +13,8 @@ import {
   generateStellarTxHash,
 } from "@/lib/utils";
 import { isValidStellarAddress } from "@/lib/stellar";
+import { parseNonNegativeBaseUnits } from "@/lib/money";
+import { coholdConfig, isStateChangingAllowed } from "@/lib/cohold-config";
 import { desc, eq } from "drizzle-orm";
 
 export async function GET() {
@@ -54,6 +56,12 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    if (!isStateChangingAllowed(coholdConfig)) {
+      return NextResponse.json(
+        { success: false, error: "Wallet mode setup is incomplete; state changes are disabled" },
+        { status: 503 }
+      );
+    }
     await ensureDatabaseSeeded();
     const body = await req.json();
     const {
@@ -146,12 +154,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    let initialDepositUnits: bigint;
+    try {
+      initialDepositUnits = parseNonNegativeBaseUnits(initialDeposit);
+    } catch {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Initial deposit must be a non-negative integer base-unit value",
+        },
+        { status: 400 }
+      );
+    }
+    const initialBalanceStr = initialDepositUnits.toString();
     const treasuryId = `tr-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     const contractAddress = generateContractAddress();
     const creationTx = generateStellarTxHash();
-
-    const depositNum = parseFloat(initialDeposit) || 0;
-    const initialBalanceStr = depositNum > 0 ? depositNum.toString() : "0";
 
     // Insert treasury
     await db.insert(treasuries).values({
@@ -190,7 +208,7 @@ export async function POST(req: NextRequest) {
     await db.insert(treasuryMembers).values(memberRows);
 
     // Initial deposit if provided
-    if (depositNum > 0) {
+    if (initialDepositUnits > 0n) {
       await db.insert(contributions).values({
         id: `con-${Date.now()}`,
         treasuryId,

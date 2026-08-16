@@ -4,6 +4,7 @@ import React from "react";
 import { Treasury, Proposal } from "@/types";
 import { useWallet } from "@/context/WalletContext";
 import { formatAmount, formatAddress, timeAgo } from "@/lib/utils";
+import { parseNonNegativeBaseUnits } from "@/lib/money";
 import {
   Coins,
   ShieldCheck,
@@ -45,10 +46,13 @@ export function OverviewView({
   const { activePersona } = useWallet();
 
   // Calculate totals
-  const totalBalance = treasuries.reduce(
-    (acc, t) => acc + (parseFloat(t.balance) || 0),
-    0
-  );
+  const totalBalance = treasuries.reduce((acc, treasury) => {
+    try {
+      return acc + parseNonNegativeBaseUnits(treasury.balance);
+    } catch {
+      return acc;
+    }
+  }, 0n);
   const activeTreasuriesCount = treasuries.length;
 
   // Proposals that need active persona's approval
@@ -115,7 +119,7 @@ export function OverviewView({
             <Coins className="h-4 w-4 text-emerald-400" />
           </div>
           <div className="text-2xl sm:text-3xl font-bold font-mono text-white tracking-tight">
-            {totalBalance.toLocaleString()}
+            {formatAmount(totalBalance, "DEMO_UNITS")}
           </div>
           <div className="text-[11px] text-emerald-400 font-medium">
             DEMO_UNITS on Stellar Testnet
@@ -267,7 +271,7 @@ export function OverviewView({
                         {t.threshold} of {t.memberCount} Rule
                       </span>
                       <span className="font-mono text-emerald-400 font-bold">
-                        {parseFloat(t.balance).toLocaleString()} {t.tokenSymbol}
+                        {formatAmount(t.balance, t.tokenSymbol)}
                       </span>
                     </div>
                     <h3 className="text-sm font-bold text-white group-hover:text-emerald-400 transition mt-1">

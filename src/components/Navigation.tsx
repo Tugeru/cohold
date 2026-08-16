@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useWallet } from "@/context/WalletContext";
 import { formatAddress } from "@/lib/utils";
+import { EnvironmentBadge } from "@/components/EnvironmentBadge";
 import {
   ShieldCheck,
   LayoutDashboard,
@@ -35,6 +36,7 @@ interface NavigationProps {
   onOpenDemoTour: () => void;
   onOpenContractModal: () => void;
   pendingProposalsCount: number;
+  canMutate: boolean;
 }
 
 export function Navigation({
@@ -44,6 +46,7 @@ export function Navigation({
   onOpenDemoTour,
   onOpenContractModal,
   pendingProposalsCount,
+  canMutate,
 }: NavigationProps) {
   const { activePersona, setActivePersona, personas } = useWallet();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -110,7 +113,9 @@ export function Navigation({
 
           {/* Right Header Actions */}
           <div className="flex items-center gap-2 sm:gap-3">
+            <EnvironmentBadge compact />
             {/* PRD Demo Tour button */}
+            {canMutate && (
             <button
               onClick={onOpenDemoTour}
               className="hidden lg:flex items-center gap-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 px-3 py-1.5 text-xs font-semibold text-amber-300 hover:bg-amber-500/25 transition"
@@ -121,6 +126,7 @@ export function Navigation({
                 PRD §26
               </span>
             </button>
+            )}
 
             {/* Soroban Contract Inspector */}
             <button
@@ -132,6 +138,7 @@ export function Navigation({
             </button>
 
             {/* Create Treasury button */}
+            {canMutate && (
             <button
               onClick={onCreateTreasury}
               className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-emerald-500 transition shadow-md shadow-emerald-600/30"
@@ -140,9 +147,10 @@ export function Navigation({
               <span className="hidden sm:inline">New Treasury</span>
               <span className="sm:hidden">New</span>
             </button>
+            )}
 
             {/* Persona / Signer Dropdown */}
-            <div className="relative">
+            {canMutate && <div className="relative">
               <button
                 onClick={() => setPersonaMenuOpen(!personaMenuOpen)}
                 className="flex items-center gap-2 rounded-xl bg-slate-900 border border-slate-800 px-2.5 py-1.5 text-xs font-medium text-slate-200 hover:border-slate-700 transition"
@@ -206,7 +214,7 @@ export function Navigation({
                   </div>
                 </div>
               )}
-            </div>
+            </div>}
 
             {/* Mobile hamburger menu toggle */}
             <button
@@ -242,7 +250,7 @@ export function Navigation({
             </div>
 
             <div className="pt-2 border-t border-slate-800/80 flex flex-col gap-2">
-              <button
+              {canMutate && <button
                 onClick={() => {
                   onOpenDemoTour();
                   setMobileMenuOpen(false);
@@ -251,7 +259,7 @@ export function Navigation({
               >
                 <PlayCircle className="h-4 w-4 text-amber-400" />
                 <span>Run PRD Section 26 Demo Walkthrough</span>
-              </button>
+              </button>}
 
               <button
                 onClick={() => {

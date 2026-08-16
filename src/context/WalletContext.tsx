@@ -35,11 +35,12 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [isFreighterConnected, setIsFreighterConnected] = useState(false);
   const [freighterAddress, setFreighterAddress] = useState<string | null>(null);
   const [testnetBalance, setTestnetBalance] = useState<string | null>(null);
+  const activePersonaAddress = activePersona?.address;
 
   const refreshBalance = useCallback(async () => {
-    if (!activePersona?.address) return;
+    if (!activePersonaAddress) return;
     try {
-      const balances = await fetchStellarAccountBalances(activePersona.address);
+      const balances = await fetchStellarAccountBalances(activePersonaAddress);
       const native = balances.find((b) => b.asset_type === "native");
       if (native) {
         setTestnetBalance(native.balance);
@@ -49,10 +50,13 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     } catch {
       setTestnetBalance(null);
     }
-  }, [activePersona?.address]);
+  }, [activePersonaAddress]);
 
   useEffect(() => {
-    refreshBalance();
+    const timer = window.setTimeout(() => {
+      void refreshBalance();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [refreshBalance]);
 
   const connectFreighter = async () => {

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useWallet } from "@/context/WalletContext";
 import { DEFAULT_PERSONAS } from "@/lib/personas";
 import { isValidStellarAddress } from "@/lib/stellar";
+import { parseNonNegativeBaseUnits } from "@/lib/money";
 import {
   X,
   ShieldPlus,
@@ -218,6 +219,15 @@ export function CreateTreasuryModal({
       return;
     }
 
+    let initialDepositUnits: bigint;
+    try {
+      initialDepositUnits = parseNonNegativeBaseUnits(initialDeposit);
+    } catch {
+      setError("Initial deposit must be a non-negative integer base-unit amount.");
+      setStep(1);
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch("/api/treasuries", {
@@ -232,7 +242,7 @@ export function CreateTreasuryModal({
           tokenSymbol,
           threshold,
           members,
-          initialDeposit,
+          initialDeposit: initialDepositUnits.toString(),
         }),
       });
 
@@ -441,7 +451,8 @@ export function CreateTreasuryModal({
                   Initial Seed Contribution ({tokenSymbol})
                 </label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   value={initialDeposit}
                   onChange={(e) => setInitialDeposit(e.target.value)}
                   placeholder="0"

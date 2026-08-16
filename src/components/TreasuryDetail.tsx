@@ -149,7 +149,7 @@ export function TreasuryDetail({
             <Coins className="h-4 w-4 text-emerald-400" />
           </div>
           <div className="text-2xl sm:text-3xl font-extrabold font-mono text-white tracking-tight">
-            {parseFloat(treasury.balance).toLocaleString()}
+            {formatAmount(treasury.balance, treasury.tokenSymbol)}
           </div>
           <div className="text-xs text-emerald-400 font-medium">
             {treasury.tokenSymbol} on Testnet

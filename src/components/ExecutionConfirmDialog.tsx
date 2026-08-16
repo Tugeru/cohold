@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Proposal, Treasury } from "@/types";
 import { formatAddress, formatAmount } from "@/lib/utils";
+import { parseBaseUnits, parseNonNegativeBaseUnits } from "@/lib/money";
 import {
   X,
   Zap,
@@ -33,9 +34,16 @@ export function ExecutionConfirmDialog({
 }: ExecutionConfirmDialogProps) {
   if (!isOpen) return null;
 
-  const currentBalance = parseFloat(treasury.balance) || 0;
-  const proposalAmount = parseFloat(proposal.amount) || 0;
-  const remainingBalance = Math.max(currentBalance - proposalAmount, 0);
+  let remainingBalance = 0n;
+  try {
+    const currentBalance = parseNonNegativeBaseUnits(treasury.balance);
+    const proposalAmount = parseBaseUnits(proposal.amount);
+    remainingBalance = currentBalance >= proposalAmount
+      ? currentBalance - proposalAmount
+      : 0n;
+  } catch {
+    remainingBalance = 0n;
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/80 p-0 sm:p-4 backdrop-blur-sm animate-in fade-in">
