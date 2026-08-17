@@ -810,10 +810,8 @@ export function stellarCoholdRpc(
         const result = unwrapResultValue(tx.result);
         if (result === null) return null;
         return normalizeTreasuryConfigResult(result);
-      } catch (error) {
-        throw error instanceof Error
-          ? error
-          : new Error("The treasury configuration could not be read from Stellar RPC.");
+      } catch {
+        throw new Error("The treasury configuration could not be read from Stellar RPC. Retry.");
       }
     },
 
@@ -856,10 +854,8 @@ export function stellarCoholdRpc(
         const result = unwrapResultValue(tx.result);
         if (result === null) return null;
         return normalizeProposalResult(result);
-      } catch (error) {
-        throw new Error(
-          error instanceof Error ? error.message : "The proposal could not be read from Stellar RPC.",
-        );
+      } catch {
+        throw new Error("The proposal could not be read from Stellar RPC. Retry.");
       }
     },
 
