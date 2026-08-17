@@ -69,7 +69,7 @@ export function WalletProposalView({ id }: { id: string }) {
   const readyState = state.status === "ready" ? state : null;
 
   const refresh = useCallback(() => setLoadKey((key) => key + 1), []);
-  const validId = PROPOSAL_ID_PATTERN.test(id) && Number.isSafeInteger(Number(id));
+  const validId = PROPOSAL_ID_PATTERN.test(id) && Number(id) > 0 && Number.isSafeInteger(Number(id));
 
   useEffect(() => {
     let cancelled = false;
