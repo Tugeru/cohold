@@ -194,3 +194,89 @@ fn getters_reflect_contributions_and_proposals() {
     // Proposal count only counts creations
     assert_eq!(client.get_proposal_count(), 1);
 }
+
+#[test]
+fn execute_rejects_insufficient_balance() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let creator = Address::generate(&env);
+    let recipient = Address::generate(&env);
+    let token = env.register_stellar_asset_contract_v2(creator.clone()).address();
+    let members = vec![&env, creator.clone()];
+
+    let (_, client) = deploy(&env);
+    client.initialize(&creator, &token, &members, &1u32, &String::from_str(&env, NAME));
+
+    // Threshold 1: the proposal is Approved at creation, but the treasury is empty.
+    let proposal_id = client.create_proposal(
+        &creator,
+        &recipient,
+        &500i128,
+        &String::from_str(&env, "Overdraft"),
+    );
+    assert_eq!(proposal_id, 1);
+    assert_eq!(
+        client.try_execute(&creator, &proposal_id),
+        Err(Ok(CoholdError::InsufficientBalance))
+    );
+
+    // The failed execution changes nothing: balance stays zero and the
+    // proposal remains Approved so it can still run once funded.
+    assert_eq!(client.get_balance(), 0);
+    let proposal = client.get_proposal(&proposal_id);
+    assert_eq!(proposal.status, ProposalStatus::Approved);
+}
+
+#[test]
+fn treasuries_do_not_share_balances() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let creator_a = Address::generate(&env);
+    let member_a = Address::generate(&env);
+    let creator_b = Address::generate(&env);
+    let token = env.register_stellar_asset_contract_v2(creator_a.clone()).address();
+    let token_client = StellarAssetClient::new(&env, &token);
+    token_client.mint(&member_a, &1000i128);
+
+    let (_, client_a) = deploy(&env);
+    client_a.initialize(
+        &creator_a,
+        &token,
+        &vec![&env, creator_a.clone(), member_a.clone()],
+        &1u32,
+        &String::from_str(&env, "Treasury A"),
+    );
+    let (_, client_b) = deploy(&env);
+    client_b.initialize(
+        &creator_b,
+        &token,
+        &vec![&env, creator_b.clone()],
+        &1u32,
+        &String::from_str(&env, "Treasury B"),
+    );
+
+    // Contribution to A never appears in B's balance.
+    client_a.contribute(&member_a, &400i128);
+    assert_eq!(client_a.get_balance(), 400);
+    assert_eq!(client_b.get_balance(), 0);
+
+    // Proposal counters are per-treasury as well.
+    let pid_a = client_a.create_proposal(
+        &creator_a,
+        &Address::generate(&env),
+        &100i128,
+        &String::from_str(&env, "A spends"),
+    );
+    let pid_b = client_b.create_proposal(
+        &creator_b,
+        &Address::generate(&env),
+        &100i128,
+        &String::from_str(&env, "B spends"),
+    );
+    assert_eq!(pid_a, 1);
+    assert_eq!(pid_b, 1);
+    assert_eq!(client_a.get_proposal_count(), 1);
+    assert_eq!(client_b.get_proposal_count(), 1);
+    assert_eq!(client_a.get_proposal(&pid_a).amount, 100);
+    assert_eq!(client_b.get_proposal(&pid_b).amount, 100);
+}
