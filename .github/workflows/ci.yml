@@ -39,3 +39,22 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  contract:
+    name: Contract tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Add Wasm target
+        run: rustup target add wasm32v1-none
+
+      - name: Test
+        run: cargo test
+
+      - name: Build Wasm
+        run: cargo build --release --target wasm32v1-none
