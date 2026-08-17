@@ -26,6 +26,8 @@ const CONTRACT_ID_RE = /C[0-9A-Z]{55}/g;
 const WASM_CANDIDATES = [
   // stellar CLI 27+ builds to the wasm32v1-none target; older CLIs used
   // wasm32-unknown-unknown. Accept either so the script survives CLI churn.
+  // ponytail: not both at once; if CLI output paths change again, drop the
+  // stale candidate instead of growing the list.
   join(ROOT, "target", "wasm32v1-none", "release", "cohold.wasm"),
   join(ROOT, "target", "wasm32-unknown-unknown", "release", "cohold.wasm"),
 ];
@@ -110,6 +112,9 @@ function testnetRpcUrl() {
       const match = lines[j].match(/^RPC url:\s*(.+)$/);
       if (match) return match[1].trim();
     }
+    // ponytail: 4-line lookahead assumes the CLI prints RPC url right after
+    // the Name line. If the format gains banner lines, bump the window or
+    // switch to parsing the config file directly.
     throw new Error(
       `network "${NETWORK}" has no RPC url in \`stellar network ls --long\``,
     );
@@ -210,6 +215,8 @@ export function parseJsonValue(stdout) {
   }
   const candidate = text.slice(first);
   // The value is the longest JSON prefix; log lines may follow it.
+  // ponytail: O(n^2) shrink-scan, but CLI output is a handful of lines; the
+  // whole-output JSON.parse above already covers the normal case.
   for (let end = candidate.length; end > first; end -= 1) {
     try {
       return JSON.parse(candidate.slice(0, end));

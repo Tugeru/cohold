@@ -7,8 +7,10 @@ wallet mode.
 ## Prerequisites
 
 - `stellar` CLI 27+ on `PATH` (`stellar --version`).
-- Rust toolchain with the `wasm32-unknown-unknown` target installed (the
-  bootstrap runs `stellar contract build --package cohold`).
+- Rust toolchain with the wasm target required by the installed stellar CLI —
+  CLI 27+ builds to `wasm32v1-none`, older CLIs to `wasm32-unknown-unknown`;
+  the bootstrap accepts either output path (the bootstrap runs `stellar
+  contract build --package cohold`).
 - Testnet reachability. The CLI ships a `testnet` network config
   (`https://soroban-testnet.stellar.org/`); the bootstrap verifies it and fails
   with a clear error if it is missing or unreachable.
@@ -23,8 +25,8 @@ run; existing identities are reused so public keys stay stable across runs.
 | Identity               | Role                                                            |
 | ---------------------- | --------------------------------------------------------------- |
 | `cohold-deployer`      | Pays deploy fees; source for read-only sanity calls             |
-| `cohold-member-a`      | Member of treasuries A and B; creator of A                      |
-| `cohold-member-b`      | Member of treasuries A and B; creator of B                      |
+| `cohold-member-a`      | Member of treasury A; creator of A                          |
+| `cohold-member-b`      | Member of treasuries A and B; creator of B                  |
 | `cohold-member-c`      | Member of treasuries A and B                                    |
 | `cohold-member-d`      | Member of treasuries A and B                                    |
 | `cohold-recipient`     | Non-member recipient for execute scenarios (later slices)       |
