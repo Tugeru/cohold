@@ -40,7 +40,7 @@ export default function LandingPage() {
             >
               View Demo
             </Link>
-            {coholdConfig.mode === "demo" ? (
+            {coholdConfig.modeConfigured && coholdConfig.mode === "demo" ? (
               <Link
                 href={createTreasuryHref()}
                 className="inline-flex items-center rounded-xl border border-slate-700 bg-slate-900 px-5 py-2.5 text-sm font-semibold text-slate-100 hover:border-slate-500"
