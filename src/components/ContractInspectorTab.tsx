@@ -2,10 +2,8 @@
 
 import React, { useState } from "react";
 import { Treasury } from "@/types";
-import {
-  RUST_SOROBAN_CONTRACT_CODE,
-  CONTRACT_SECURITY_INVARIANTS,
-} from "@/lib/soroban-contract";
+import { CONTRACT_SECURITY_INVARIANTS } from "@/lib/soroban-contract";
+import { useContractSource } from "@/lib/contract-source";
 import { formatAddress, formatAmount } from "@/lib/utils";
 import { getStellarExpertUrl } from "@/lib/stellar";
 import {
@@ -27,6 +25,8 @@ interface ContractInspectorTabProps {
 export function ContractInspectorTab({ treasury }: ContractInspectorTabProps) {
   const [copied, setCopied] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<"state" | "rust" | "storage">("state");
+  const { source: rustSource, error: rustError, retry: retryRustSource } =
+    useContractSource(activeSubTab === "rust");
 
   const copy = (txt: string) => {
     navigator.clipboard.writeText(txt);
@@ -192,23 +192,41 @@ export function ContractInspectorTab({ treasury }: ContractInspectorTabProps) {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs text-slate-400 font-mono tabular-nums">
-              src/lib.rs (Soroban SDK)
+              contracts/cohold/src/lib.rs (Soroban SDK 27)
             </span>
-            <button
-              onClick={() => copy(RUST_SOROBAN_CONTRACT_CODE)}
-              className="flex items-center gap-1 rounded bg-slate-800 hover:bg-slate-700 px-3 py-1.5 text-xs text-slate-200 transition"
-            >
-              {copied ? (
-                <Check className="h-3.5 w-3.5 text-emerald-400" />
-              ) : (
-                <Copy className="h-3.5 w-3.5" />
-              )}
-              <span>{copied ? "Copied" : "Copy Rust Code"}</span>
-            </button>
+            {rustSource && (
+              <button
+                onClick={() => copy(rustSource)}
+                className="flex items-center gap-1 rounded bg-slate-800 hover:bg-slate-700 px-3 py-1.5 text-xs text-slate-200 transition"
+              >
+                {copied ? (
+                  <Check className="h-3.5 w-3.5 text-emerald-400" />
+                ) : (
+                  <Copy className="h-3.5 w-3.5" />
+                )}
+                <span>{copied ? "Copied" : "Copy Rust Code"}</span>
+              </button>
+            )}
           </div>
-          <pre className="rounded-2xl border border-slate-800 bg-slate-950 p-4 text-xs font-mono tabular-nums text-cyan-200 overflow-x-auto leading-relaxed max-h-[600px]">
-            {RUST_SOROBAN_CONTRACT_CODE}
-          </pre>
+          {rustSource ? (
+            <pre className="rounded-2xl border border-slate-800 bg-slate-950 p-4 text-xs font-mono tabular-nums text-cyan-200 overflow-x-auto leading-relaxed max-h-[600px]">
+              {rustSource}
+            </pre>
+          ) : rustError ? (
+            <div className="rounded-2xl border border-red-900/50 bg-red-950/30 p-4 text-xs text-red-300 space-y-2">
+              <p>Could not load contract source: {rustError}</p>
+              <button
+                onClick={retryRustSource}
+                className="rounded bg-red-900/50 hover:bg-red-900/70 px-2.5 py-1 text-[11px] text-red-200 transition"
+              >
+                Try again
+              </button>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 text-xs text-slate-400">
+              Loading contracts/cohold/src/lib.rs…
+            </div>
+          )}
         </div>
       )}
 
