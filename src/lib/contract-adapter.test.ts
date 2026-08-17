@@ -545,6 +545,10 @@ describe("loadWalletProposal", () => {
     const rpc = mockRpc({ getProposal: async () => null });
     expect(await loadWalletProposal(rpc, CONTRACT, 99, null)).toBeNull();
   });
+  it("throws when an existing-range proposal cannot be read", async () => {
+    const rpc = mockRpc({ getProposal: async () => null });
+    await expect(loadWalletProposal(rpc, CONTRACT, 1, null)).rejects.toThrow(/could not be read/);
+  });
 });
 
 describe("normalizeActivityEvent", () => {

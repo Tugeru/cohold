@@ -623,6 +623,11 @@ export async function loadWalletProposal(
   if (!config) {
     throw new Error("The configured contract is not initialized or is not a Cohold treasury on this network.");
   }
+  const proposalCount = await rpc.getProposalCount(contractId);
+  if (proposalCount === null) {
+    throw new Error("The contract's proposal count could not be read.");
+  }
+  if (proposalId > proposalCount) return null;
   let record: ChainProposalRecord | null = null;
   try {
     record = await rpc.getProposal(contractId, proposalId);
@@ -631,7 +636,9 @@ export async function loadWalletProposal(
       error instanceof Error ? error.message : "The proposal could not be read from Stellar RPC.",
     );
   }
-  if (!record) return null;
+  if (!record) {
+    throw new Error("The proposal could not be read from Stellar RPC.");
+  }
   const token = await readTokenMetadata(rpc, config.tokenAddress);
   let isMember: boolean | null = null;
   if (userAddress) {
