@@ -2,10 +2,9 @@
 
 import React, { useState } from "react";
 import { useModalA11y } from "@/components/useModalA11y";
-import {
-  RUST_SOROBAN_CONTRACT_CODE,
-  CONTRACT_SECURITY_INVARIANTS,
-} from "@/lib/soroban-contract";
+import { CONTRACT_SECURITY_INVARIANTS } from "@/lib/contract-invariants";
+import { useContractSource } from "@/lib/contract-source";
+import { ContractSourcePane } from "@/components/ContractSourcePane";
 import {
   Code2,
   Copy,
@@ -26,6 +25,8 @@ export function ContractModal({ isOpen, onClose }: ContractModalProps) {
   const [activeTab, setActiveTab] = useState<"rust" | "invariants" | "cli">("rust");
   const [copied, setCopied] = useState(false);
   const dialogRef = useModalA11y(onClose, false, isOpen);
+  const { source: rustSource, error: rustError, retry: retryRustSource } =
+    useContractSource(isOpen && activeTab === "rust");
 
   if (!isOpen) return null;
 
@@ -129,27 +130,14 @@ soroban contract invoke \\
         {/* Modal Body */}
         <div className="p-6 overflow-y-auto max-h-[70vh]">
           {activeTab === "rust" && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-400 font-mono tabular-nums">
-                  cohold-contract/src/lib.rs (Soroban SDK v21+)
-                </span>
-                <button
-                  onClick={() => copyCode(RUST_SOROBAN_CONTRACT_CODE)}
-                  className="flex items-center gap-1 rounded bg-slate-800 hover:bg-slate-700 px-2.5 py-1 text-xs text-slate-200 transition"
-                >
-                  {copied ? (
-                    <Check className="h-3.5 w-3.5 text-emerald-400" />
-                  ) : (
-                    <Copy className="h-3.5 w-3.5" />
-                  )}
-                  <span>{copied ? "Copied" : "Copy Rust Code"}</span>
-                </button>
-              </div>
-              <pre className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-xs font-mono tabular-nums text-cyan-200 overflow-x-auto leading-relaxed">
-                {RUST_SOROBAN_CONTRACT_CODE}
-              </pre>
-            </div>
+            <ContractSourcePane
+              source={rustSource}
+              error={rustError}
+              copied={copied}
+              onCopy={copyCode}
+              onRetry={retryRustSource}
+              compact
+            />
           )}
 
           {activeTab === "invariants" && (

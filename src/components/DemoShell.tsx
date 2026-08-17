@@ -150,7 +150,7 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
 
           <div className="mt-auto pt-6 border-t border-slate-800/80 text-[11px] text-slate-400 space-y-1 px-3">
             <EnvironmentBadge />
-            <div className="text-slate-400">Soroban SDK v21+</div>
+            <div className="text-slate-400">Soroban SDK 27</div>
           </div>
         </aside>
 

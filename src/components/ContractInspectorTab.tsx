@@ -2,10 +2,9 @@
 
 import React, { useState } from "react";
 import { Treasury } from "@/types";
-import {
-  RUST_SOROBAN_CONTRACT_CODE,
-  CONTRACT_SECURITY_INVARIANTS,
-} from "@/lib/soroban-contract";
+import { CONTRACT_SECURITY_INVARIANTS } from "@/lib/contract-invariants";
+import { useContractSource } from "@/lib/contract-source";
+import { ContractSourcePane } from "@/components/ContractSourcePane";
 import { formatAddress, formatAmount } from "@/lib/utils";
 import { getStellarExpertUrl } from "@/lib/stellar";
 import {
@@ -27,6 +26,8 @@ interface ContractInspectorTabProps {
 export function ContractInspectorTab({ treasury }: ContractInspectorTabProps) {
   const [copied, setCopied] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<"state" | "rust" | "storage">("state");
+  const { source: rustSource, error: rustError, retry: retryRustSource } =
+    useContractSource(activeSubTab === "rust");
 
   const copy = (txt: string) => {
     navigator.clipboard.writeText(txt);
@@ -189,27 +190,13 @@ export function ContractInspectorTab({ treasury }: ContractInspectorTabProps) {
 
       {/* 2. Rust Source */}
       {activeSubTab === "rust" && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-400 font-mono tabular-nums">
-              src/lib.rs (Soroban SDK)
-            </span>
-            <button
-              onClick={() => copy(RUST_SOROBAN_CONTRACT_CODE)}
-              className="flex items-center gap-1 rounded bg-slate-800 hover:bg-slate-700 px-3 py-1.5 text-xs text-slate-200 transition"
-            >
-              {copied ? (
-                <Check className="h-3.5 w-3.5 text-emerald-400" />
-              ) : (
-                <Copy className="h-3.5 w-3.5" />
-              )}
-              <span>{copied ? "Copied" : "Copy Rust Code"}</span>
-            </button>
-          </div>
-          <pre className="rounded-2xl border border-slate-800 bg-slate-950 p-4 text-xs font-mono tabular-nums text-cyan-200 overflow-x-auto leading-relaxed max-h-[600px]">
-            {RUST_SOROBAN_CONTRACT_CODE}
-          </pre>
-        </div>
+        <ContractSourcePane
+          source={rustSource}
+          error={rustError}
+          copied={copied}
+          onCopy={copy}
+          onRetry={retryRustSource}
+        />
       )}
 
       {/* 3. Storage Layout */}

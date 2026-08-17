@@ -1,11 +1,11 @@
-export const RUST_SOROBAN_CONTRACT_CODE = `//! Cohold — Shared funds. Shared control.
+//! Cohold — Shared funds. Shared control.
 //! Soroban Smart Contract for Multi-Approval Shared Treasuries.
-//! Target: Stellar Testnet / Soroban SDK v21+
+//! Target: Stellar Testnet / Soroban SDK v27+
 
 #![no_std]
 use soroban_sdk::{
     contract, contracterror, contractimpl, contracttype, symbol_short,
-    token, Address, Env, IntoVal, String, Symbol, TryFromVal, Val, Vec,
+    token, Address, Env, String, Symbol, Vec,
 };
 
 #[contracterror]
@@ -391,56 +391,22 @@ impl CoholdContract {
     pub fn get_balance(env: Env) -> i128 {
         env.storage().instance().get(&DataKey::ContractBalance).unwrap_or(0)
     }
-}
-`;
 
-export const CONTRACT_SECURITY_INVARIANTS = [
-  {
-    id: "INV-1",
-    name: "Zero Unilateral Withdrawals",
-    rule: "Funds can leave the treasury ONLY through a valid approved proposal with cryptographic threshold consensus.",
-    status: "Enforced",
-  },
-  {
-    id: "INV-2",
-    name: "Strict One-Member One-Vote",
-    rule: "One member can count as only one approval per proposal. Duplicate approvals are strictly rejected.",
-    status: "Enforced",
-  },
-  {
-    id: "INV-3",
-    name: "Threshold Precondition",
-    rule: "A proposal cannot execute before the required threshold of approvals is satisfied.",
-    status: "Enforced",
-  },
-  {
-    id: "INV-4",
-    name: "Immutable Proposal Terms",
-    rule: "Proposal amount, recipient, and parameters cannot change after creation.",
-    status: "Enforced",
-  },
-  {
-    id: "INV-5",
-    name: "Double-Execution Prevention",
-    rule: "An executed proposal can NEVER be executed again (prevent double-spend attacks).",
-    status: "Enforced",
-  },
-  {
-    id: "INV-6",
-    name: "Solvency & Asset Conservation",
-    rule: "A proposal cannot transfer more than the available treasury balance.",
-    status: "Enforced",
-  },
-  {
-    id: "INV-7",
-    name: "Member Authorization Boundary",
-    rule: "Only verified members may create proposals, contribute, or approve.",
-    status: "Enforced",
-  },
-  {
-    id: "INV-8",
-    name: "Immutable Creator Constraints",
-    rule: "The creator receives no unilateral backdoors and cannot bypass group consensus rules.",
-    status: "Enforced",
-  },
-];
+    /// Get the immutable member list.
+    pub fn get_members(env: Env) -> Vec<Address> {
+        env.storage().persistent().get(&DataKey::MemberList).unwrap_or(Vec::new(&env))
+    }
+
+    /// Get the number of proposals created.
+    pub fn get_proposal_count(env: Env) -> u64 {
+        env.storage().instance().get(&DataKey::ProposalCount).unwrap_or(0)
+    }
+
+    /// Get the total amount a member has contributed.
+    pub fn get_contribution_total(env: Env, member: Address) -> i128 {
+        env.storage().persistent().get(&DataKey::TotalContributed(member)).unwrap_or(0)
+    }
+}
+
+#[cfg(test)]
+mod test;
