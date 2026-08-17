@@ -81,3 +81,60 @@ export function OverviewSkeleton() {
     </div>
   );
 }
+
+export function TreasuryListSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      <div className="h-8 w-56 rounded bg-slate-800" />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {[1, 2, 3, 4].map((item) => <TreasuryCardSkeleton key={item} />)}
+      </div>
+    </div>
+  );
+}
+
+export function ProposalListSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      <div className="h-8 w-48 rounded bg-slate-800" />
+      <div className="space-y-4">
+        {[1, 2, 3].map((item) => <ProposalCardSkeleton key={item} />)}
+      </div>
+    </div>
+  );
+}
+
+export function ActivitySkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      <div className="h-8 w-36 rounded bg-slate-800" />
+      <div className="space-y-3">
+        {[1, 2, 3, 4, 5].map((item) => (
+          <div key={item} className="h-16 rounded-2xl border border-slate-800 bg-slate-900/60" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function DetailSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      <div className="h-8 w-64 rounded bg-slate-800" />
+      <div className="h-40 rounded-3xl border border-slate-800 bg-slate-900/60" />
+      <div className="space-y-3">
+        {[1, 2, 3].map((item) => <div key={item} className="h-20 rounded-2xl border border-slate-800 bg-slate-900/60" />)}
+      </div>
+    </div>
+  );
+}
+
+export function SettingsSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      <div className="h-8 w-48 rounded bg-slate-800" />
+      <div className="h-36 rounded-3xl border border-slate-800 bg-slate-900/60" />
+      <div className="h-48 rounded-3xl border border-slate-800 bg-slate-900/60" />
+    </div>
+  );
+}

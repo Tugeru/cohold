@@ -30,18 +30,21 @@ export function GlobalActivityView() {
     }>
   >([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "contributions" | "proposals" | "approvals" | "payments">("all");
 
   const fetchActivity = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const res = await fetch(`/api/activity?action=${filter}`);
       const data = await res.json();
-      if (data.success) {
-        setActivities(data.activities || []);
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to load activity records.");
       }
-    } catch {
-      // ignore
+      setActivities(data.activities || []);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Failed to load activity records.");
     } finally {
       setLoading(false);
     }
@@ -185,6 +188,13 @@ export function GlobalActivityView() {
         <div className="py-12 text-center text-xs text-slate-400 space-y-2">
           <RefreshCw className="h-5 w-5 animate-spin mx-auto text-emerald-400" />
           <p>Loading activity records...</p>
+        </div>
+      ) : error ? (
+        <div className="rounded-3xl border border-rose-500/30 bg-rose-500/10 p-12 text-center text-xs text-slate-300 space-y-3">
+          <p>{error}</p>
+          <button type="button" onClick={() => void fetchActivity()} className="rounded-xl bg-slate-800 px-4 py-2 font-semibold text-white hover:bg-slate-700">
+            Retry
+          </button>
         </div>
       ) : activities.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-slate-800 bg-slate-950/40 p-12 text-center text-xs text-slate-400">

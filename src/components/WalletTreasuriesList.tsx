@@ -11,7 +11,7 @@ import { formatBaseAmount } from "@/lib/money";
 import { walletExplorerUrl } from "@/lib/app-routes";
 import { useWallet } from "@/context/WalletContext";
 import { WalletSetupState } from "@/components/WalletSetupState";
-import { OverviewSkeleton } from "@/components/Skeletons";
+import { TreasuryCardSkeleton } from "@/components/Skeletons";
 import { ShieldCheck, Users, Coins, RefreshCw, AlertTriangle } from "lucide-react";
 
 type ListItem =
@@ -21,7 +21,7 @@ type ListItem =
 
 function TreasuryCard({ item, onRefresh }: { item: ListItem; onRefresh: () => void }) {
   if (item.status === "loading") {
-    return <OverviewSkeleton />;
+    return <TreasuryCardSkeleton />;
   }
   if (item.status === "error") {
     return (

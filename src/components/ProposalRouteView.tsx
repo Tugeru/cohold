@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { NotFoundStatus, ResourceStatus } from "@/components/ResourceStatus";
-import { OverviewSkeleton } from "@/components/Skeletons";
+import { DetailSkeleton } from "@/components/Skeletons";
 import { WalletSetupState } from "@/components/WalletSetupState";
 import { useDemoData } from "@/context/DemoDataContext";
 import { useWallet } from "@/context/WalletContext";
@@ -61,9 +61,8 @@ export function ProposalRouteView({ id }: { id: string }) {
   }
 
   if (state.status === "loading") {
-    return <OverviewSkeleton />;
+    return <DetailSkeleton />;
   }
-
   if (state.status === "not_found") {
     return (
       <NotFoundStatus

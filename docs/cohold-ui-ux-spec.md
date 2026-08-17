@@ -273,12 +273,12 @@ Use bottom navigation or a compact mobile navigation pattern. Wallet and setting
 
 ### 8.1 First-Time User
 
+Demo mode journey:
+
 ```text
 Landing
  ↓
-Connect Wallet
- ↓
-Check Network
+Open Demo
  ↓
 Overview / Empty State
  ↓
@@ -290,9 +290,20 @@ Set Approval Threshold
  ↓
 Review
  ↓
-Sign Transaction
+Treasury Dashboard
+```
+
+Wallet mode starts from a configured on-chain treasury because wallet-mode
+Create Treasury is deferred in this MVP. Its first-time journey is:
+
+```text
+Landing
  ↓
-Confirm on Network
+Connect Wallet
+ ↓
+Check Network
+ ↓
+Open Configured Treasury
  ↓
 Treasury Dashboard
 ```
@@ -532,14 +543,15 @@ Recently Executed
 
 ### Primary Action
 
-**Create Treasury**
+**Create Treasury in demo mode**
 
-Actionable content, especially proposals needing approval, should receive higher priority than passive statistics.
+Wallet mode's primary action is opening a configured Testnet treasury because
+on-chain Create Treasury is deferred in this MVP.
 
 ### Empty State
 
 ```text
-No treasuries yet.
+No demo treasuries yet.
 
 Create a shared treasury to start
 managing funds together.
@@ -1098,14 +1110,19 @@ Wallet signing does **not** equal transaction success. The UI shall not show a f
 
 ### No Treasuries
 
+Demo mode:
+
 ```text
-No treasuries yet.
+No demo treasuries yet.
 
 Create a shared treasury to start
 managing funds together.
 
 [Create Treasury]
 ```
+
+Wallet mode shows configured Testnet treasury contracts; it does not offer
+on-chain Create Treasury in this MVP.
 
 ### No Proposals
 
@@ -1557,10 +1574,11 @@ The component architecture should remain compatible with later integration of:
 
 # 30. Definition of UX Completion
 
-The Cohold MVP user experience is complete when a user can clearly and confidently complete:
+The demo-mode Cohold MVP experience is complete when a user can clearly and
+confidently complete:
 
 ```text
-CONNECT
+OPEN DEMO
 → CREATE TREASURY
 → FUND
 → CREATE PROPOSAL
@@ -1570,6 +1588,9 @@ CONNECT
 → EXECUTE
 → VERIFY RESULT
 ```
+
+Wallet mode begins with Connect and Open Configured Treasury; wallet-mode
+Create Treasury is deferred in this MVP.
 
 while also understanding:
 

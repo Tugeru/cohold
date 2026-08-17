@@ -21,13 +21,13 @@
 - [x] 3.2 Add an explicit visible demo-mode indicator and disable fixture persona switching and synthetic success paths in wallet mode.
 - [x] 3.3 Guard or namespace existing database mutation routes so they cannot be called as wallet-mode financial operations.
 - [x] 3.4 Remove request-body identity/signature fields as wallet authorization evidence; derive wallet actors from the connected wallet and Soroban authorization.
-- [x] 3.5 Replace or isolate `parseFloat` financial mutations and add negative tests for altered actors, duplicate approval races, double execution, cross-treasury balance use, and stale confirmation.
+- [ ] 3.5 Replace or isolate `parseFloat` financial mutations and add negative tests for altered actors, duplicate approval races, double execution, cross-treasury balance use, and stale confirmation. **Implemented coverage includes altered actors, duplicate approvals, double execution, and stale confirmation; cross-treasury isolation and concurrent race coverage remain pending a multi-contract/concurrency test seam.**
 - [x] 3.6 Ensure demo reset is deterministic, fixture-only, and visibly unrelated to Testnet.
 
 ## 4. Next.js App Router Shell
 
 - [x] 4.1 Create the public landing route and shared metadata aligned with the Cohold product/UX specification.
-- [x] 4.2 Create route-level overview, treasuries, treasury detail, proposals, proposal detail, activity, and wallet/settings pages with route-specific loading, error, and not-found states.
+- [x] 4.2 Create route-level overview, treasuries, treasury detail, proposals, proposal detail, activity, and wallet/settings pages with route-specific loading, error, and not-found states. **Route-specific loading files cover each MVP route; client read failures expose retry UI.**
 - [x] 4.3 Replace root local view switching with URL-based navigation while preserving a compatibility entry point for the existing demo flow during migration.
 - [x] 4.4 Split server-compatible page data/loading from client-only wallet controls, dialogs, and transaction state.
 - [x] 4.5 Add shared shell primitives for desktop sidebar, mobile navigation, header network/wallet context, page container, and contextual actions.
@@ -51,14 +51,14 @@
 - [x] 6.1 Replace the current generic dark contract-tooling treatment with the governed-money visual system defined in `design.md` and the UI/UX specification.
 - [x] 6.2 Establish typography, color, spacing, radius, focus, status, and tabular-number tokens with the approval rail as the signature interaction.
 - [x] 6.3 Implement mobile-first treasury/proposal layouts, full-width financial confirmations, responsive table-to-card transformations, and sticky mobile actions where appropriate.
-- [x] 6.4 Add semantic labels, focus management, keyboard-safe dialogs, screen-reader status updates, reduced-motion handling, and non-color status indicators.
+- [x] 6.4 Add semantic labels, focus management, keyboard-safe dialogs, screen-reader status updates, reduced-motion handling, and non-color status indicators. **All demo and wallet dialogs consume `useModalA11y`; reduced-motion CSS is global; the boundary test verifies dialog contract/source coverage, while live focus behavior remains a browser/manual check.**
 - [x] 6.5 Add deliberate empty, loading, blocked, error, and success copy using the product vocabulary from the UI/UX specification.
 - [x] 6.6 Verify that all financial confirmation surfaces show treasury, asset, amount, recipient, approval rule, and current approval state before signing.
 
 ## 7. Developer Loop and Verification
 
 - [x] 7.1 Add a documented `next dev` command that starts at port `3001` and selects the next free port without terminating existing processes.
-- [x] 7.2 Add a fast demo smoke check for the landing, overview, treasury detail, proposal detail, error, and not-found routes.
+- [x] 7.2 Add a fast demo smoke check for the landing, overview, treasury detail, proposal detail, error, and not-found routes. **The runbook smoke loop exercises all addressable routes and 404 on the printed dev-server port; the `error.tsx` boundary is covered by a source contract test, while caught RPC failures are manually checked through `ResourceStatus` retry UI.**
 - [x] 7.3 Add unit tests for base-unit money, network configuration, error mapping, adapter normalization, and transaction lifecycle state transitions.
 - [x] 7.4 Add integration tests for demo-mode mutations and negative authorization/security cases at the gateway/route seam.
 - [x] 7.5 Add wallet/Testnet manual acceptance steps for connect, wrong network, rejected signature, confirmed transaction, failed transaction, and post-confirmation refresh.

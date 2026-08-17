@@ -242,10 +242,12 @@ After a confirmed transaction, the application shall reload authoritative contra
 ## 8.2 Treasury Creation
 
 ### FR-TRS-001
-The system shall allow a connected user to create a treasury.
+The system shall allow a user to create a treasury in demo mode. Wallet-mode
+on-chain Create Treasury is deferred in the MVP and shall not be presented as
+a working transaction.
 
 ### FR-TRS-002
-Treasury creation shall require:
+Demo treasury creation shall require:
 - token address;
 - member addresses;
 - approval threshold.
@@ -1094,10 +1096,12 @@ The system is not required to support:
 
 # 20. Definition of Done
 
-The Cohold MVP is complete when a user can successfully perform the following end-to-end flow on Stellar Testnet:
+The demo MVP flow is complete when a user can perform the following locally;
+wallet-mode acceptance starts from a known configured treasury because
+on-chain Create Treasury is deferred:
 
 ```text
-CREATE TREASURY
+CREATE TREASURY (DEMO)
       ↓
 ADD MEMBERS + THRESHOLD
       ↓

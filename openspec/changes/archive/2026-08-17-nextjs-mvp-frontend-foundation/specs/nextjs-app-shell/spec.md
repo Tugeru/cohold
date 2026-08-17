@@ -1,3 +1,6 @@
+## Purpose
+The nextjs-app-shell capability defines route boundaries, shared navigation, page states, responsive accessibility, and governed-money presentation for Cohold's Next.js App Router.
+
 ## ADDED Requirements
 
 ### Requirement: Route-level MVP information architecture

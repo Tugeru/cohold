@@ -1,7 +1,7 @@
 # demo-development-mode Specification
 
 ## Purpose
-TBD - created by archiving change nextjs-mvp-frontend-foundation. Update Purpose after archive.
+The demo-development-mode capability defines the explicit fixture boundary for local Cohold development, including deterministic personas, reset behavior, mode guards, and the wallet-free verification loop. Demo state is never treated as Testnet authorization or confirmation.
 ## Requirements
 ### Requirement: Explicit demo mode boundary
 The application SHALL expose demo mode as an explicit configuration and visible UI state. Fixture data, persona switching, synthetic transaction hashes, reset actions, and mock persistence SHALL be available only through the demo adapter and SHALL not be used as wallet-mode authorization or confirmation.

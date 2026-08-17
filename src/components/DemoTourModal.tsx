@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useModalA11y } from "@/components/useModalA11y";
 import confetti from "canvas-confetti";
 import {
   ShieldAlert,
@@ -17,7 +18,7 @@ import {
   Zap,
   ExternalLink,
 } from "lucide-react";
-import { formatAddress } from "@/lib/utils";
+import { formatAddress, prefersReducedMotion } from "@/lib/utils";
 import { syntheticDemoSuccess } from "@/lib/demo-adapter";
 
 interface DemoTourModalProps {
@@ -40,6 +41,7 @@ export function DemoTourModal({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
+  const dialogRef = useModalA11y(onClose, false, isOpen);
 
   if (!isOpen) return null;
 
@@ -118,7 +120,7 @@ export function DemoTourModal({
           "🎉 PAYMENT EXECUTED! 4,500 units transferred to Venue Supplier. Remaining treasury balance: 5,500 units."
         );
         setErrorMessage(null);
-        confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+        if (!prefersReducedMotion()) confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
         setCurrentStep(4);
       },
     },
@@ -139,7 +141,7 @@ export function DemoTourModal({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm animate-in fade-in">
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="PRD Section 26 demo walkthrough" tabIndex={-1} className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm animate-in fade-in">
       <div className="relative w-full max-w-2xl rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-800 px-6 py-4 bg-slate-950/50">

@@ -1,3 +1,6 @@
+## Purpose
+The stellar-transaction-flow capability defines safe Freighter/Testnet configuration, simulation, signing, submission, confirmation, refresh, and error handling.
+
 ## ADDED Requirements
 
 ### Requirement: Centralized Stellar network configuration

@@ -532,7 +532,9 @@ export async function loadWalletTreasury(
   contractId: string,
 ): Promise<ChainTreasuryView | null> {
   const config = await rpc.getConfig(contractId);
-  if (!config) return null;
+  if (!config) {
+    throw new Error("The configured contract is not initialized or is not a Cohold treasury on this network.");
+  }
   let balance: bigint | null = null;
   try {
     balance = await rpc.getBalance(contractId);
@@ -580,8 +582,10 @@ export async function loadWalletProposalViews(
     let record: ChainProposalRecord | null = null;
     try {
       record = await rpc.getProposal(contractId, proposalId);
-    } catch {
-      record = null;
+    } catch (error) {
+      throw new Error(
+        error instanceof Error ? error.message : "A proposal could not be read from Stellar RPC.",
+      );
     }
     if (!record) continue;
     let hasApproved: boolean | null = null;
@@ -616,12 +620,16 @@ export async function loadWalletProposal(
   userAddress: string | null = null,
 ): Promise<ChainProposalView | null> {
   const config = await rpc.getConfig(contractId);
-  if (!config) return null;
+  if (!config) {
+    throw new Error("The configured contract is not initialized or is not a Cohold treasury on this network.");
+  }
   let record: ChainProposalRecord | null = null;
   try {
     record = await rpc.getProposal(contractId, proposalId);
-  } catch {
-    record = null;
+  } catch (error) {
+    throw new Error(
+      error instanceof Error ? error.message : "The proposal could not be read from Stellar RPC.",
+    );
   }
   if (!record) return null;
   const token = await readTokenMetadata(rpc, config.tokenAddress);
@@ -839,8 +847,10 @@ export function stellarCoholdRpc(
         const result = unwrapResultValue(tx.result);
         if (result === null) return null;
         return normalizeProposalResult(result);
-      } catch {
-        return null;
+      } catch (error) {
+        throw new Error(
+          error instanceof Error ? error.message : "The proposal could not be read from Stellar RPC.",
+        );
       }
     },
 

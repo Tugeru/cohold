@@ -1,3 +1,6 @@
+## Purpose
+The contract-authoritative-read-model capability defines normalized Soroban/RPC reads for authoritative treasury, proposal, balance, approval, and recent activity state.
+
 ## ADDED Requirements
 
 ### Requirement: Contract-authoritative treasury reads

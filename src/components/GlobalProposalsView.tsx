@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Proposal, Treasury } from "@/types";
 import { useWallet } from "@/context/WalletContext";
-import { formatAmount, formatAddress, formatDate, timeAgo } from "@/lib/utils";
+import { formatAmount, formatAddress, formatDate, timeAgo, prefersReducedMotion } from "@/lib/utils";
 import { getStellarExpertUrl } from "@/lib/stellar";
 import { ExecutionConfirmDialog } from "./ExecutionConfirmDialog";
 import confetti from "canvas-confetti";
@@ -108,7 +108,7 @@ export function GlobalProposalsView({
             "Quorum Reached!",
             `Signed by ${activePersona.name}. Proposal has ${data.approvalCount}/${data.threshold} approvals and is READY TO EXECUTE.`
           );
-          confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
+          if (!prefersReducedMotion()) confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
         } else {
           showToast(
             "success",
@@ -150,7 +150,7 @@ export function GlobalProposalsView({
           "Payment Executed & Disbursed!",
           `Transferred ${formatAmount(proposal.amount, treasury.tokenSymbol)} to ${proposal.recipientLabel || formatAddress(proposal.recipientAddress)}.`
         );
-        confetti({ particleCount: 100, spread: 80, origin: { y: 0.5 } });
+        if (!prefersReducedMotion()) confetti({ particleCount: 100, spread: 80, origin: { y: 0.5 } });
         setExecutingProposal(null);
         onRefresh();
       }

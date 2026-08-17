@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { ProposalRouteView } from "@/components/ProposalRouteView";
-import { OverviewSkeleton } from "@/components/Skeletons";
+import { DetailSkeleton } from "@/components/Skeletons";
 
 export default async function ProposalDetailPage({
   params,
@@ -9,7 +9,7 @@ export default async function ProposalDetailPage({
 }) {
   const { id } = await params;
   return (
-    <Suspense fallback={<OverviewSkeleton />}>
+    <Suspense fallback={<DetailSkeleton />}>
       <ProposalRouteView id={id} />
     </Suspense>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useModalA11y } from "@/components/useModalA11y";
 import { Proposal, Treasury } from "@/types";
 import { formatAddress, formatAmount } from "@/lib/utils";
 import { parseBaseUnits, parseNonNegativeBaseUnits } from "@/lib/money";
@@ -32,6 +33,7 @@ export function ExecutionConfirmDialog({
   onConfirm,
   isLoading,
 }: ExecutionConfirmDialogProps) {
+  const dialogRef = useModalA11y(onClose, isLoading, isOpen);
   if (!isOpen) return null;
 
   let remainingBalance = 0n;
@@ -46,7 +48,7 @@ export function ExecutionConfirmDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/80 p-0 sm:p-4 backdrop-blur-sm animate-in fade-in">
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Authorize and disburse payment" tabIndex={-1} className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/80 p-0 sm:p-4 backdrop-blur-sm animate-in fade-in">
       <div className="relative w-full max-w-lg rounded-t-3xl sm:rounded-3xl border border-slate-700 bg-slate-900 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-800 px-5 sm:px-6 py-4 bg-slate-950">

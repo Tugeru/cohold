@@ -11,7 +11,7 @@ import { formatBaseAmount } from "@/lib/money";
 import { APP_ROUTES, walletProposalHref } from "@/lib/app-routes";
 import { useWallet } from "@/context/WalletContext";
 import { WalletSetupState } from "@/components/WalletSetupState";
-import { OverviewSkeleton } from "@/components/Skeletons";
+import { ProposalListSkeleton } from "@/components/Skeletons";
 import {
   WalletApprovalRail,
   WalletApprovalChip,
@@ -64,7 +64,7 @@ export function WalletProposalsList() {
     return <WalletSetupState />;
   }
   if (state.status === "loading") {
-    return <OverviewSkeleton />;
+    return <ProposalListSkeleton />;
   }
   if (state.status === "error") {
     return (

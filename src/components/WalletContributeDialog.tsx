@@ -12,6 +12,7 @@ import { formatBaseAmount, parseHumanAmountToBaseUnits } from "@/lib/money";
 import { walletExplorerUrl } from "@/lib/app-routes";
 import { useWallet } from "@/context/WalletContext";
 import type { ChainTreasuryView, CoholdRpc } from "@/lib/contract-adapter";
+import { useModalA11y } from "@/components/useModalA11y";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -68,6 +69,7 @@ export function WalletContributeDialog({
   const [amountError, setAmountError] = useState<string | null>(null);
   const busyRef = useRef(false);
   const [busy, setBusy] = useState(false);
+  const dialogRef = useModalA11y(onClose, busy);
 
   const decimals = treasury.tokenDecimals;
   const symbol = treasury.tokenSymbol;
@@ -290,9 +292,11 @@ export function WalletContributeDialog({
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-label={`Add funds to ${treasury.name}`}
+      tabIndex={-1}
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm"
     >
       <div className="relative flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">

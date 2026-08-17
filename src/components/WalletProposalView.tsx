@@ -14,8 +14,8 @@ import { formatBaseAmount, parseBaseUnits, parseNonNegativeBaseUnits } from "@/l
 import { APP_ROUTES, walletExplorerUrl } from "@/lib/app-routes";
 import { useWallet } from "@/context/WalletContext";
 import { WalletSetupState } from "@/components/WalletSetupState";
-import { NotFoundStatus } from "@/components/ResourceStatus";
-import { OverviewSkeleton } from "@/components/Skeletons";
+import { NotFoundStatus, ResourceStatus } from "@/components/ResourceStatus";
+import { DetailSkeleton } from "@/components/Skeletons";
 import {
   WalletApproveDialog,
   WalletExecuteDialog,
@@ -44,6 +44,7 @@ import {
 
 type ProposalDetailState =
   | { status: "loading" }
+  | { status: "not_found"; message: string }
   | { status: "ready"; proposal: ChainProposalView; treasury: ChainTreasuryView }
   | { status: "error"; message: string };
 
@@ -82,11 +83,17 @@ export function WalletProposalView({ id }: { id: string }) {
           loadWalletTreasury(rpc, contractId),
         ]);
         if (cancelled) return;
-        if (!proposal || !treasury) {
+        if (!treasury) {
           setState({
             status: "error",
-            message:
-              "This proposal does not exist on the configured contract, or the contract is not initialized.",
+            message: "The configured treasury could not be read from Stellar RPC.",
+          });
+          return;
+        }
+        if (!proposal) {
+          setState({
+            status: "not_found",
+            message: "This proposal does not exist on the configured contract.",
           });
           return;
         }
@@ -200,15 +207,24 @@ export function WalletProposalView({ id }: { id: string }) {
     );
   }
   if (state.status === "loading") {
-    return <OverviewSkeleton />;
+    return <DetailSkeleton />;
   }
-  if (state.status === "error") {
+  if (state.status === "not_found") {
     return (
       <NotFoundStatus
         title="Proposal not found"
         message={state.message}
         href={APP_ROUTES.proposals}
         hrefLabel="All proposals"
+      />
+    );
+  }
+  if (state.status === "error") {
+    return (
+      <ResourceStatus
+        title="Failed to load proposal"
+        message={state.message}
+        onRetry={refresh}
       />
     );
   }

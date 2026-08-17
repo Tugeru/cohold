@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TreasuryDetail } from "@/components/TreasuryDetail";
-import { OverviewSkeleton } from "@/components/Skeletons";
+import { DetailSkeleton } from "@/components/Skeletons";
 import { NotFoundStatus, ResourceStatus } from "@/components/ResourceStatus";
 import { WalletSetupState } from "@/components/WalletSetupState";
 import { useDemoData } from "@/context/DemoDataContext";
@@ -57,9 +57,8 @@ export function TreasuryRouteView({ id }: { id: string }) {
   }
 
   if (state.status === "loading") {
-    return <OverviewSkeleton />;
+    return <DetailSkeleton />;
   }
-
   if (state.status === "not_found") {
     return (
       <NotFoundStatus

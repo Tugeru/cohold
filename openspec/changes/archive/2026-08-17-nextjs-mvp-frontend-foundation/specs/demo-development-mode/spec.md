@@ -1,3 +1,6 @@
+## Purpose
+The demo-development-mode capability defines the explicit fixture boundary, deterministic reset behavior, mode guards, and wallet-free verification loop.
+
 ## ADDED Requirements
 
 ### Requirement: Explicit demo mode boundary

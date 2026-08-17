@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useModalA11y } from "@/components/useModalA11y";
 import {
   RUST_SOROBAN_CONTRACT_CODE,
   CONTRACT_SECURITY_INVARIANTS,
@@ -24,6 +25,7 @@ interface ContractModalProps {
 export function ContractModal({ isOpen, onClose }: ContractModalProps) {
   const [activeTab, setActiveTab] = useState<"rust" | "invariants" | "cli">("rust");
   const [copied, setCopied] = useState(false);
+  const dialogRef = useModalA11y(onClose, false, isOpen);
 
   if (!isOpen) return null;
 
@@ -59,7 +61,7 @@ soroban contract invoke \\
 `;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm animate-in fade-in">
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Stellar Soroban smart contract" tabIndex={-1} className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm animate-in fade-in">
       <div className="relative w-full max-w-4xl rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-800 px-6 py-4 bg-slate-950">

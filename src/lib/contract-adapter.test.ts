@@ -430,9 +430,9 @@ describe("loadWalletTreasury", () => {
     expect(view?.tokenSymbol).toBe("USDC");
   });
 
-  it("returns null when the configured contract has no config", async () => {
+  it("throws when the configured contract has no config", async () => {
     const rpc = mockRpc({ getConfig: async () => null });
-    expect(await loadWalletTreasury(rpc, CONTRACT)).toBeNull();
+    await expect(loadWalletTreasury(rpc, CONTRACT)).rejects.toThrow(/not initialized/);
   });
 
   it("keeps the view loadable when member list or token metadata reads fail", async () => {

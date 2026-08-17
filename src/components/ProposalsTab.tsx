@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Proposal, Treasury, TreasuryMember } from "@/types";
 import { useWallet } from "@/context/WalletContext";
-import { formatAddress, formatAmount, formatDate, timeAgo } from "@/lib/utils";
+import { formatAddress, formatAmount, formatDate, timeAgo, prefersReducedMotion } from "@/lib/utils";
 import { getStellarExpertUrl } from "@/lib/stellar";
 import confetti from "canvas-confetti";
 import {
@@ -113,7 +113,7 @@ export function ProposalsTab({
             "Threshold Consensus Reached!",
             `Approval recorded. Proposal now has ${data.approvalCount}/${data.threshold} signatures and is READY TO EXECUTE.`
           );
-          confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
+          if (!prefersReducedMotion()) confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
         } else {
           showToast(
             "success",
@@ -154,7 +154,7 @@ export function ProposalsTab({
           "Payment Executed & Transferred!",
           `Transferred ${formatAmount(proposal.amount, treasury.tokenSymbol)} to ${proposal.recipientLabel || formatAddress(proposal.recipientAddress)}. New Balance: ${formatAmount(data.newBalance, treasury.tokenSymbol)}`
         );
-        confetti({ particleCount: 100, spread: 80, origin: { y: 0.5 } });
+        if (!prefersReducedMotion()) confetti({ particleCount: 100, spread: 80, origin: { y: 0.5 } });
         onRefresh();
       }
     } catch (err: unknown) {

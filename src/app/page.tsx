@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { EnvironmentBadge } from "@/components/EnvironmentBadge";
+import { coholdConfig } from "@/lib/cohold-config";
 import { APP_ROUTES, createTreasuryHref } from "@/lib/app-routes";
 
 export default function LandingPage() {
@@ -39,12 +40,21 @@ export default function LandingPage() {
             >
               View Demo
             </Link>
-            <Link
-              href={createTreasuryHref()}
-              className="inline-flex items-center rounded-xl border border-slate-700 bg-slate-900 px-5 py-2.5 text-sm font-semibold text-slate-100 hover:border-slate-500"
-            >
-              Create Treasury
-            </Link>
+            {coholdConfig.mode === "demo" ? (
+              <Link
+                href={createTreasuryHref()}
+                className="inline-flex items-center rounded-xl border border-slate-700 bg-slate-900 px-5 py-2.5 text-sm font-semibold text-slate-100 hover:border-slate-500"
+              >
+                Create Treasury
+              </Link>
+            ) : (
+              <Link
+                href={APP_ROUTES.wallet}
+                className="inline-flex items-center rounded-xl border border-slate-700 bg-slate-900 px-5 py-2.5 text-sm font-semibold text-slate-100 hover:border-slate-500"
+              >
+                Open Wallet
+              </Link>
+            )}
           </div>
         </section>
 

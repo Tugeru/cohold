@@ -70,10 +70,11 @@ stays off-chain.
 Routes: `/` (landing), `/overview`, `/treasuries`, `/treasuries/[id]`,
 `/proposals`, `/proposals/[id]`, `/activity`, `/wallet`, `/settings`.
 
-The route-level error state is a Next.js error boundary rather than a URL. The
-smoke loop below exercises a not-found response directly; recoverable read
-errors are covered by the route `error.tsx` boundary and `ResourceStatus`
-retry UI.
+The route-level error state is a Next.js error boundary rather than a URL.
+The smoke loop below exercises a not-found response directly. The app's read
+loaders intentionally catch RPC failures and render product-level
+`ResourceStatus` retry UI; the focused boundary contract test verifies the
+`error.tsx` fallback itself.
 
 Demo fixtures are not authorization. Demo state never counts as a wallet
 action or confirmation.
@@ -160,10 +161,11 @@ npm test            # Vitest unit suite
 npm run build       # production build
 ```
 
-Demo smoke (after `npm run dev`; use the port the dev command printed):
+Demo smoke (after `npm run dev`; set `PORT` to the port printed by the
+command, which may be `3001` or the next free fallback):
 
 ```sh
-PORT=3001
+PORT=<printed-port>
 for path in \
   / \
   /overview \
@@ -193,11 +195,10 @@ Responsive/accessibility spot check (after the smoke loop):
    and focus returning after a dialog closes.
 3. Repeat with reduced motion enabled in browser preferences.
 
-The route error boundary is covered by the focused boundary contract test in
-`src/app/demo-boundaries.test.ts`, which verifies the client boundary, retry
-callback, and no-financial-state-change message. It is not a separately
-addressable route; a live read failure can be exercised manually by using an
-unreachable configured RPC in wallet mode.
+The focused boundary contract test in `src/app/demo-boundaries.test.ts`
+verifies the client boundary, retry callback, and no-financial-state-change
+message. Exercise a live RPC failure in wallet mode to verify the rendered
+`ResourceStatus` retry path; it does not intentionally throw into `error.tsx`.
 
 Generated artifacts: `npm run build` writes `.next/`, `tsc` writes
 `tsconfig.tsbuildinfo`, and dev/build runs may touch `next-env.d.ts` /

@@ -55,10 +55,9 @@ The MVP must support:
 
 - connect wallet;
 - detect Testnet;
-- create treasury;
-- define members;
-- define approval threshold;
-- view accessible treasuries;
+- create a treasury in demo mode;
+- open configured wallet-mode treasuries;
+- define members and approval thresholds in demo mode;
 - contribute Testnet/demo assets;
 - view treasury balance;
 - create proposal;
@@ -75,21 +74,23 @@ The MVP must support:
 
 ## 4. First-Time User Flow
 
+Wallet mode:
+
 ```text
 Landing
 → Connect Wallet
 → Freighter Permission
 → Verify Testnet
+→ Open Configured Treasury
 → Dashboard
 ```
 
-If no treasury exists:
+If demo mode has no treasury:
 
 ```text
-No treasuries yet.
+No demo treasuries yet.
 [Create Treasury]
 ```
-
 If the wallet is on the wrong network:
 
 ```text
@@ -99,12 +100,15 @@ Switch to Testnet to continue.
 
 ## 5. Treasury Creation
 
-A connected user must be able to create a treasury with:
+Demo mode must allow a user to create a fixture treasury with:
 
 - treasury name;
 - member Stellar addresses;
 - approval threshold;
-- configured demo/Testnet asset.
+- configured demo asset.
+
+Wallet-mode on-chain Create Treasury is deferred in this MVP; wallet mode
+opens configured Testnet treasury contracts instead.
 
 Example:
 
@@ -124,13 +128,12 @@ Approval Rule:
 Flow:
 
 ```text
-Create Treasury
+Create Treasury (demo mode)
 → Enter Details
 → Add Members
 → Set Threshold
 → Review
-→ Sign in Freighter
-→ Soroban Creates Treasury
+→ Fixture Treasury Created
 → Treasury Detail
 ```
 
@@ -482,12 +485,12 @@ Execute Again
 
 ### Treasury
 
-- [ ] User can create a treasury.
-- [ ] Members are stored correctly.
-- [ ] Approval threshold is stored correctly.
+- [ ] Demo user can create a fixture treasury.
+- [ ] Wallet mode can open each configured Testnet treasury.
+- [ ] Members are stored correctly in demo/on-chain mode as applicable.
+- [ ] Approval threshold is stored correctly in demo/on-chain mode as applicable.
 - [ ] Creator is a member with no special spending authority.
 - [ ] Treasury balance is readable.
-
 ### Funds
 
 - [ ] Member can contribute demo/Testnet assets.
@@ -527,10 +530,10 @@ Execute Again
 
 ## 19. MVP Definition of Done
 
-Cohold has reached MVP when a user can complete:
+Demo mode has reached its local MVP when a user can complete:
 
 ```text
-CONNECT WALLET
+OPEN DEMO
 → CREATE TREASURY
 → ADD FUNDS
 → CREATE PROPOSAL
@@ -539,6 +542,9 @@ CONNECT WALLET
 → EXECUTE
 → VERIFY RESULT
 ```
+
+Wallet mode begins with Connect Wallet and Open Configured Treasury; wallet
+Create Treasury is deferred in this MVP.
 
 and the system correctly rejects:
 

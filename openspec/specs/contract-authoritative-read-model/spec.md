@@ -1,7 +1,7 @@
 # contract-authoritative-read-model Specification
 
 ## Purpose
-TBD - created by archiving change nextjs-mvp-frontend-foundation. Update Purpose after archive.
+The contract-authoritative-read-model capability defines the normalized Soroban/RPC read seam for treasury, proposal, balance, approval, and recent activity state. It keeps chain financial and governance values authoritative while allowing clearly marked demo metadata.
 ## Requirements
 ### Requirement: Contract-authoritative treasury reads
 In wallet mode, the application SHALL read treasury configuration, membership, threshold, token, internal balance, and status from the configured Soroban contract or a verified RPC-derived projection. Database rows or client state SHALL not override authoritative on-chain financial or governance values.

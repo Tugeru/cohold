@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useModalA11y } from "@/components/useModalA11y";
 import { useWallet } from "@/context/WalletContext";
 import { DEMO_PERSONAS } from "@/lib/demo-adapter";
 import { isValidStellarAddress } from "@/lib/stellar";
@@ -74,6 +75,7 @@ export function CreateTreasuryModal({
   const [threshold, setThreshold] = useState(2);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const dialogRef = useModalA11y(onClose, loading, isOpen);
 
   if (!isOpen) return null;
 
@@ -269,7 +271,7 @@ export function CreateTreasuryModal({
   const quorumPercent = Math.round((threshold / members.length) * 100);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm animate-in fade-in">
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Create shared treasury" tabIndex={-1} className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm animate-in fade-in">
       <div className="relative w-full max-w-2xl rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-800 px-6 py-4 bg-slate-950">
@@ -280,7 +282,7 @@ export function CreateTreasuryModal({
             <div>
               <h2 className="text-base font-bold text-white">Create Shared Treasury</h2>
               <p className="text-xs text-slate-400">
-                Deploy a new Soroban smart-contract treasury with immutable multi-sig rules
+                Create a deterministic demo treasury with immutable multi-approval rules
               </p>
             </div>
           </div>
@@ -331,7 +333,7 @@ export function CreateTreasuryModal({
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-800 text-[10px]">
               3
             </span>
-            <span>Approval Rule & Deploy</span>
+            <span>Approval Rule & Review</span>
           </button>
         </div>
 
@@ -465,7 +467,7 @@ export function CreateTreasuryModal({
                   className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2 text-sm text-white font-mono tabular-nums focus:border-emerald-500 focus:outline-none"
                 />
                 <p className="text-[11px] text-slate-400 mt-1">
-                  Seed tokens will be minted to the contract balance on creation.
+                  Seed demo units are recorded in fixture state only; no Testnet balance changes.
                 </p>
               </div>
             </div>
@@ -589,7 +591,7 @@ export function CreateTreasuryModal({
               <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-2 text-xs">
                 <div className="font-bold text-white flex items-center gap-1.5">
                   <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                  <span>Deployment Summary</span>
+                  <span>Demo Treasury Summary</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-slate-300 pt-1">
                   <div>
@@ -606,7 +608,7 @@ export function CreateTreasuryModal({
                   </div>
                 </div>
                 <p className="text-[11px] text-slate-400 pt-2 border-t border-emerald-500/20">
-                  ⚡ Once deployed to Stellar Testnet, the member roster and approval threshold are permanently immutable.
+                  Demo fixture membership and approval threshold are immutable for this walkthrough; no Stellar Testnet state changes.
                 </p>
               </div>
             </div>
@@ -661,12 +663,12 @@ export function CreateTreasuryModal({
                 {loading ? (
                   <>
                     <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    <span>Deploying to Soroban...</span>
+                    <span>Creating demo treasury...</span>
                   </>
                 ) : (
                   <>
                     <ShieldPlus className="h-4 w-4" />
-                    <span>Deploy Treasury</span>
+                    <span>Create Demo Treasury</span>
                   </>
                 )}
               </button>

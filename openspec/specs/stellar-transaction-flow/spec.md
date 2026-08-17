@@ -1,7 +1,7 @@
 # stellar-transaction-flow Specification
 
 ## Purpose
-TBD - created by archiving change nextjs-mvp-frontend-foundation. Update Purpose after archive.
+The stellar-transaction-flow capability defines the safe Freighter/Testnet transaction lifecycle: centralized configuration, wallet-derived identity, pre-sign simulation, submission and confirmation, authoritative refresh, duplicate-submit prevention, and human-readable contract errors.
 ## Requirements
 ### Requirement: Centralized Stellar network configuration
 The application SHALL centralize the selected network, RPC URL, Horizon compatibility URL, network passphrase, contract ID, token/SAC ID, and demo mode. Wallet actions SHALL validate that the wallet network matches the configured Testnet network before signing.

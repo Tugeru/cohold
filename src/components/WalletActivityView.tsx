@@ -12,7 +12,7 @@ import {
 import { formatBaseAmount } from "@/lib/money";
 import { walletExplorerUrl } from "@/lib/app-routes";
 import { WalletSetupState } from "@/components/WalletSetupState";
-import { OverviewSkeleton } from "@/components/Skeletons";
+import { ActivitySkeleton } from "@/components/Skeletons";
 import { formatAddress, formatDate, timeAgo } from "@/lib/utils";
 import {
   History,
@@ -164,7 +164,7 @@ export function WalletActivityView() {
     return <WalletSetupState />;
   }
   if (state.status === "loading") {
-    return <OverviewSkeleton />;
+    return <ActivitySkeleton />;
   }
   if (state.status === "error") {
     return (

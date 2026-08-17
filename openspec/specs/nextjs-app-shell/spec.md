@@ -1,7 +1,7 @@
 # nextjs-app-shell Specification
 
 ## Purpose
-TBD - created by archiving change nextjs-mvp-frontend-foundation. Update Purpose after archive.
+The nextjs-app-shell capability defines Cohold's Next.js App Router information architecture, route boundaries, shared shell, first-class loading/error/not-found states, responsive accessibility behavior, and governed-money presentation.
 ## Requirements
 ### Requirement: Route-level MVP information architecture
 The application SHALL expose the MVP experience through App Router routes for the public landing page, overview, treasuries, treasury detail, proposals, proposal detail, activity, and wallet/settings contexts. Navigation SHALL use URLs and links as the source of truth rather than a root-only local view enum.

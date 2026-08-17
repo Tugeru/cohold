@@ -14,7 +14,7 @@ import { APP_ROUTES, walletExplorerUrl, walletProposalHref } from "@/lib/app-rou
 import { useWallet } from "@/context/WalletContext";
 import { WalletSetupState } from "@/components/WalletSetupState";
 import { NotFoundStatus } from "@/components/ResourceStatus";
-import { OverviewSkeleton } from "@/components/Skeletons";
+import { DetailSkeleton } from "@/components/Skeletons";
 import { WalletContributeDialog } from "@/components/WalletContributeDialog";
 import { WalletCreateProposalDialog } from "@/components/WalletProposalDialogs";
 import {
@@ -118,7 +118,7 @@ export function WalletTreasuryView({ id }: { id: string }) {
     );
   }
   if (state.status === "loading") {
-    return <OverviewSkeleton />;
+    return <DetailSkeleton />;
   }
   if (state.status === "error") {
     return (

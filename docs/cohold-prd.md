@@ -88,7 +88,8 @@ The application provides the user experience, while Soroban provides the enforce
 The MVP must allow users to:
 
 - connect a Stellar Testnet wallet;
-- create a treasury;
+- create a treasury in demo mode;
+- open a configured treasury in wallet mode;
 - define members;
 - define an approval threshold;
 - contribute funds;
@@ -241,8 +242,12 @@ Cohold is most useful when there is:
 
 ## 9. Core User Flow
 
+The following flow describes the demo-mode creation walkthrough. Wallet mode
+starts from an env-configured treasury because on-chain Create Treasury is
+deferred in this MVP.
+
 ```text
-CREATE TREASURY
+CREATE TREASURY (DEMO)
       ↓
 ADD MEMBERS
       ↓
@@ -430,11 +435,15 @@ enum ProposalStatus {
 
 ### FR-1 — Create Treasury
 
-A user must be able to create a treasury with:
+In **demo mode**, a user must be able to create a treasury with:
 
 - token/asset;
 - member addresses;
 - approval threshold.
+
+Wallet-mode on-chain Create Treasury is deferred in this MVP; wallet mode
+opens configured treasury contracts and supports contribution, proposal,
+approval, and execution flows only.
 
 Validation:
 
