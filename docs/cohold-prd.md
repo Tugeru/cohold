@@ -819,13 +819,13 @@ Cohold
 
 Shared funds. Shared control.
 
-Create a treasury where spending
+Create a demo treasury where spending
 requires group approval.
 
-[Create Treasury]
+[Create Treasury — Demo]
 ```
 
-### Create Treasury
+### Create Treasury (Demo Mode)
 
 - treasury name;
 - member addresses;
