@@ -810,8 +810,10 @@ export function stellarCoholdRpc(
         const result = unwrapResultValue(tx.result);
         if (result === null) return null;
         return normalizeTreasuryConfigResult(result);
-      } catch {
-        return null;
+      } catch (error) {
+        throw error instanceof Error
+          ? error
+          : new Error("The treasury configuration could not be read from Stellar RPC.");
       }
     },
 
