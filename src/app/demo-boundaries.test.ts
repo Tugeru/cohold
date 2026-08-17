@@ -24,19 +24,27 @@ const environmentBadgeSource = readFileSync(
   new URL("../components/EnvironmentBadge.tsx", import.meta.url),
   "utf8",
 );
-const modalSources = [
-  "../components/ContractModal.tsx",
-  "../components/ContributeModal.tsx",
-  "../components/CreateProposalModal.tsx",
-  "../components/CreateTreasuryModal.tsx",
-  "../components/DemoTourModal.tsx",
-  "../components/ExecutionConfirmDialog.tsx",
-  "../components/WalletContributeDialog.tsx",
-  "../components/WalletProposalDialogs.tsx",
-].map((path) => ({
-  path,
-  source: readFileSync(new URL(path, import.meta.url), "utf8"),
-}));
+const modalExports = [
+  ["../components/ContractModal.tsx", "ContractModal"],
+  ["../components/ContributeModal.tsx", "ContributeModal"],
+  ["../components/CreateProposalModal.tsx", "CreateProposalModal"],
+  ["../components/CreateTreasuryModal.tsx", "CreateTreasuryModal"],
+  ["../components/DemoTourModal.tsx", "DemoTourModal"],
+  ["../components/ExecutionConfirmDialog.tsx", "ExecutionConfirmDialog"],
+  ["../components/WalletContributeDialog.tsx", "WalletContributeDialog"],
+  ["../components/WalletProposalDialogs.tsx", "WalletCreateProposalDialog"],
+  ["../components/WalletProposalDialogs.tsx", "WalletApproveDialog"],
+  ["../components/WalletProposalDialogs.tsx", "WalletExecuteDialog"],
+] as const;
+const modalSources = modalExports.map(([path, exportName]) => {
+  const fullSource = readFileSync(new URL(path, import.meta.url), "utf8");
+  const start = fullSource.indexOf(`export function ${exportName}`);
+  const next = fullSource.indexOf("\nexport function ", start + 1);
+  return {
+    path: `${path}#${exportName}`,
+    source: fullSource.slice(start, next === -1 ? undefined : next),
+  };
+});
 
 describe("demo route boundaries", () => {
   it("uses the declared skeleton for every demo route boundary", () => {
