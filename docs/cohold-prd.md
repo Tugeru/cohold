@@ -889,10 +889,12 @@ The MVP is complete when:
 
 ### Treasury
 
-- a Testnet wallet can create a valid treasury;
-- membership and threshold are stored on-chain;
+- demo mode can create a valid fixture treasury;
+- wallet mode can open a configured Testnet treasury whose membership and threshold are stored on-chain;
 - funds can be contributed;
 - no direct unilateral withdrawal exists.
+
+Wallet-mode Create Treasury remains deferred to a follow-on deploy/factory change.
 
 ### Proposals
 
