@@ -1,6 +1,7 @@
 import * as StellarSdk from "@stellar/stellar-sdk";
 import { contract } from "@stellar/stellar-sdk";
 import { Err, Ok, type ErrorMessage } from "@stellar/stellar-sdk/contract";
+import { Client } from "cohold-contract";
 import { formatBaseUnits, parseBaseUnits, parseNonNegativeBaseUnits } from "@/lib/money";
 import { isValidStellarAddress } from "@/lib/stellar";
 import {
@@ -1034,27 +1035,6 @@ export interface StellarProposalExecutorOptions {
   networkPassphrase?: string;
 }
 
-interface CreateProposalClientSpec {
-  create_proposal: (
-    args: { proposer: string; recipient: string; amount: bigint; description: string },
-    options?: contract.MethodOptions,
-  ) => Promise<contract.AssembledTransaction<bigint>>;
-}
-
-interface ApproveClientSpec {
-  approve: (
-    args: { member: string; proposal_id: bigint },
-    options?: contract.MethodOptions,
-  ) => Promise<contract.AssembledTransaction<unknown>>;
-}
-
-interface ExecuteClientSpec {
-  execute: (
-    args: { caller: string; proposal_id: bigint },
-    options?: contract.MethodOptions,
-  ) => Promise<contract.AssembledTransaction<unknown>>;
-}
-
 /**
  * The RPC reports a rejected invocation (host error) on the simulation
  * response while the assembled transaction still resolves; the message
@@ -1121,7 +1101,7 @@ export function stellarProposalExecutor(
       amountBaseUnits,
       description,
     }) {
-      const client = await contract.Client.from<CreateProposalClientSpec>({
+      const client = new Client({
         contractId,
         rpcUrl,
         networkPassphrase,
@@ -1171,7 +1151,7 @@ export function stellarProposalExecutor(
     },
 
     async simulateApprove({ contractId, memberAddress, proposalId }) {
-      const client = await contract.Client.from<ApproveClientSpec>({
+      const client = new Client({
         contractId,
         rpcUrl,
         networkPassphrase,
@@ -1207,7 +1187,7 @@ export function stellarProposalExecutor(
     },
 
     async simulateExecute({ contractId, callerAddress, proposalId }) {
-      const client = await contract.Client.from<ExecuteClientSpec>({
+      const client = new Client({
         contractId,
         rpcUrl,
         networkPassphrase,

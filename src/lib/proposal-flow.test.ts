@@ -1,7 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import * as StellarSdk from "@stellar/stellar-sdk";
-import { contract } from "@stellar/stellar-sdk";
-import { Err } from "@stellar/stellar-sdk/contract";
+import { Err, Ok } from "@stellar/stellar-sdk/contract";
 import {
   approveFlow,
   createProposalFlow,
@@ -14,6 +13,37 @@ import {
 } from "./proposal-flow";
 import type { ChainProposalStatus } from "./contract-adapter";
 import type { WalletSignatureResult } from "./wallet-adapter";
+
+// The SDK executor constructs the generated bindings `Client`; mock the
+// package so the binding-level tests observe the exact invocations without
+// touching a network.
+const binding = vi.hoisted(() => ({
+  create_proposal: vi.fn(),
+  approve: vi.fn(),
+  execute: vi.fn(),
+}));
+
+vi.mock("cohold-contract", () => {
+  class Client {
+    constructor(readonly options: Record<string, unknown>) {}
+    create_proposal(args: unknown) {
+      return binding.create_proposal(args);
+    }
+    approve(args: unknown) {
+      return binding.approve(args);
+    }
+    execute(args: unknown) {
+      return binding.execute(args);
+    }
+  }
+  return { Client };
+});
+
+beforeEach(() => {
+  binding.create_proposal.mockReset();
+  binding.approve.mockReset();
+  binding.execute.mockReset();
+});
 
 const CONTRACT = `C${"A".repeat(55)}`;
 const TOKEN = `C${"B".repeat(55)}`;
@@ -913,26 +943,101 @@ describe("stellarProposalExecutor", () => {
     const assembled = {
       simulation: undefined,
       result,
-      needsNonInvokerSigningBy: () => [],
+      needsNonInvokerSigningBy: () => [] as string[],
       toXDR: () => XDR,
     };
-    const client = {
-      execute: vi.fn(async () => assembled),
-    };
-    const from = vi
-      .spyOn(contract.Client, "from")
-      .mockResolvedValue(client as never);
+    binding.execute.mockResolvedValue(assembled);
 
-    try {
-      await expect(
-        stellarProposalExecutor().simulateExecute({
-          contractId: CONTRACT,
-          callerAddress: MEMBER,
-          proposalId: 1,
-        }),
-      ).rejects.toThrow("Error(Contract, #7)");
-    } finally {
-      from.mockRestore();
-    }
+    await expect(
+      stellarProposalExecutor().simulateExecute({
+        contractId: CONTRACT,
+        callerAddress: MEMBER,
+        proposalId: 1,
+      }),
+    ).rejects.toThrow("Error(Contract, #7)");
+  });
+
+  it("invokes the generated client for every executor operation", async () => {
+    const executor = stellarProposalExecutor();
+    const assembled = {
+      simulation: undefined,
+      result: undefined,
+      needsNonInvokerSigningBy: () => [] as string[],
+      toXDR: () => XDR,
+    };
+
+    binding.create_proposal.mockResolvedValue({
+      ...assembled,
+      result: new Ok(3n),
+    });
+    const created = await executor.simulateCreateProposal({
+      contractId: CONTRACT,
+      proposerAddress: MEMBER,
+      recipient: RECIPIENT,
+      amountBaseUnits: 4_500_000_000n,
+      description: "Venue deposit",
+    });
+    expect(created.previewProposalId).toBe(3n);
+    expect(binding.create_proposal).toHaveBeenCalledWith({
+      proposer: MEMBER,
+      recipient: RECIPIENT,
+      amount: 4_500_000_000n,
+      description: "Venue deposit",
+    });
+
+    binding.approve.mockResolvedValue({ ...assembled, result: new Ok(undefined) });
+    await executor.simulateApprove({
+      contractId: CONTRACT,
+      memberAddress: MEMBER,
+      proposalId: 2,
+    });
+    expect(binding.approve).toHaveBeenCalledWith({
+      member: MEMBER,
+      proposal_id: 2n,
+    });
+
+    binding.execute.mockResolvedValue({ ...assembled, result: new Ok(undefined) });
+    await executor.simulateExecute({
+      contractId: CONTRACT,
+      callerAddress: MEMBER,
+      proposalId: 2,
+    });
+    expect(binding.execute).toHaveBeenCalledWith({
+      caller: MEMBER,
+      proposal_id: 2n,
+    });
+  });
+
+  it("rejects preview ids from Err and multi-party invocations", async () => {
+    const executor = stellarProposalExecutor();
+    binding.create_proposal.mockResolvedValue({
+      simulation: undefined,
+      result: new Err({ message: "rejected" }),
+      needsNonInvokerSigningBy: () => [] as string[],
+      toXDR: () => XDR,
+    });
+    await expect(
+      executor.simulateCreateProposal({
+        contractId: CONTRACT,
+        proposerAddress: MEMBER,
+        recipient: RECIPIENT,
+        amountBaseUnits: 100n,
+        description: "x",
+      }),
+    ).rejects.toThrow(/rejected/);
+
+    binding.execute.mockResolvedValue({
+      simulation: undefined,
+      result: new Ok(undefined),
+      needsNonInvokerSigningBy: () => [MEMBER],
+      toXDR: () => XDR,
+    });
+    await expect(
+      executor.simulateExecute({
+        contractId: CONTRACT,
+        callerAddress: MEMBER,
+        proposalId: 1,
+      }),
+    ).rejects.toThrow(/multi-party/);
   });
 });
