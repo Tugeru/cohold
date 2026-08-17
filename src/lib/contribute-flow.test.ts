@@ -25,8 +25,42 @@ vi.mock("cohold-contract", () => {
   return { Client };
 });
 
+// The SDK executor also drives the RPC submit/confirm boundary. Mock the
+// server seam so sendTransaction/pollTransaction mappings are observed
+// without a network.
+const rpcServer = vi.hoisted(() => ({
+  instances: [] as Array<{ url: string }>,
+  sendResult: undefined as unknown,
+  pollResult: undefined as unknown,
+  pollError: false,
+}));
+
+vi.mock("@stellar/stellar-sdk", () => ({
+  rpc: {
+    Server: class {
+      constructor(url: string) {
+        rpcServer.instances.push({ url });
+      }
+      async sendTransaction(_tx: unknown) {
+        return rpcServer.sendResult;
+      }
+      async pollTransaction(_hash: string) {
+        if (rpcServer.pollError) throw new Error("rpc down");
+        return rpcServer.pollResult;
+      }
+    },
+  },
+  TransactionBuilder: {
+    fromXDR: (xdr: string) => ({ source: xdr }),
+  },
+}));
+
 beforeEach(() => {
   binding.contribute.mockReset();
+  rpcServer.instances.length = 0;
+  rpcServer.sendResult = undefined;
+  rpcServer.pollResult = undefined;
+  rpcServer.pollError = false;
 });
 
 const CONTRACT = `C${"A".repeat(55)}`;
@@ -151,6 +185,28 @@ describe("createContributeFlow.prepare", () => {
     if (outcome.status === "simulation-failed") {
       expect(outcome.error.kind).toBe("simulation-failed");
       expect(outcome.error.message).toMatch(/no funds were moved/i);
+    }
+    expect(deps.signTransaction).not.toHaveBeenCalled();
+    expect(executor.calls.submit).toHaveLength(0);
+  });
+
+  it("maps a token-transfer failure inside simulation to a product error (no sign, no submit)", async () => {
+    // The SAC transfer from the member runs inside the host call; a failure
+    // (e.g. insufficient balance) surfaces as a thrown host error that is not
+    // CoholdError::NotMember (#3) — it must not be mistaken for membership or
+    // reach the wallet.
+    const executor = fakeExecutor({
+      simulate: async () => {
+        throw new Error("HostError: (xlm) transfer failed: insufficient balance");
+      },
+    });
+    const { deps } = buildDeps({ executor });
+    const outcome = await createContributeFlow(deps).prepare("5000000");
+    expect(outcome.status).toBe("simulation-failed");
+    if (outcome.status === "simulation-failed") {
+      expect(outcome.error.kind).toBe("simulation-failed");
+      expect(outcome.error.message).toMatch(/no funds were moved/i);
+      expect(outcome.error.message).not.toMatch(/Only members/i);
     }
     expect(deps.signTransaction).not.toHaveBeenCalled();
     expect(executor.calls.submit).toHaveLength(0);
@@ -406,5 +462,48 @@ describe("stellarContributeExecutor", () => {
         amountBaseUnits: 100n,
       }),
     ).rejects.toThrow(/multi-party/);
+  });
+
+  it("submits the wallet-signed XDR to the Testnet RPC and returns the hash", async () => {
+    rpcServer.sendResult = { status: "PENDING", hash: "txhash1" };
+    const result = await stellarContributeExecutor().submitContribute("signed-xdr");
+    expect(result).toEqual({ hash: "txhash1" });
+    expect(rpcServer.instances).toHaveLength(1);
+    expect(rpcServer.instances[0].url).toBe("https://soroban-testnet.stellar.org");
+  });
+
+  it("throws when RPC rejects the signed transaction before execution", async () => {
+    rpcServer.sendResult = { status: "ERROR", errorResult: "TX_INSUFFICIENT_FEE" };
+    await expect(
+      stellarContributeExecutor().submitContribute("signed-xdr"),
+    ).rejects.toThrow(/no funds were moved/);
+  });
+
+  it("maps an RPC SUCCESS poll to success", async () => {
+    rpcServer.pollResult = { status: "SUCCESS" };
+    await expect(
+      stellarContributeExecutor().confirmContribute("txhash1"),
+    ).resolves.toBe("success");
+  });
+
+  it("maps an RPC FAILED poll to failed", async () => {
+    rpcServer.pollResult = { status: "FAILED" };
+    await expect(
+      stellarContributeExecutor().confirmContribute("txhash1"),
+    ).resolves.toBe("failed");
+  });
+
+  it("keeps non-terminal polls pending for retry", async () => {
+    rpcServer.pollResult = { status: "NOT_FOUND" };
+    await expect(
+      stellarContributeExecutor().confirmContribute("txhash1"),
+    ).resolves.toBe("pending");
+  });
+
+  it("propagates confirm transport failures for the flow to map", async () => {
+    rpcServer.pollError = true;
+    await expect(
+      stellarContributeExecutor().confirmContribute("txhash1"),
+    ).rejects.toThrow("rpc down");
   });
 });
