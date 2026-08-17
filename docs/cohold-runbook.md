@@ -164,6 +164,11 @@ npm test            # Vitest unit suite
 npm run build       # production build
 ```
 
+Contract bindings: `packages/cohold-contract` is generated from the built
+Wasm. After changing the Rust contract interface, run
+`npm run contract:bindings` and commit the regenerated package — CI fails
+when committed bindings drift from the built Wasm interface.
+
 Demo smoke (after `npm run dev`; set `PORT` to the port printed by the
 command, which may be `3001` or the next free fallback):
 
