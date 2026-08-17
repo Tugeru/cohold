@@ -457,6 +457,10 @@ A member must be able to create a proposal specifying:
 - amount;
 - description/purpose.
 
+Creating a proposal counts as the proposer's approval: the proposer's
+approval is recorded automatically, and the proposal starts with 1 of N
+required approvals. The proposer needs no separate approve action.
+
 ### FR-4 — Approve Proposal
 
 A member must be able to approve a pending proposal.
@@ -710,7 +714,7 @@ In a future production version, a fiat on/off-ramp could allow users to see and 
 ## 22. Technical Architecture
 
 ```text
-React + Vite + TypeScript
+Next.js App Router (React + TypeScript)
           │
           ▼
       Freighter
@@ -735,7 +739,7 @@ Stellar Asset Contract / Test Token
 
 - React
 - TypeScript
-- Vite
+- Next.js App Router
 - Tailwind CSS
 - shadcn/ui
 - react-hook-form
@@ -777,6 +781,22 @@ A future backend may support:
 - audit reports.
 
 It must not be able to bypass Soroban governance rules.
+
+### Demo vs Wallet Mode
+
+The app runs in one of two modes, selected by `NEXT_PUBLIC_COHOLD_MODE`.
+
+**Demo mode** (default) loads deterministic fixture treasuries and proposals,
+enables persona switching and a demo reset control, and produces synthetic
+transaction hashes for walkthroughs. It never submits to Testnet, and fixture
+state is never treated as wallet authorization.
+
+**Wallet mode** connects to configured Soroban contract/token IDs on Stellar
+Testnet through Freighter and Stellar RPC. Fixture personas and synthetic
+success paths are unavailable, and every state-changing action requires a
+connected Testnet wallet. On-chain Create Treasury from the wallet app is
+deferred in the MVP (demo-only until a follow-on deploy/factory change); the
+connected Testnet wallet can contribute, propose, approve, and execute.
 
 ---
 

@@ -483,8 +483,10 @@ Supporting copy should explain that shared money can be governed collectively in
 
 Mode-dependent:
 
-- **Demo mode:** Create Treasury, View Demo
-- **Wallet mode:** Connect wallet, Open the configured Testnet treasury
+- **Demo mode:** Create Treasury, View Demo; persona switching and a demo
+  reset restore the canonical fixture dataset without touching Testnet.
+- **Wallet mode:** Connect wallet, Open the configured Testnet treasury;
+  fixture personas and synthetic success paths are unavailable.
 
 Do not present wallet-mode Create Treasury as a working on-chain action in this MVP slice.
 
@@ -741,6 +743,12 @@ Confirmed / Failed
 
 > The proposal amount and recipient cannot be changed after submission.
 
+### Automatic Proposer Approval
+
+Creating a proposal counts as the proposer's approval. After submission the
+proposal shows the proposer as already approved, and approval progress starts
+at 1 of N required.
+
 ### Review Summary
 
 ```text
@@ -772,6 +780,9 @@ Approval Rule
 - approval progress.
 
 ### Approval Progress
+
+The proposer's approval is recorded automatically at creation, so a new
+proposal already shows the proposer checked and 1 of N required.
 
 ```text
 2 of 3 approvals
@@ -1527,7 +1538,7 @@ The UI implementation should use:
 
 - React
 - TypeScript
-- Vite
+- Next.js App Router
 - Tailwind CSS
 - shadcn/ui
 - Lucide React

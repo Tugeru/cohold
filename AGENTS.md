@@ -18,7 +18,7 @@ This is a single npm app (not a pnpm/turbo monorepo). The package name in `packa
   - `src/db` — Drizzle schema + mock/Postgres adapter
   - `src/lib` — Stellar helpers, personas, seed, contract source
   - `src/types` — shared domain types
-  - `docs/` — PRD, SRS, UI/UX spec
+  - `docs/` — PRD, SRS, UI/UX spec, developer runbook
   - `openspec/` — spec-driven change artifacts
   - `cohold-summary.md` — product, roles, and flows in one place
 - Current UI still lives in one client shell (`src/app/page.tsx` + local `currentView` state). Target routes from the OpenSpec change: `/`, `/overview`, `/treasuries`, `/treasuries/[id]`, `/proposals`, `/proposals/[id]`, `/activity`, `/wallet`.
