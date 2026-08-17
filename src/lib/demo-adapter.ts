@@ -1,6 +1,6 @@
 import {
   coholdConfig,
-  isStateChangingAllowed,
+  isDemoMutationAllowed,
   type CoholdConfig,
 } from "@/lib/cohold-config";
 import { DEFAULT_PERSONAS } from "@/lib/personas";
@@ -37,13 +37,13 @@ export const DEMO_FIXTURES = {
 } as const;
 
 export function demoPersonas(config: CoholdConfig): typeof DEMO_PERSONAS {
-  return isStateChangingAllowed(config) ? DEMO_PERSONAS : [];
+  return isDemoMutationAllowed(config) ? DEMO_PERSONAS : [];
 }
 
 export function demoMutationDenied(
   config: CoholdConfig
 ): { success: false; error: string } | null {
-  if (isStateChangingAllowed(config)) return null;
+  if (isDemoMutationAllowed(config)) return null;
   return { success: false, error: DEMO_MUTATION_ERROR };
 }
 

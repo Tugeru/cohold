@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requestFriendbotFunding } from "@/lib/stellar";
-import { coholdConfig, isStateChangingAllowed } from "@/lib/cohold-config";
+import { coholdConfig, isDemoMutationAllowed } from "@/lib/cohold-config";
 
 export async function POST(req: NextRequest) {
   try {
-    if (!isStateChangingAllowed(coholdConfig)) {
+    if (!isDemoMutationAllowed(coholdConfig)) {
       return NextResponse.json(
         { success: false, error: "Wallet mode setup is incomplete; state changes are disabled" },
         { status: 503 }
