@@ -80,6 +80,7 @@ soroban contract invoke \\
           </div>
           <button
             onClick={onClose}
+            aria-label="Close contract inspector"
             className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition"
           >
             <X className="h-5 w-5" />

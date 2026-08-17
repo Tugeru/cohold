@@ -66,8 +66,8 @@
 
 ## 8. MVP Acceptance and Documentation Alignment
 
-- [ ] 8.1 Execute the PRD demo scenario end to end on Stellar Testnet with a known contract deployment.
-- [ ] 8.2 Verify treasury creation, contribution, proposal creation, one-approval-per-member, threshold gating, exact recipient/amount, insufficient balance, double execution, and cross-treasury isolation behavior.
+- [ ] 8.1 Execute the configured-treasury PRD wallet scenario end to end on Stellar Testnet with a known deployment. Wallet-mode Create Treasury is deferred; the scenario starts from an initialized configured treasury.
+- [ ] 8.2 Verify contribution, proposal creation, one-approval-per-member, threshold gating, exact recipient/amount, insufficient balance, double execution, and cross-treasury isolation behavior for configured treasury contracts. Treasury creation remains demo-only until the follow-on deploy/factory change.
 - [x] 8.3 Update the PRD, SRS, and UI/UX specification to replace Vite references with Next.js App Router, clarify RPC authority, define demo/wallet mode, and resolve proposer-approval semantics.
 - [x] 8.4 Produce a short MVP runbook covering environment setup, port selection, wallet prerequisites, Testnet funding, contract configuration, reset/demo behavior, and known RPC history limits.
 - [ ] 8.5 Run `openspec validate --change nextjs-mvp-frontend-foundation` and complete the change only when all artifact and acceptance checks pass. **Validation passed with `openspec validate nextjs-mvp-frontend-foundation --strict --json`, and the change was archived on 2026-08-17 after local implementation, documentation, and spec checks passed. This task remains unchecked because Testnet-dependent tasks 1.1, 8.1, and 8.2 remain unresolved pending a known deployment, funded actors, and a wallet session.**

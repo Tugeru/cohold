@@ -93,7 +93,7 @@ Use a light mineral canvas, deep ink typography, ledger-blue structural accents,
 2. Add fixture and wallet adapters plus transaction/error lifecycle tests.
 3. Route the existing pages through the App Router shell, preserving the current demo dataset through the fixture adapter.
 4. Replace client-supplied identity mutation paths with wallet-signed contract operations or explicitly guarded demo handlers.
-5. Switch wallet mode reads to RPC and verify the complete Testnet flow: create treasury, contribute, create proposal, approve, execute, refresh.
+5. Switch wallet mode reads to RPC and verify the configured-treasury Testnet flow: contribute, create proposal, approve, execute, and refresh. Wallet-mode Create Treasury remains deferred to a follow-on deploy/factory change.
 6. Add responsive/accessibility/performance verification and update the PRD/SRS/UI docs to reference Next.js App Router, RPC, and the final MVP mode boundary.
 
 Rollback is by feature flag: keep demo mode available for UI iteration while wallet mode is disabled until contract configuration and Testnet acceptance pass. Do not roll back by re-enabling unguarded production-like database mutations.

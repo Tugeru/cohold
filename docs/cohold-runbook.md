@@ -72,9 +72,8 @@ Routes: `/` (landing), `/overview`, `/treasuries`, `/treasuries/[id]`,
 
 The route-level error state is a Next.js error boundary rather than a URL.
 The smoke loop below exercises a not-found response directly. The app's read
-loaders intentionally catch RPC failures and render product-level
-`ResourceStatus` retry UI; the focused boundary contract test verifies the
-`error.tsx` fallback itself.
+loaders intentionally catch RPC failures and render product-level retry UI;
+the focused boundary contract test verifies the `error.tsx` fallback itself.
 
 Demo fixtures are not authorization. Demo state never counts as a wallet
 action or confirmation.
@@ -198,7 +197,7 @@ Responsive/accessibility spot check (after the smoke loop):
 The focused boundary contract test in `src/app/demo-boundaries.test.ts`
 verifies the client boundary, retry callback, and no-financial-state-change
 message. Exercise a live RPC failure in wallet mode to verify the rendered
-`ResourceStatus` retry path; it does not intentionally throw into `error.tsx`.
+product-level retry path; it does not intentionally throw into `error.tsx`.
 
 Generated artifacts: `npm run build` writes `.next/`, `tsc` writes
 `tsconfig.tsbuildinfo`, and dev/build runs may touch `next-env.d.ts` /
