@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Treasury } from "@/types";
-import { CONTRACT_SECURITY_INVARIANTS } from "@/lib/soroban-contract";
+import { CONTRACT_SECURITY_INVARIANTS } from "@/lib/contract-invariants";
 import { useContractSource } from "@/lib/contract-source";
 import { formatAddress, formatAmount } from "@/lib/utils";
 import { getStellarExpertUrl } from "@/lib/stellar";

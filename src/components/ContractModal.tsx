@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useModalA11y } from "@/components/useModalA11y";
-import { CONTRACT_SECURITY_INVARIANTS } from "@/lib/soroban-contract";
+import { CONTRACT_SECURITY_INVARIANTS } from "@/lib/contract-invariants";
 import { useContractSource } from "@/lib/contract-source";
 import {
   Code2,
