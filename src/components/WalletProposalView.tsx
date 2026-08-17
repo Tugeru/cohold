@@ -13,7 +13,7 @@ import { coholdConfig, resolveWalletProposalTreasury } from "@/lib/cohold-config
 import { formatBaseAmount, parseBaseUnits, parseNonNegativeBaseUnits } from "@/lib/money";
 import { APP_ROUTES, walletExplorerUrl } from "@/lib/app-routes";
 import { useWallet } from "@/context/WalletContext";
-import { WalletSetupState } from "@/components/WalletSetupState";
+import { WalletSetupState, useWalletResourceGate } from "@/components/WalletSetupState";
 import { NotFoundStatus, ResourceStatus } from "@/components/ResourceStatus";
 import { DetailSkeleton } from "@/components/Skeletons";
 import {
@@ -61,6 +61,7 @@ export function WalletProposalView({ id }: { id: string }) {
     [config, treasuryParam],
   );
   const { freighterAddress, canPerformStateChange, walletActionBlockReason } = useWallet();
+  const walletGate = useWalletResourceGate();
   const rpc = useMemo(() => stellarCoholdRpc(), []);
   const [state, setState] = useState<ProposalDetailState>({ status: "loading" });
   const [loadKey, setLoadKey] = useState(0);
@@ -193,8 +194,8 @@ export function WalletProposalView({ id }: { id: string }) {
     };
   }, [config.walletSetupComplete, contractId, executePrepKey, executeReview]);
 
-  if (!config.walletSetupComplete || !contractId) {
-    return <WalletSetupState />;
+  if (walletGate || !contractId) {
+    return walletGate ?? <WalletSetupState />;
   }
   if (!validId) {
     return (

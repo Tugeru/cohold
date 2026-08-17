@@ -4,10 +4,10 @@ import { Err, Ok } from "@stellar/stellar-sdk/contract";
 import { Client } from "cohold-contract";
 import {
   STELLAR_TESTNET_NETWORK_PASSPHRASE,
-  STELLAR_TESTNET_RPC_URL,
   isValidContractAddress,
   isValidStellarAddress,
 } from "@/lib/stellar";
+import { configuredRpcUrl } from "@/lib/cohold-config";
 
 // ---------------------------------------------------------------------------
 // Chain view models. These are the only shapes wallet-mode UI may consume;
@@ -138,6 +138,11 @@ export interface RawChainActivityEvent {
 // ---------------------------------------------------------------------------
 
 export interface CoholdRpc {
+  /**
+   * RPC reachability probe. True only when the endpoint reports a healthy
+   * node; false on network error, auth failure, or degraded status.
+   */
+  getHealth(): Promise<boolean>;
   getConfig(contractId: string): Promise<ChainTreasuryConfig | null>;
   getBalance(contractId: string): Promise<bigint | null>;
   getProposalCount(contractId: string): Promise<number | null>;
@@ -704,10 +709,26 @@ export interface CoholdRpcOptions {
 export function stellarCoholdRpc(
   options: CoholdRpcOptions = {},
 ): CoholdRpc {
-  const rpcUrl = options.rpcUrl ?? STELLAR_TESTNET_RPC_URL;
+  const rpcUrl = options.rpcUrl ?? configuredRpcUrl();
   const networkPassphrase =
     options.networkPassphrase ?? STELLAR_TESTNET_NETWORK_PASSPHRASE;
-  const server = options.server ?? new StellarSdk.rpc.Server(rpcUrl);
+
+  // The SDK rejects some endpoints (e.g. plain http) at construction time.
+  // Build lazily and treat a failed build as an unreachable node so a bad
+  // RPC URL fails the wallet diagnostics check instead of crashing renders.
+  let server: StellarSdk.rpc.Server | null = null;
+  let serverBuildFailed = false;
+  function getServer(): StellarSdk.rpc.Server | null {
+    if (server) return server;
+    if (serverBuildFailed) return null;
+    try {
+      server = options.server ?? new StellarSdk.rpc.Server(rpcUrl);
+    } catch {
+      serverBuildFailed = true;
+      server = null;
+    }
+    return server;
+  }
 
   const clientOptions: contract.ClientOptions = {
     contractId: "",
@@ -747,17 +768,30 @@ export function stellarCoholdRpc(
   async function resolveActivityStartLedger(
     requested: number | undefined,
   ): Promise<number> {
-    const health = await server.getHealth();
+    const available = getServer();
+    if (!available) throw new Error("Stellar RPC is unavailable.");
+    const health = await available.getHealth();
     const oldest = health.oldestLedger ?? 0;
     if (requested !== undefined && Number.isSafeInteger(requested) && requested > 0) {
       return oldest > 0 ? Math.max(requested, oldest) : requested;
     }
     if (oldest > 0) return oldest;
-    const latest = await server.getLatestLedger();
+    const latest = await available.getLatestLedger();
     return Math.max(1, latest.sequence - 10_000);
   }
 
   return {
+    async getHealth() {
+      const available = getServer();
+      if (!available) return false;
+      try {
+        const health = await available.getHealth();
+        return health.status === "healthy";
+      } catch {
+        return false;
+      }
+    },
+
     async getConfig(contractId) {
       try {
         const client = coholdClient(contractId);
@@ -853,10 +887,12 @@ export function stellarCoholdRpc(
 
     async getRecentEvents(contractId, startLedger) {
       const start = await resolveActivityStartLedger(startLedger);
+      const available = getServer();
+      if (!available) throw new Error("Stellar RPC is unavailable.");
       const views: ChainActivityView[] = [];
       let cursor: string | null = null;
       for (let page = 0; page < ACTIVITY_SCAN_MAX_PAGES; page++) {
-        const response = await server.getEvents(
+        const response = await available.getEvents(
           cursor
             ? { cursor, limit: 100, filters: [{ type: "contract", contractIds: [contractId] }] }
             : {

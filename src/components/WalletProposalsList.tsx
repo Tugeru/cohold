@@ -10,7 +10,7 @@ import { coholdConfig } from "@/lib/cohold-config";
 import { formatBaseAmount } from "@/lib/money";
 import { APP_ROUTES, walletProposalHref } from "@/lib/app-routes";
 import { useWallet } from "@/context/WalletContext";
-import { WalletSetupState } from "@/components/WalletSetupState";
+import { WalletSetupState, useWalletResourceGate } from "@/components/WalletSetupState";
 import { ProposalListSkeleton } from "@/components/Skeletons";
 import {
   WalletApprovalRail,
@@ -23,6 +23,7 @@ export function WalletProposalsList() {
   const config = coholdConfig;
   const contractId = config.contractId ?? null;
   const { freighterAddress } = useWallet();
+  const walletGate = useWalletResourceGate();
   const rpc = useMemo(() => stellarCoholdRpc(), []);
   const [state, setState] = useState<
     | { status: "loading" }
@@ -60,8 +61,8 @@ export function WalletProposalsList() {
     };
   }, [rpc, contractId, freighterAddress, loadKey]);
 
-  if (!config.walletSetupComplete || !contractId) {
-    return <WalletSetupState />;
+  if (walletGate || !contractId) {
+    return walletGate ?? <WalletSetupState />;
   }
   if (state.status === "loading") {
     return <ProposalListSkeleton />;

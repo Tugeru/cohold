@@ -1,4 +1,4 @@
-import { isValidContractAddress } from "@/lib/stellar";
+import { isValidContractAddress, STELLAR_TESTNET_RPC_URL } from "@/lib/stellar";
 
 export type CoholdMode = "demo" | "wallet";
 
@@ -8,6 +8,7 @@ export interface CoholdEnv {
   NEXT_PUBLIC_STELLAR_CONTRACT_ID?: string;
   NEXT_PUBLIC_STELLAR_CONTRACT_IDS?: string;
   NEXT_PUBLIC_STELLAR_TOKEN_ID?: string;
+  NEXT_PUBLIC_STELLAR_RPC_URL?: string;
 }
 
 export interface CoholdConfig {
@@ -18,6 +19,12 @@ export interface CoholdConfig {
   /** Optional additional treasury contracts shown in wallet mode. */
   extraContractIds: string[];
   tokenId: string | null;
+  /**
+   * RPC endpoint override, or null for the public Testnet default. Only
+   * http(s) URLs are accepted; anything else parses to null so the wallet
+   * diagnostics fail closed instead of silently using a junk endpoint.
+   */
+  rpcUrl: string | null;
   walletSetupComplete: boolean;
 }
 
@@ -79,6 +86,9 @@ export function resolveCoholdConfig(env: CoholdEnv): CoholdConfig {
   const extraContractIds = normalizeIdentifierList(env.NEXT_PUBLIC_STELLAR_CONTRACT_IDS);
   const configuredNetwork = env.NEXT_PUBLIC_STELLAR_NETWORK?.trim().toUpperCase();
   const isTestnet = configuredNetwork === "TESTNET";
+  const rawRpcUrl = env.NEXT_PUBLIC_STELLAR_RPC_URL?.trim();
+  const rpcUrl =
+    rawRpcUrl && /^https?:\/\/.+/.test(rawRpcUrl) ? rawRpcUrl : null;
 
   return {
     mode,
@@ -88,6 +98,7 @@ export function resolveCoholdConfig(env: CoholdEnv): CoholdConfig {
     contractId,
     extraContractIds,
     tokenId,
+    rpcUrl,
     modeConfigured,
     walletSetupComplete:
       modeConfigured && (mode === "demo" || Boolean(isTestnet && contractId && tokenId)),
@@ -109,7 +120,16 @@ export const coholdConfig = resolveCoholdConfig({
   NEXT_PUBLIC_STELLAR_CONTRACT_ID: process.env.NEXT_PUBLIC_STELLAR_CONTRACT_ID,
   NEXT_PUBLIC_STELLAR_CONTRACT_IDS: process.env.NEXT_PUBLIC_STELLAR_CONTRACT_IDS,
   NEXT_PUBLIC_STELLAR_TOKEN_ID: process.env.NEXT_PUBLIC_STELLAR_TOKEN_ID,
+  NEXT_PUBLIC_STELLAR_RPC_URL: process.env.NEXT_PUBLIC_STELLAR_RPC_URL,
 });
+
+/**
+ * Effective RPC endpoint for wallet-mode reads: the configured override when
+ * valid, otherwise the public Testnet default.
+ */
+export function configuredRpcUrl(config: CoholdConfig = coholdConfig): string {
+  return config.rpcUrl ?? STELLAR_TESTNET_RPC_URL;
+}
 
 export function getEnvironmentLabel(config: CoholdConfig = coholdConfig): string {
   if (!config.modeConfigured) return "Invalid mode · Setup required";

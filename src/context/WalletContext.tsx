@@ -6,6 +6,7 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useMemo,
 } from "react";
 import { Persona } from "@/types";
 import { coholdConfig } from "@/lib/cohold-config";
@@ -14,6 +15,12 @@ import {
   fetchStellarAccountBalances,
   STELLAR_TESTNET_NETWORK_PASSPHRASE,
 } from "@/lib/stellar";
+import { stellarCoholdRpc } from "@/lib/contract-adapter";
+import {
+  diagnoseWalletResources,
+  firstFailureMessage,
+  type WalletDiagnosticsResult,
+} from "@/lib/wallet-diagnostics";
 import {
   connectFreighter as connectWallet,
   restoreFreighter,
@@ -45,6 +52,13 @@ interface WalletContextType {
   isWalletNetworkAllowed: boolean;
   canPerformStateChange: boolean;
   walletActionBlockReason: string | null;
+  /**
+   * Wallet resource diagnostics. `null` while the first check is running;
+   * `healthy` only when every configured treasury passes all checks. Any
+   * other value blocks state-changing actions.
+   */
+  walletDiagnostics: WalletDiagnosticsResult | null;
+  runWalletDiagnostics: () => Promise<void>;
   signTransaction: (transactionXdr: string) => Promise<WalletSignatureResult>;
   testnetBalance: string | null;
   refreshBalance: () => Promise<void>;
@@ -65,7 +79,21 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [walletNetworkPassphrase, setWalletNetworkPassphrase] = useState<string | null>(null);
   const [walletMessage, setWalletMessage] = useState<string | null>(null);
   const [testnetBalance, setTestnetBalance] = useState<string | null>(null);
+  const [walletDiagnostics, setWalletDiagnostics] = useState<WalletDiagnosticsResult | null>(null);
+  const walletRpc = useMemo(() => stellarCoholdRpc(), []);
   const activePersonaAddress = freighterAddress ?? activePersona?.address;
+
+  const runWalletDiagnostics = useCallback(async () => {
+    if (coholdConfig.mode !== "wallet") {
+      setWalletDiagnostics(null);
+      return;
+    }
+    const result = await diagnoseWalletResources({
+      config: coholdConfig,
+      rpc: walletRpc,
+    });
+    setWalletDiagnostics(result);
+  }, [walletRpc]);
 
   const walletPersona = useCallback((address: string): Persona => ({
     id: "wallet-actor",
@@ -153,6 +181,19 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     };
   }, [applyConnectionResult]);
 
+  // Wallet mode fails closed: resources are verified before any action is
+  // allowed, and re-checked when the user retries from the setup state.
+  useEffect(() => {
+    if (coholdConfig.mode !== "wallet") return;
+    let cancelled = false;
+    void diagnoseWalletResources({ config: coholdConfig, rpc: walletRpc }).then((result) => {
+      if (!cancelled) setWalletDiagnostics(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [walletRpc]);
+
   const disconnectFreighter = useCallback(() => {
     setIsFreighterConnected(false);
     setFreighterAddress(null);
@@ -221,6 +262,13 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const walletActionBlockReason =
     coholdConfig.mode !== "wallet"
       ? null
+      : !coholdConfig.walletSetupComplete
+      ? "Wallet setup is incomplete; state changes are disabled until the Testnet contract and token identifiers are configured."
+      : walletDiagnostics?.status === "failed"
+      ? (firstFailureMessage(walletDiagnostics) ??
+        "Wallet resource checks failed; state changes are disabled.")
+      : walletDiagnostics === null
+      ? "Verifying Stellar Testnet resources before enabling state changes."
       : !isFreighterConnected
       ? "Connect Freighter before changing state."
       : !isWalletNetworkAllowed
@@ -244,6 +292,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         isWalletNetworkAllowed,
         canPerformStateChange: walletActionBlockReason === null,
         walletActionBlockReason,
+        walletDiagnostics,
+        runWalletDiagnostics,
         signTransaction,
         testnetBalance,
         refreshBalance,
