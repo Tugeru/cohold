@@ -2,7 +2,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { Proposal, Treasury } from "@/types";
-import { coholdConfig, isStateChangingAllowed } from "@/lib/cohold-config";
+import { coholdConfig, isDemoMutationAllowed } from "@/lib/cohold-config";
 
 export type DemoProposal = Proposal & { treasury?: Partial<Treasury> };
 
@@ -30,7 +30,7 @@ interface DemoDataValue {
 const DemoDataContext = createContext<DemoDataValue | null>(null);
 
 export function DemoDataProvider({ children }: { children: React.ReactNode }) {
-  const canMutate = isStateChangingAllowed(coholdConfig);
+  const canMutate = isDemoMutationAllowed(coholdConfig);
   const [treasuries, setTreasuries] = useState<Treasury[]>([]);
   const [proposals, setProposals] = useState<DemoProposal[]>([]);
   const [loading, setLoading] = useState(true);

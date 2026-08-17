@@ -191,10 +191,10 @@ describe("mutation routes stay demo-scoped", () => {
 describe("fixture writes stay adapter-scoped", () => {
   it("does not seed the database or Soroban-looking proofs in wallet mode", () => {
     const seed = readFileSync(new URL("./db-seed.ts", import.meta.url), "utf8");
-    expect(seed).toContain("isStateChangingAllowed");
+    expect(seed).toContain("isDemoMutationAllowed");
     expect(seed).not.toContain("generateStellarTxHash");
     expect(seed).not.toMatch(/sig_[^\n]*(soroban|auth_pass)/i);
-    expect(seed.indexOf("isStateChangingAllowed")).toBeLessThan(
+    expect(seed.indexOf("isDemoMutationAllowed")).toBeLessThan(
       seed.indexOf("await db.select")
     );
   });

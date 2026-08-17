@@ -9,10 +9,10 @@ import {
 } from "@/db/schema";
 import { generateContractAddress } from "./utils";
 import { DEMO_PERSONAS, syntheticDemoSuccess } from "./demo-adapter";
-import { coholdConfig, isStateChangingAllowed } from "./cohold-config";
+import { coholdConfig, isDemoMutationAllowed } from "./cohold-config";
 
 export async function ensureDatabaseSeeded() {
-  if (!isStateChangingAllowed(coholdConfig)) return;
+  if (!isDemoMutationAllowed(coholdConfig)) return;
 
   try {
     const existing = await db.select().from(treasuries).limit(1);

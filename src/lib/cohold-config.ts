@@ -94,9 +94,10 @@ export function resolveCoholdConfig(env: CoholdEnv): CoholdConfig {
   };
 }
 
-export function isStateChangingAllowed(config: CoholdConfig): boolean {
-  // The current wallet shell has no RPC transaction path. Keeping wallet
-  // writes disabled prevents fixture DB mutations from masquerading as chain state.
+export function isDemoMutationAllowed(config: CoholdConfig): boolean {
+  // Fixture/DB mutations are demo-mode only. Wallet mode must never write
+  // demo fixtures, personas, or synthetic hashes into wallet state, even
+  // when contract/token IDs are configured.
   return config.modeConfigured && config.mode === "demo";
 }
 

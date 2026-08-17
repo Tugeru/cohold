@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   configuredContractIds,
   isConfiguredWalletTreasury,
-  isStateChangingAllowed,
+  isDemoMutationAllowed,
   resolveCoholdConfig,
   resolveWalletProposalTreasury,
 } from "./cohold-config";
@@ -19,7 +19,7 @@ describe("resolveCoholdConfig", () => {
     expect(config.mode).toBe("demo");
     expect(config.modeConfigured).toBe(true);
     expect(config.walletSetupComplete).toBe(true);
-    expect(isStateChangingAllowed(config)).toBe(true);
+    expect(isDemoMutationAllowed(config)).toBe(true);
   });
 
   it("fails closed when wallet mode is missing either contract identifier", () => {
@@ -31,7 +31,7 @@ describe("resolveCoholdConfig", () => {
 
     expect(config.mode).toBe("wallet");
     expect(config.walletSetupComplete).toBe(false);
-    expect(isStateChangingAllowed(config)).toBe(false);
+    expect(isDemoMutationAllowed(config)).toBe(false);
   });
 
   it("fails closed for malformed wallet identifiers", () => {
@@ -43,7 +43,7 @@ describe("resolveCoholdConfig", () => {
     });
 
     expect(config.walletSetupComplete).toBe(false);
-    expect(isStateChangingAllowed(config)).toBe(false);
+    expect(isDemoMutationAllowed(config)).toBe(false);
   });
 
   it("fails closed when wallet mode is missing the contract identifier", () => {
@@ -54,7 +54,7 @@ describe("resolveCoholdConfig", () => {
     });
 
     expect(config.walletSetupComplete).toBe(false);
-    expect(isStateChangingAllowed(config)).toBe(false);
+    expect(isDemoMutationAllowed(config)).toBe(false);
   });
 
   it("fails closed when wallet mode has a malformed token identifier", () => {
@@ -66,7 +66,7 @@ describe("resolveCoholdConfig", () => {
     });
 
     expect(config.walletSetupComplete).toBe(false);
-    expect(isStateChangingAllowed(config)).toBe(false);
+    expect(isDemoMutationAllowed(config)).toBe(false);
   });
 
   it("keeps wallet writes disabled even when setup identifiers are valid", () => {
@@ -78,7 +78,7 @@ describe("resolveCoholdConfig", () => {
     });
 
     expect(config.walletSetupComplete).toBe(true);
-    expect(isStateChangingAllowed(config)).toBe(false);
+    expect(isDemoMutationAllowed(config)).toBe(false);
   });
 
   it("fails closed when wallet mode requests a non-Testnet network", () => {
@@ -90,7 +90,7 @@ describe("resolveCoholdConfig", () => {
     });
 
     expect(config.walletSetupComplete).toBe(false);
-    expect(isStateChangingAllowed(config)).toBe(false);
+    expect(isDemoMutationAllowed(config)).toBe(false);
   });
 
   it("fails closed for an unsupported mode value", () => {
@@ -99,7 +99,7 @@ describe("resolveCoholdConfig", () => {
     });
 
     expect(config.modeConfigured).toBe(false);
-    expect(isStateChangingAllowed(config)).toBe(false);
+    expect(isDemoMutationAllowed(config)).toBe(false);
   });
 });
 

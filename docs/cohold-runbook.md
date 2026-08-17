@@ -141,6 +141,10 @@ Out of scope in this MVP slice:
   mode. State-changing controls are disabled until contract/token IDs are
   configured (`WalletSetupState` explains the exact gap).
 
+**Testnet/wallet setup must not copy demo fixtures, personas, or synthetic
+hashes into wallet state.** Wallet mode reads financial and governance state
+from the Soroban contract only; demo data is never a source of truth there.
+
 ## 4. RPC history limits
 
 Stellar RPC methods (`getTransaction`, `getEvents`, ...) only cover **the
