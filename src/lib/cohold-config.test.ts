@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   configuredContractIds,
+  configuredRpcUrl,
   isConfiguredWalletTreasury,
   isDemoMutationAllowed,
   resolveCoholdConfig,
@@ -100,6 +101,31 @@ describe("resolveCoholdConfig", () => {
 
     expect(config.modeConfigured).toBe(false);
     expect(isDemoMutationAllowed(config)).toBe(false);
+  });
+
+  it("keeps a valid RPC URL override", () => {
+    const config = resolveCoholdConfig({
+      NEXT_PUBLIC_STELLAR_RPC_URL: "https://rpc.example.test/",
+    });
+
+    expect(config.rpcUrl).toBe("https://rpc.example.test/");
+    expect(configuredRpcUrl(config)).toBe("https://rpc.example.test/");
+  });
+
+  it("rejects malformed RPC URL overrides", () => {
+    const config = resolveCoholdConfig({
+      NEXT_PUBLIC_STELLAR_RPC_URL: "soroban-testnet.stellar.org",
+    });
+
+    expect(config.rpcUrl).toBeNull();
+    expect(configuredRpcUrl(config)).toBe("https://soroban-testnet.stellar.org");
+  });
+
+  it("defaults the RPC URL to the public Testnet endpoint", () => {
+    const config = resolveCoholdConfig({});
+
+    expect(config.rpcUrl).toBeNull();
+    expect(configuredRpcUrl(config)).toBe("https://soroban-testnet.stellar.org");
   });
 });
 

@@ -10,7 +10,7 @@ import { configuredContractIds, coholdConfig } from "@/lib/cohold-config";
 import { formatBaseAmount } from "@/lib/money";
 import { walletExplorerUrl } from "@/lib/app-routes";
 import { useWallet } from "@/context/WalletContext";
-import { WalletSetupState } from "@/components/WalletSetupState";
+import { useWalletResourceGate } from "@/components/WalletSetupState";
 import { TreasuryCardSkeleton } from "@/components/Skeletons";
 import { ShieldCheck, Users, Coins, RefreshCw, AlertTriangle } from "lucide-react";
 
@@ -108,6 +108,7 @@ export function WalletTreasuriesList() {
   const config = coholdConfig;
   const contractIds = useMemo(() => configuredContractIds(config), [config]);
   const { freighterAddress } = useWallet();
+  const walletGate = useWalletResourceGate();
   const rpc = useMemo(() => stellarCoholdRpc(), []);
   const [items, setItems] = useState<Record<string, ListItem>>(() =>
     Object.fromEntries(contractIds.map((id) => [id, { status: "loading" as const }])),
@@ -151,8 +152,8 @@ export function WalletTreasuriesList() {
     };
   }, [rpc, contractIds, loadKey]);
 
-  if (!config.walletSetupComplete) {
-    return <WalletSetupState />;
+  if (walletGate) {
+    return walletGate;
   }
 
   return (

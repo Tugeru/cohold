@@ -12,7 +12,7 @@ import { coholdConfig, isConfiguredWalletTreasury } from "@/lib/cohold-config";
 import { formatBaseAmount } from "@/lib/money";
 import { APP_ROUTES, walletExplorerUrl, walletProposalHref } from "@/lib/app-routes";
 import { useWallet } from "@/context/WalletContext";
-import { WalletSetupState } from "@/components/WalletSetupState";
+import { useWalletResourceGate } from "@/components/WalletSetupState";
 import { NotFoundStatus } from "@/components/ResourceStatus";
 import { DetailSkeleton } from "@/components/Skeletons";
 import { WalletContributeDialog } from "@/components/WalletContributeDialog";
@@ -48,6 +48,7 @@ type TreasuryDetailState =
 export function WalletTreasuryView({ id }: { id: string }) {
   const config = coholdConfig;
   const { freighterAddress, canPerformStateChange, walletActionBlockReason } = useWallet();
+  const walletGate = useWalletResourceGate();
   const rpc = useMemo(() => stellarCoholdRpc(), []);
   const [state, setState] = useState<TreasuryDetailState>({ status: "loading" });
   const [loadKey, setLoadKey] = useState(0);
@@ -104,8 +105,8 @@ export function WalletTreasuryView({ id }: { id: string }) {
     };
   }, [rpc, id, config, freighterAddress, loadKey]);
 
-  if (!config.walletSetupComplete) {
-    return <WalletSetupState />;
+  if (walletGate) {
+    return walletGate;
   }
   if (!isConfiguredWalletTreasury(config, id)) {
     return (

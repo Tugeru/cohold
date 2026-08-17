@@ -11,7 +11,8 @@ import {
 } from "@/lib/contract-adapter";
 import { formatBaseAmount } from "@/lib/money";
 import { walletExplorerUrl } from "@/lib/app-routes";
-import { WalletSetupState } from "@/components/WalletSetupState";
+import { useWallet } from "@/context/WalletContext";
+import { WalletSetupState, useWalletResourceGate } from "@/components/WalletSetupState";
 import { ActivitySkeleton } from "@/components/Skeletons";
 import { formatAddress, formatDate, timeAgo } from "@/lib/utils";
 import {
@@ -108,6 +109,7 @@ type ActivityState =
 
 export function WalletActivityView() {
   const config = coholdConfig;
+  const walletGate = useWalletResourceGate();
   const rpc = useMemo(() => stellarCoholdRpc(), []);
   const [state, setState] = useState<ActivityState>({ status: "loading" });
   const [loadKey, setLoadKey] = useState(0);
@@ -160,8 +162,8 @@ export function WalletActivityView() {
     };
   }, [rpc, contractIds, loadKey]);
 
-  if (!config.walletSetupComplete || contractIds.length === 0) {
-    return <WalletSetupState />;
+  if (walletGate || contractIds.length === 0) {
+    return walletGate ?? <WalletSetupState />;
   }
   if (state.status === "loading") {
     return <ActivitySkeleton />;

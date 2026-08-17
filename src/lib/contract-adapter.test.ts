@@ -48,6 +48,9 @@ const record: ChainProposalRecord = {
 function mockRpc(overrides: Partial<CoholdRpc> = {}): CoholdRpc {
   const calls: Record<string, number> = {};
   const rpc: CoholdRpc = {
+    async getHealth() {
+      return true;
+    },
     async getConfig() {
       calls.getConfig = (calls.getConfig ?? 0) + 1;
       return config;
@@ -805,6 +808,23 @@ describe("stellarCoholdRpc", () => {
       expect(views[99].ledger).toBe(all[199].ledger);
       // Page 1 was full, page 2 was full, so a third fetch confirms the tail.
       expect(getEvents).toHaveBeenCalledTimes(3);
+    });
+  });
+
+  describe("unusable RPC endpoint", () => {
+    // The SDK refuses plain-http endpoints at construction time. A bad URL
+    // must fail the health probe and the event read cleanly instead of
+    // throwing during component render.
+    it("reports unhealthy and rejects event reads without a constructor crash", async () => {
+      const rpc = stellarCoholdRpc({ rpcUrl: "http://127.0.0.1:59999" });
+
+      await expect(rpc.getHealth()).resolves.toBe(false);
+      await expect(rpc.getRecentEvents(CONTRACT)).rejects.toThrow(
+        "Stellar RPC is unavailable",
+      );
+      await expect(rpc.getConfig(CONTRACT)).rejects.toThrow(
+        "could not be read from Stellar RPC",
+      );
     });
   });
 });
