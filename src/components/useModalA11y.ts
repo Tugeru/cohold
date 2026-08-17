@@ -55,13 +55,15 @@ export function useModalA11y(onClose: () => void, disabled = false, active = tru
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
       const activeElement = document.activeElement;
+      const activeIndex = focusable.indexOf(activeElement as HTMLElement);
       if (
         !dialog.contains(activeElement) ||
+        activeIndex === -1 ||
         (!event.shiftKey && activeElement === last) ||
         (event.shiftKey && activeElement === first)
       ) {
         event.preventDefault();
-        (event.shiftKey && activeElement === first ? last : first).focus();
+        (event.shiftKey && (activeIndex === 0 || activeIndex === -1) ? last : first).focus();
       }
     };
 

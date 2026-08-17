@@ -58,7 +58,7 @@
 ## 7. Developer Loop and Verification
 
 - [x] 7.1 Add a documented `next dev` command that starts at port `3001` and selects the next free port without terminating existing processes.
-- [x] 7.2 Add a fast demo smoke check for the landing, overview, treasury detail, proposal detail, error, and not-found routes. **The runbook smoke loop exercises all addressable routes and 404 on the printed dev-server port; the `error.tsx` boundary is covered by a source contract test, while caught RPC failures are manually checked through `ResourceStatus` retry UI.**
+- [x] 7.2 Add a fast demo smoke check for the landing, overview, treasury detail, proposal detail, error, and not-found routes. **The runbook smoke loop exercises all addressable routes and 404 on the printed dev-server port; the `error.tsx` boundary is covered by a source contract test, while caught RPC failures are manually checked through product-level retry UI.**
 - [x] 7.3 Add unit tests for base-unit money, network configuration, error mapping, adapter normalization, and transaction lifecycle state transitions.
 - [x] 7.4 Add integration tests for demo-mode mutations and negative authorization/security cases at the gateway/route seam.
 - [x] 7.5 Add wallet/Testnet manual acceptance steps for connect, wrong network, rejected signature, confirmed transaction, failed transaction, and post-confirmation refresh.
