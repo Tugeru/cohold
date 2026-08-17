@@ -21,6 +21,9 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "cohold-contract": [
+        "./packages/cohold-contract/src/index.ts"
       ]
     },
     "plugins": [

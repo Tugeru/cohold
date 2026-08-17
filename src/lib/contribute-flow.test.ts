@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
+import { Ok } from "@stellar/stellar-sdk/contract";
 import {
   createContributeFlow,
   stellarContributeExecutor,
@@ -6,6 +7,27 @@ import {
   type ContributeFlowDeps,
 } from "./contribute-flow";
 import type { WalletSignatureResult } from "./wallet-adapter";
+
+// The SDK executor constructs the generated bindings `Client`; mock the
+// package so the binding-level test observes the exact invocation without
+// touching a network.
+const binding = vi.hoisted(() => ({
+  contribute: vi.fn(),
+}));
+
+vi.mock("cohold-contract", () => {
+  class Client {
+    constructor(readonly options: Record<string, unknown>) {}
+    contribute(args: unknown) {
+      return binding.contribute(args);
+    }
+  }
+  return { Client };
+});
+
+beforeEach(() => {
+  binding.contribute.mockReset();
+});
 
 const CONTRACT = `C${"A".repeat(55)}`;
 const TOKEN = `C${"B".repeat(55)}`;
@@ -348,5 +370,41 @@ describe("stellarContributeExecutor", () => {
     expect(typeof executor.simulateContribute).toBe("function");
     expect(typeof executor.submitContribute).toBe("function");
     expect(typeof executor.confirmContribute).toBe("function");
+  });
+
+  it("invokes the generated client with the wallet member and exact amount", async () => {
+    binding.contribute.mockResolvedValue({
+      simulation: undefined,
+      result: new Ok(undefined),
+      needsNonInvokerSigningBy: () => [] as string[],
+      toXDR: () => XDR,
+    });
+
+    const prepared = await stellarContributeExecutor().simulateContribute({
+      contractId: CONTRACT,
+      memberAddress: MEMBER,
+      amountBaseUnits: 5_000_000_000n,
+    });
+    expect(prepared.preparedTxXdr).toBe(XDR);
+    expect(binding.contribute).toHaveBeenCalledWith({
+      member: MEMBER,
+      amount: 5_000_000_000n,
+    });
+  });
+
+  it("refuses multi-party authorization before producing XDR", async () => {
+    binding.contribute.mockResolvedValue({
+      simulation: undefined,
+      result: new Ok(undefined),
+      needsNonInvokerSigningBy: () => [MEMBER],
+      toXDR: () => XDR,
+    });
+    await expect(
+      stellarContributeExecutor().simulateContribute({
+        contractId: CONTRACT,
+        memberAddress: MEMBER,
+        amountBaseUnits: 100n,
+      }),
+    ).rejects.toThrow(/multi-party/);
   });
 });

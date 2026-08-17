@@ -1,5 +1,5 @@
 import * as StellarSdk from "@stellar/stellar-sdk";
-import { contract } from "@stellar/stellar-sdk";
+import { Client } from "cohold-contract";
 import { parseBaseUnits } from "@/lib/money";
 import {
   STELLAR_TESTNET_NETWORK_PASSPHRASE,
@@ -318,13 +318,6 @@ export interface StellarContributeExecutorOptions {
   networkPassphrase?: string;
 }
 
-interface ContributeClientSpec {
-  contribute: (
-    args: { member: string; amount: bigint },
-    options?: contract.MethodOptions,
-  ) => Promise<contract.AssembledTransaction<unknown>>;
-}
-
 export function stellarContributeExecutor(
   options: StellarContributeExecutorOptions = {},
 ): ContributeExecutor {
@@ -335,7 +328,7 @@ export function stellarContributeExecutor(
 
   return {
     async simulateContribute({ contractId, memberAddress, amountBaseUnits }) {
-      const client = await contract.Client.from<ContributeClientSpec>({
+      const client = new Client({
         contractId,
         rpcUrl,
         networkPassphrase,

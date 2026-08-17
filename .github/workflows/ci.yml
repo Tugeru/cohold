@@ -58,3 +58,14 @@ jobs:
 
       - name: Build Wasm
         run: cargo build --release --target wasm32v1-none
+
+      - name: Install stellar CLI
+        run: |
+          curl -fsSLo /tmp/stellar-cli.tar.gz \
+            https://github.com/stellar/stellar-cli/releases/download/v27.1.0/stellar-cli-27.1.0-x86_64-unknown-linux-gnu.tar.gz
+          tar -xzf /tmp/stellar-cli.tar.gz -C /usr/local/bin
+
+      - name: Regenerate bindings and fail on drift
+        run: |
+          npm run contract:bindings
+          git diff --exit-code -- packages/cohold-contract
