@@ -824,7 +824,7 @@ This is the implementation shape as of this overview, not a second product spec.
 - activity
 - stellar faucet and demo reset
 
-**State helpers:** `src/lib/soroban-contract.ts`, `src/lib/stellar.ts`, `src/db/*`, `src/lib/db-seed.ts`, `src/lib/personas.ts`.
+**State helpers:** contract source of truth is the Rust crate `contracts/cohold/src/lib.rs` (Inspector reads it via `GET /api/contract-source`); `src/lib/soroban-contract.ts` keeps the displayed security invariants; plus `src/lib/stellar.ts`, `src/db/*`, `src/lib/db-seed.ts`, `src/lib/personas.ts`.
 
 **Modes:** demo fixtures can drive the UI; live Stellar/Freighter is the intended production path. Chain state wins when the two disagree.
 
