@@ -513,6 +513,69 @@ describe("executeFlow.prepare", () => {
     expect(deps.signTransaction).not.toHaveBeenCalled();
   });
 
+  it("maps a simulated ThresholdNotReached host error to a product error and never signs", async () => {
+    // The local view was approved (gate passes), yet the contract rejects
+    // with ThresholdNotReached (#7) — e.g. a stale review raced with another
+    // member's cancel. The flow must surface the rejection, not sign.
+    const { executor, deps } = buildExecuteDeps({
+      executor: fakeExecutor({
+        execute: async () => {
+          throw new Error("Error(Contract, #7)");
+        },
+      }),
+    });
+    const outcome = await executeFlow(deps).prepare();
+    expect(outcome.status).toBe("proposal-not-approved");
+    if (outcome.status === "proposal-not-approved") {
+      expect(outcome.error.kind).toBe("proposal-not-approved");
+      expect(outcome.error.message).toMatch(/no longer approved/i);
+    }
+    expect(deps.signTransaction).not.toHaveBeenCalled();
+    expect(executor.calls.submit).toHaveLength(0);
+  });
+
+  it("maps a simulated AlreadyExecuted host error to a product error and never signs", async () => {
+    // The stale review still claims Approved; the contract's AlreadyExecuted
+    // (#11) rejection must stop the double execute.
+    const { executor, deps } = buildExecuteDeps({
+      executor: fakeExecutor({
+        execute: async () => {
+          throw new Error("Error(Contract, #11)");
+        },
+      }),
+    });
+    const outcome = await executeFlow(deps).prepare();
+    expect(outcome.status).toBe("already-executed");
+    if (outcome.status === "already-executed") {
+      expect(outcome.error.kind).toBe("already-executed");
+      expect(outcome.error.message).toMatch(/already been executed/i);
+    }
+    expect(deps.signTransaction).not.toHaveBeenCalled();
+    expect(executor.calls.submit).toHaveLength(0);
+  });
+
+  it("maps a simulated InsufficientBalance host error to a product error showing required vs available", async () => {
+    // The preview balance was enough, but the contract still rejected with
+    // InsufficientBalance (#12) — e.g. another payment drained the treasury
+    // between review and simulation. Required vs available must be shown.
+    const { executor, deps } = buildExecuteDeps({
+      executor: fakeExecutor({
+        execute: async () => {
+          throw new Error("Error(Contract, #12)");
+        },
+      }),
+    });
+    const outcome = await executeFlow(deps).prepare();
+    expect(outcome.status).toBe("insufficient-balance");
+    if (outcome.status === "insufficient-balance") {
+      expect(outcome.error.kind).toBe("insufficient-balance");
+      expect(outcome.error.message).toMatch(/available/i);
+      expect(outcome.error.message).toMatch(/required/i);
+    }
+    expect(deps.signTransaction).not.toHaveBeenCalled();
+    expect(executor.calls.submit).toHaveLength(0);
+  });
+
   it("rejects an already executed proposal before any signing", async () => {
     const { executor, deps } = buildExecuteDeps({
       reviewed: {

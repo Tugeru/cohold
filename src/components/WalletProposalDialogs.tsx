@@ -1467,6 +1467,12 @@ export function WalletExecuteDialog({
           </p>
         </div>
         <div className="mt-2 flex items-start justify-between gap-3">
+          <p className="text-xs text-slate-500">Current treasury balance</p>
+          <p className="text-right font-mono tabular-nums text-xs text-slate-300">
+            {treasury.balance === null ? "unavailable" : formatDisplay(treasury.balance)}
+          </p>
+        </div>
+        <div className="mt-2 flex items-start justify-between gap-3">
           <p className="text-xs text-slate-500">Purpose</p>
           <p className="text-right text-xs text-slate-300">{proposal.description}</p>
         </div>
@@ -1656,7 +1662,10 @@ export function WalletExecuteDialog({
                   <WalletStatusChip status={stage.proposalStatus ?? proposal.status} />
                 </div>
                 <p className="mt-2 text-[11px] text-slate-500">
-                  Treasury balance: {stage.treasuryBalanceBaseUnits ?? treasury.balance ?? "unavailable"}
+                  Treasury balance:{" "}
+                  {stage.treasuryBalanceBaseUnits === null
+                    ? "unavailable"
+                    : formatDisplay(stage.treasuryBalanceBaseUnits)}
                 </p>
               </div>
               <button
