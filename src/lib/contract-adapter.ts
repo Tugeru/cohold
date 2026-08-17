@@ -1,6 +1,7 @@
 import * as StellarSdk from "@stellar/stellar-sdk";
 import { contract } from "@stellar/stellar-sdk";
 import { Err, Ok } from "@stellar/stellar-sdk/contract";
+import { Client } from "cohold-contract";
 import {
   STELLAR_TESTNET_NETWORK_PASSPHRASE,
   STELLAR_TESTNET_RPC_URL,
@@ -688,23 +689,6 @@ export async function loadWalletActivity(
 
 type ReadTransaction = contract.AssembledTransaction<unknown>;
 
-interface CoholdClientSpec {
-  get_config: (options?: contract.MethodOptions) => Promise<ReadTransaction>;
-  get_balance: (options?: contract.MethodOptions) => Promise<ReadTransaction>;
-  get_proposal: (
-    args: { proposal_id: bigint },
-    options?: contract.MethodOptions,
-  ) => Promise<ReadTransaction>;
-  is_member: (
-    args: { address: string },
-    options?: contract.MethodOptions,
-  ) => Promise<ReadTransaction>;
-  has_approved: (
-    args: { proposal_id: bigint; member: string },
-    options?: contract.MethodOptions,
-  ) => Promise<ReadTransaction>;
-}
-
 interface SacClientSpec {
   symbol: (options?: contract.MethodOptions) => Promise<ReadTransaction>;
   decimals: (options?: contract.MethodOptions) => Promise<ReadTransaction>;
@@ -731,19 +715,16 @@ export function stellarCoholdRpc(
     networkPassphrase,
     publicKey: "",
   };
-  const coholdClients = new Map<string, Promise<contract.Client & CoholdClientSpec>>();
+  const coholdClients = new Map<string, Client>();
   const tokenClients = new Map<string, Promise<contract.Client & SacClientSpec>>();
 
-  function coholdClient(contractId: string) {
-    let pending = coholdClients.get(contractId);
-    if (!pending) {
-      pending = contract.Client.from<CoholdClientSpec>({
-        ...clientOptions,
-        contractId,
-      });
-      coholdClients.set(contractId, pending);
+  function coholdClient(contractId: string): Client {
+    let client = coholdClients.get(contractId);
+    if (!client) {
+      client = new Client({ ...clientOptions, contractId });
+      coholdClients.set(contractId, client);
     }
-    return pending;
+    return client;
   }
 
   function tokenClient(tokenAddress: string) {
@@ -756,28 +737,6 @@ export function stellarCoholdRpc(
       tokenClients.set(tokenAddress, pending);
     }
     return pending;
-  }
-
-  function storageKeySymbol(name: string): StellarSdk.xdr.ScVal {
-    return StellarSdk.xdr.ScVal.scvVec([StellarSdk.xdr.ScVal.scvSymbol(name)]);
-  }
-
-  async function readLedgerValue(
-    contractId: string,
-    key: StellarSdk.xdr.ScVal,
-    durability: StellarSdk.xdr.ContractDataDurability,
-  ): Promise<unknown> {
-    const ledgerKey = StellarSdk.xdr.LedgerKey.contractData(
-      new StellarSdk.xdr.LedgerKeyContractData({
-        contract: new StellarSdk.Address(contractId).toScAddress(),
-        key,
-        durability,
-      }),
-    );
-    const response = await server.getLedgerEntries(ledgerKey);
-    const entry = response.entries[0];
-    if (!entry) return null;
-    return StellarSdk.scValToNative(entry.val.contractData().val());
   }
 
   /**
@@ -801,7 +760,7 @@ export function stellarCoholdRpc(
   return {
     async getConfig(contractId) {
       try {
-        const client = await coholdClient(contractId);
+        const client = coholdClient(contractId);
         const tx = await client.get_config();
         const result = unwrapResultValue(tx.result);
         if (result === null) return null;
@@ -813,7 +772,7 @@ export function stellarCoholdRpc(
 
     async getBalance(contractId) {
       try {
-        const client = await coholdClient(contractId);
+        const client = coholdClient(contractId);
         const tx = await client.get_balance();
         const value = toBigInt(tx.result);
         // A negative i128 is malformed for a treasury balance; treat it as
@@ -826,18 +785,9 @@ export function stellarCoholdRpc(
 
     async getProposalCount(contractId) {
       try {
-        // ProposalCount lives in instance storage (DataKey::ProposalCount,
-        // env.storage().instance()), which contractData ledger keys cannot
-        // address; read the contract instance storage map instead.
-        const instance = await server.getContractInstance(contractId);
-        const entries = instance.storage();
-        if (!entries) return null;
-        const expectedKey = storageKeySymbol("ProposalCount").toXDR("base64");
-        const entry = entries.find(
-          (candidate) => candidate.key().toXDR("base64") === expectedKey,
-        );
-        if (!entry) return null;
-        return toNonNegativeInt(StellarSdk.scValToNative(entry.val()));
+        const client = coholdClient(contractId);
+        const tx = await client.get_proposal_count();
+        return toNonNegativeInt(tx.result);
       } catch {
         return null;
       }
@@ -845,7 +795,7 @@ export function stellarCoholdRpc(
 
     async getProposal(contractId, proposalId) {
       try {
-        const client = await coholdClient(contractId);
+        const client = coholdClient(contractId);
         const tx = await client.get_proposal({ proposal_id: BigInt(proposalId) });
         const result = unwrapResultValue(tx.result);
         if (result === null) return null;
@@ -857,13 +807,10 @@ export function stellarCoholdRpc(
 
     async getMemberList(contractId) {
       try {
-        const value = await readLedgerValue(
-          contractId,
-          storageKeySymbol("MemberList"),
-          StellarSdk.xdr.ContractDataDurability.persistent(),
-        );
-        if (!Array.isArray(value)) return null;
-        const members = value
+        const client = coholdClient(contractId);
+        const tx = await client.get_members();
+        if (!Array.isArray(tx.result)) return null;
+        const members = tx.result
           .filter(
             (address): address is string =>
               typeof address === "string" && isValidStellarAddress(address),
@@ -876,13 +823,13 @@ export function stellarCoholdRpc(
     },
 
     async isMember(contractId, address) {
-      const client = await coholdClient(contractId);
+      const client = coholdClient(contractId);
       const tx = await client.is_member({ address });
       return tx.result === true;
     },
 
     async hasApproved(contractId, proposalId, address) {
-      const client = await coholdClient(contractId);
+      const client = coholdClient(contractId);
       const tx = await client.has_approved({
         proposal_id: BigInt(proposalId),
         member: address,
