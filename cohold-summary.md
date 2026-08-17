@@ -90,7 +90,7 @@ The contract is authoritative for balances, members, threshold, proposals, appro
 
 **Proposal states:** `pending` → `approved` → `executed`, or `pending` → `cancelled`.
 
-**MVP routes (specified):** `/`, `/overview`, `/treasuries`, `/treasuries/[id]`, `/proposals`, `/proposals/[id]`, `/activity`, `/wallet`. Current code still concentrates a lot of the interactive shell in `src/app/page.tsx` plus client components; the OpenSpec change is the route-level App Router foundation.
+**MVP routes (implemented):** `/`, `/overview`, `/treasuries`, `/treasuries/[id]`, `/proposals`, `/proposals/[id]`, `/activity`, `/wallet`, and `/settings`. The public landing page is server-compatible; the shared `(demo)` layout owns wallet/demo providers and URL-based navigation.
 
 **Invariants that matter:**
 
@@ -815,7 +815,7 @@ Secondary treasury: small-business or project pot, so the treasuries list and is
 
 This is the implementation shape as of this overview, not a second product spec.
 
-**App shell:** `src/app/page.tsx` plus `Header`, `Navigation`, and view components (`OverviewView`, `TreasuryList`, `TreasuryDetail`, `GlobalProposalsView`, `GlobalActivityView`, `WalletSettingsView`).
+**App shell:** `src/app/page.tsx` is the public landing page; `src/app/(demo)/layout.tsx` wraps the URL-based application shell with `DemoShell`, `WalletProvider`, and `DemoDataProvider`.
 
 **Mutations:** Next.js route handlers under `src/app/api/`:
 

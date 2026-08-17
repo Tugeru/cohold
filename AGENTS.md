@@ -21,7 +21,7 @@ This is a single npm app (not a pnpm/turbo monorepo). The package name in `packa
   - `docs/` — PRD, SRS, UI/UX spec, developer runbook
   - `openspec/` — spec-driven change artifacts
   - `cohold-summary.md` — product, roles, and flows in one place
-- Current UI still lives in one client shell (`src/app/page.tsx` + local `currentView` state). Target routes from the OpenSpec change: `/`, `/overview`, `/treasuries`, `/treasuries/[id]`, `/proposals`, `/proposals/[id]`, `/activity`, `/wallet`.
+- The App Router shell uses the landing page at `src/app/page.tsx` plus the shared `(demo)` layout and URL routes: `/`, `/overview`, `/treasuries`, `/treasuries/[id]`, `/proposals`, `/proposals/[id]`, `/activity`, `/wallet`, and `/settings`.
 - Schema lives in `src/db/schema.ts`. After schema edits, update `drizzle.config.json` consumers and the mock query surface in `src/db/mock.ts` so both backends stay interchangeable.
 - Wallet work uses Freighter (`@stellar/freighter-api`) and `@stellar/stellar-sdk`. Use Stellar RPC (`src/lib/stellar.ts`) for contract reads, simulate, submit, and confirm. Keep Horizon for account/legacy lookups only.
 - Demo personas in `src/lib/personas.ts` are for fixture walks only. In wallet mode the actor is the connected Testnet wallet, never a request-body address or label.
@@ -30,7 +30,7 @@ This is a single npm app (not a pnpm/turbo monorepo). The package name in `packa
 
 ## Testing instructions
 
-- There is no `.github/workflows` CI and no `test` script yet. Until those exist, the merge gate is `npm run lint` and `npm run typecheck`. Both must be green.
+- CI runs lint, typecheck, tests, and build via `.github/workflows/ci.yml`; the local merge gate remains `npm run lint` and `npm run typecheck`, with `npm test` and `npm run build` required for substantial changes.
 - After moving files or changing imports, re-run `npm run lint` and `npm run typecheck`. ESLint is `eslint-config-next` (core-web-vitals). TypeScript is strict.
 - Next.js 16 route handlers receive `params` as a `Promise` — always `await props.params`. Do not add `eslint-disable` for React Compiler / hooks rules; fix the component instead.
 - Add tests for the code you change, even if nobody asked. When a runner is added, prefer Vitest unit tests next to the module (`src/lib`, gateway, money, error mapping) and keep a `npm test` script in `package.json`.

@@ -11,6 +11,7 @@ export function EnvironmentBadge({ compact = false }: EnvironmentBadgeProps) {
 
   return (
     <div
+      role="status"
       aria-label={getEnvironmentLabel()}
       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold ${
         !isModeConfigured

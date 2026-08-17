@@ -1,6 +1,6 @@
 ## Context
 
-Cohold is a Next.js 16.2.6 App Router application using React 19, TypeScript, Tailwind CSS 4, `@stellar/stellar-sdk` 16, `@stellar/freighter-api` 6, Drizzle, and an in-memory mock/Postgres adapter. The current implementation renders the application from `src/app/page.tsx` as one large client component, switches views through local state, fetches database-shaped JSON from route handlers, and supports persona simulation. The PRD, SRS, and UI/UX specification describe a Soroban-authoritative Testnet application, but still contain Vite-era architecture references and do not define a safe seam between demo persistence and on-chain state.
+Cohold is a Next.js 16.2.6 App Router application using React 19, TypeScript, Tailwind CSS 4, `@stellar/stellar-sdk` 16, `@stellar/freighter-api` 6, Drizzle, and an in-memory mock/Postgres adapter. This change replaces the former single client-rendered dashboard and its local view switching with route-level boundaries while retaining the fixture adapter for deterministic demo work. The PRD, SRS, and UI/UX specification now describe a Soroban-authoritative Testnet application with an explicit demo/wallet seam.
 
 The primary stakeholders are MVP demo users who need to understand shared-fund governance, developers iterating locally with `next dev`, and contract integrators who need the UI to respect Soroban authorization and transaction confirmation semantics.
 

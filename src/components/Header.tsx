@@ -117,7 +117,7 @@ export function Header({
           {/* Create Treasury CTA */}
           <button
             onClick={onCreateTreasury}
-            className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-md shadow-emerald-600/30 hover:bg-emerald-500 transition"
+            className="flex items-center gap-1.5 rounded-lg bg-emerald-700 px-3.5 py-1.5 text-xs font-semibold text-white shadow-md shadow-emerald-700/30 hover:bg-emerald-600 transition"
           >
             <PlusCircle className="h-4 w-4" />
             <span className="hidden sm:inline">New Treasury</span>

@@ -20,9 +20,14 @@ and then to wallet mode with a configured Testnet contract.
 | `DATABASE_URL` | Optional Postgres DSN. Leave empty to use the in-memory mock fixtures. | empty |
 | `NEXT_PUBLIC_COHOLD_MODE` | `demo` or `wallet`. | `demo` |
 | `NEXT_PUBLIC_STELLAR_NETWORK` | Must be `TESTNET` for the MVP. Never Mainnet. | `TESTNET` |
-| `NEXT_PUBLIC_STELLAR_CONTRACT_ID` | Wallet mode: Soroban treasury contract ID (`C...`). | empty |
-| `NEXT_PUBLIC_STELLAR_CONTRACT_IDS` | Optional comma-separated extra wallet-mode treasury contract IDs. | empty |
+| `NEXT_PUBLIC_STELLAR_CONTRACT_ID` | Wallet mode: primary Soroban treasury contract ID (`C...`). | empty |
+| `NEXT_PUBLIC_STELLAR_CONTRACT_IDS` | Optional comma-separated additional wallet-mode treasury contract IDs. | empty |
 | `NEXT_PUBLIC_STELLAR_TOKEN_ID` | Wallet mode: Testnet SAC/token contract ID (`C...`). | empty |
+
+The committed repository has no deployment-specific contract IDs or wallet
+secrets. The fixed Testnet RPC URL, Horizon compatibility URL, and network
+passphrase are recorded in `src/lib/stellar.ts`; set the contract/token IDs
+only after a known deployment is available.
 
 No secret values are required. The app never holds private keys; Freighter
 signs in the browser.
@@ -63,7 +68,12 @@ and does submit a real friendbot transaction. Everything else in demo mode
 stays off-chain.
 
 Routes: `/` (landing), `/overview`, `/treasuries`, `/treasuries/[id]`,
-`/proposals`, `/proposals/[id]`, `/activity`, `/wallet`.
+`/proposals`, `/proposals/[id]`, `/activity`, `/wallet`, `/settings`.
+
+The route-level error state is a Next.js error boundary rather than a URL. The
+smoke loop below exercises a not-found response directly; recoverable read
+errors are covered by the route `error.tsx` boundary and `ResourceStatus`
+retry UI.
 
 Demo fixtures are not authorization. Demo state never counts as a wallet
 action or confirmation.
@@ -102,12 +112,18 @@ Testnet accounts need a starting balance (fees) and a trustline/balance for
 the demo asset. The in-app faucet button and `/api/stellar/faucet` are
 demo-mode only (the button is hidden and the route returns `503` in wallet
 mode), so in wallet mode fund the address directly with friendbot:
-
 ```sh
-curl "https://friendbot.stellar.org?addr=G..." 
+curl "https://friendbot.stellar.org?addr=G..."
 ```
 
 ### 3.4 What wallet mode supports
+
+Wallet mode reads treasury configuration, members, threshold, balances,
+proposals, approvals, and lifecycle status from the Soroban contract through
+Stellar RPC. Treasury names and proposal descriptions are contract fields in
+the wallet flow; demo-only labels, categories, avatars, and fixture activity
+remain local metadata. Postgres and the in-memory mock are metadata/demo
+adapters only and never override chain financial or governance state.
 
 - Contribute funds to a treasury (token transfer to the contract).
 - Create proposals; **creating a proposal counts as the proposer's
@@ -148,13 +164,40 @@ Demo smoke (after `npm run dev`; use the port the dev command printed):
 
 ```sh
 PORT=3001
-for path in / /overview /treasuries /proposals /activity /wallet; do
+for path in \
+  / \
+  /overview \
+  /treasuries \
+  /treasuries/tr-it-society-event-fund \
+  /proposals \
+  /proposals/prop-venue-deposit-4500 \
+  /activity \
+  /wallet \
+  /settings \
+  /does-not-exist; do
   curl -s -o /dev/null -w "$path %{http_code}\n" "http://localhost:$PORT$path"
 done
 ```
 
-Expect `200` for each route. The smoke check exercises demo mode end to end
-without touching Testnet.
+Expect `200` for the listed application routes and `404` for
+`/does-not-exist`. The smoke check exercises demo mode end to end without
+touching Testnet.
+
+Responsive/accessibility spot check (after the smoke loop):
+
+1. Open `/overview`, a treasury detail route, and a proposal detail route at a
+   narrow mobile viewport and confirm no horizontal scrolling hides amount,
+   asset, recipient, or approval progress.
+2. Navigate the primary links and any confirmation dialog with keyboard only;
+   confirm visible focus, labeled controls, status text independent of color,
+   and focus returning after a dialog closes.
+3. Repeat with reduced motion enabled in browser preferences.
+
+The route error boundary is covered by the focused boundary contract test in
+`src/app/demo-boundaries.test.ts`, which verifies the client boundary, retry
+callback, and no-financial-state-change message. It is not a separately
+addressable route; a live read failure can be exercised manually by using an
+unreachable configured RPC in wallet mode.
 
 Generated artifacts: `npm run build` writes `.next/`, `tsc` writes
 `tsconfig.tsbuildinfo`, and dev/build runs may touch `next-env.d.ts` /

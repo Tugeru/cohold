@@ -113,7 +113,7 @@ export function Navigation({
               <button
                 type="button"
                 onClick={onCreateTreasury}
-                className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-emerald-500 transition shadow-md shadow-emerald-600/30"
+                className="flex items-center gap-1.5 rounded-xl bg-emerald-700 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-emerald-600 transition shadow-md shadow-emerald-700/30"
               >
                 <PlusCircle className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">New Treasury</span>

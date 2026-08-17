@@ -120,7 +120,7 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
               <button
                 type="button"
                 onClick={openCreateTreasury}
-                className="w-full flex items-center gap-2 rounded-xl bg-emerald-600 px-3 py-2.5 text-xs font-bold text-white hover:bg-emerald-500 shadow-md shadow-emerald-600/20 transition"
+                className="w-full flex items-center gap-2 rounded-xl bg-emerald-700 px-3 py-2.5 text-xs font-bold text-white hover:bg-emerald-600 shadow-md shadow-emerald-700/20 transition"
               >
                 <PlusCircle className="h-4 w-4" />
                 <span>Create Treasury</span>

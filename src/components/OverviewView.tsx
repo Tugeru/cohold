@@ -79,7 +79,7 @@ export function OverviewView({
       <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-r from-slate-900 via-slate-900/90 to-slate-950 p-5 sm:p-8 shadow-xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1.5 max-w-xl">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-400 border border-emerald-500/20">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-300 border border-emerald-500/20">
               <Sparkles className="h-3 w-3" />
               <span>Active Signer: {activePersona.name} ({activePersona.role})</span>
             </div>
@@ -94,7 +94,7 @@ export function OverviewView({
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
             <button
               onClick={onCreateTreasury}
-              className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-emerald-500 shadow-md shadow-emerald-600/30 transition"
+              className="flex items-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2.5 text-xs font-bold text-white hover:bg-emerald-600 shadow-md shadow-emerald-700/30 transition"
             >
               <PlusCircle className="h-4 w-4" />
               <span>Create Treasury</span>
