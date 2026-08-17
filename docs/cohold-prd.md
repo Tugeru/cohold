@@ -797,8 +797,9 @@ The app runs in one of two modes, selected by `NEXT_PUBLIC_COHOLD_MODE`.
 
 **Demo mode** (default) loads deterministic fixture treasuries and proposals,
 enables persona switching and a demo reset control, and produces synthetic
-transaction hashes for walkthroughs. It never submits to Testnet, and fixture
-state is never treated as wallet authorization.
+transaction hashes for walkthroughs. Apart from the explicitly documented
+Friendbot funding action, it never submits state-changing transactions to
+Testnet; fixture state is never treated as wallet authorization.
 
 **Wallet mode** connects to configured Soroban contract/token IDs on Stellar
 Testnet through Freighter and Stellar RPC. Fixture personas and synthetic
