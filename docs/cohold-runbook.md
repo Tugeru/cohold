@@ -145,6 +145,34 @@ Out of scope in this MVP slice:
 hashes into wallet state.** Wallet mode reads financial and governance state
 from the Soroban contract only; demo data is never a source of truth there.
 
+### 3.5 Automated Testnet integration check
+
+The proposal flow has an opt-in integration test that drives the exact
+modules the UI uses (`createProposalFlow`, `approveFlow`, and the SDK
+executor) against a live contract, then re-reads state from the chain:
+proposer/amount/recipient immutability, `approval_count = 1` at create, the
+current user's `has_approved`, the exact-threshold transition to `Approved`,
+the contract-level negatives (`NotMember` for outsiders, duplicate
+`AlreadyApproved`, `ProposalNotPending`, `ProposalNotFound`), and the
+flow-level amount/recipient validation. It covers AGENTS.md's manual Testnet
+check before wallet work is called done.
+
+The suite skips itself unless all of the following are set (see
+`.env.example`); the deployed contract needs a threshold of 2 with A and B as
+members and C funded but not a member:
+
+```sh
+COHOLD_TESTNET_CONTRACT_ID=C...   # deployed Cohold treasury (threshold 2)
+COHOLD_TESTNET_TOKEN_ID=C...      # its token contract (SAC)
+COHOLD_TESTNET_SECRET_A=S...      # funded member
+COHOLD_TESTNET_SECRET_B=S...      # funded member
+COHOLD_TESTNET_SECRET_C=S...      # funded non-member
+npm test -- src/lib/proposal-flow.testnet.test.ts
+```
+
+Secrets stay out of the repo (keyring only, per `deploy-testnet.md`); the
+test spends real Testnet XLM and is not part of CI.
+
 ## 4. RPC history limits
 
 Stellar RPC methods (`getTransaction`, `getEvents`, ...) only cover **the

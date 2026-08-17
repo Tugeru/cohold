@@ -134,6 +134,11 @@ describe.skipIf(!enabled)("proposal flow on Testnet", () => {
     expect(createRecord!.approvalCount).toBe(1);
     expect(createRecord!.status).toBe("pending");
 
+    // The current user's own approval re-reads as approved (the proposer is
+    // approval #1); an outsider is not approved on this proposal.
+    expect(await rpc.hasApproved(contractId, created.proposalId ?? -1, memberA)).toBe(true);
+    expect(await rpc.hasApproved(contractId, created.proposalId ?? -1, nonMemberC)).toBe(false);
+
     // 2. Duplicate approval by A while the proposal is still pending →
     //    contract AlreadyApproved (#8), mapped by the flow. This runs before
     //    B's approval so the proposal is still Pending (the status check
@@ -166,6 +171,18 @@ describe.skipIf(!enabled)("proposal flow on Testnet", () => {
     if (duplicate.status === "already-approved") {
       expect(duplicate.error.kind).toBe("already-approved");
     }
+
+    // 2a. Outsider approval attempt → the contract itself rejects with
+    //     NotMember (#3). The flow's pre-simulation membership gate would
+    //     stop an outsider before this point; invoking the executor
+    //     directly proves the contract-level rejection.
+    await expect(
+      stellarProposalExecutor().simulateApprove({
+        contractId,
+        memberAddress: nonMemberC,
+        proposalId: created.proposalId ?? -1,
+      }),
+    ).rejects.toThrow(/Error\(Contract, #3\)/);
 
     // 3. Approve as the second member: threshold 2 flips the proposal.
     const approveFlowB = approveFlow({
@@ -209,6 +226,9 @@ describe.skipIf(!enabled)("proposal flow on Testnet", () => {
     const approveRecord = await readProposal(created.proposalId ?? -1);
     expect(approveRecord!.approvalCount).toBe(2);
     expect(approveRecord!.status).toBe("approved");
+
+    // The approving member's own approval re-reads on the contract.
+    expect(await rpc.hasApproved(contractId, created.proposalId ?? -1, memberB)).toBe(true);
 
     // 3a. Approving an already-approved proposal → ProposalNotPending (#10),
     //    because the status check precedes the AlreadyApproved check.
