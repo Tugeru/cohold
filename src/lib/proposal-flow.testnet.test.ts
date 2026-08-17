@@ -20,6 +20,7 @@ import { basicNodeSigner } from "@stellar/stellar-sdk/contract";
 import {
   approveFlow,
   createProposalFlow,
+  executeFlow,
   stellarProposalExecutor,
 } from "@/lib/proposal-flow";
 import { stellarCoholdRpc } from "@/lib/contract-adapter";
@@ -184,6 +185,19 @@ describe.skipIf(!enabled)("proposal flow on Testnet", () => {
       }),
     ).rejects.toThrow(/Error\(Contract, #3\)/);
 
+    // 2b. Under-threshold execute → the contract itself rejects with
+    //     ThresholdNotReached (#7) while the proposal is 1/2. The flow's
+    //     local approval gate would stop an under-approved review before
+    //     this point; invoking the executor directly proves the
+    //     contract-level rejection.
+    await expect(
+      stellarProposalExecutor().simulateExecute({
+        contractId,
+        callerAddress: memberA,
+        proposalId: created.proposalId ?? -1,
+      }),
+    ).rejects.toThrow(/Error\(Contract, #7\)/);
+
     // 3. Approve as the second member: threshold 2 flips the proposal.
     const approveFlowB = approveFlow({
       executor: stellarProposalExecutor(),
@@ -300,5 +314,83 @@ describe.skipIf(!enabled)("proposal flow on Testnet", () => {
     if (ghost.status === "proposal-not-found") {
       expect(ghost.error.kind).toBe("proposal-not-found");
     }
+
+    // 4. Execute the approved payment: exactly `amount` to the stored
+    //    recipient, with the treasury balance decremented by exactly that.
+    const balanceBeforeExecution = await rpc.getBalance(contractId);
+    expect(balanceBeforeExecution).not.toBeNull();
+
+    const executeFlowA = executeFlow({
+      executor: stellarProposalExecutor(),
+      contractId,
+      treasuryName: "Testnet integration treasury",
+      callerAddress: memberA,
+      proposalId: created.proposalId ?? -1,
+      reviewed: {
+        status: "approved" as const,
+        amountBaseUnits: amount.toString(),
+        recipient,
+        description: "Integration check: one-off spend",
+        assetContractId: tokenId,
+        assetSymbol: "XLM",
+        assetDecimals: 7,
+        approvalCount: 2,
+        threshold: 2,
+        treasuryBalanceBaseUnits: balanceBeforeExecution!.toString(),
+      },
+      readProposal: async (proposalId) => {
+        const record = await readProposal(proposalId);
+        if (!record) return null;
+        return { approvalCount: record.approvalCount, status: record.status };
+      },
+      readBalance: () => rpc.getBalance(contractId),
+      signTransaction: signWith(secretA),
+    });
+
+    const executePrepared = await executeFlowA.prepare();
+    expect(executePrepared.status).toBe("ready");
+    if (executePrepared.status !== "ready") return;
+    expect(executePrepared.review.amountBaseUnits).toBe(amount.toString());
+    expect(executePrepared.review.recipient).toBe(recipient);
+    expect(executePrepared.review.treasuryBalanceBaseUnits).toBe(
+      balanceBeforeExecution!.toString(),
+    );
+
+    const executeSent = await executeFlowA.signAndSend(executePrepared.preparedTxXdr);
+    expect(executeSent.status).toBe("submitted");
+    if (executeSent.status !== "submitted") return;
+
+    const executed = await executeFlowA.confirm(executeSent.hash);
+    expect(executed.status).toBe("confirmed");
+    if (executed.status !== "confirmed") return;
+    expect(executed.proposalStatus).toBe("executed");
+    expect(executed.treasuryBalanceBaseUnits).toBe(
+      (balanceBeforeExecution! - amount).toString(),
+    );
+
+    // Authoritative re-read: status executed, balance down by exactly `amount`.
+    const executeRecord = await rpc.getProposal(contractId, created.proposalId ?? -1);
+    expect(executeRecord).not.toBeNull();
+    expect(executeRecord!.status).toBe("executed");
+    const balanceAfterExecution = await rpc.getBalance(contractId);
+    expect(balanceAfterExecution).toBe(balanceBeforeExecution! - amount);
+
+    // 4a. Double execute → contract AlreadyExecuted (#11). A stale Approved
+    //     review must map the rejection without signing, and the balance
+    //     must not change a second time.
+    const doubleExecute = await executeFlowA.prepare();
+    expect(doubleExecute.status).toBe("already-executed");
+    if (doubleExecute.status === "already-executed") {
+      expect(doubleExecute.error.kind).toBe("already-executed");
+    }
+    await expect(
+      stellarProposalExecutor().simulateExecute({
+        contractId,
+        callerAddress: memberB,
+        proposalId: created.proposalId ?? -1,
+      }),
+    ).rejects.toThrow(/Error\(Contract, #11\)/);
+    const balanceAfterDouble = await rpc.getBalance(contractId);
+    expect(balanceAfterDouble).toBe(balanceAfterExecution);
   }, 120_000);
 });
