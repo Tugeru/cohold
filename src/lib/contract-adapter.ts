@@ -582,10 +582,8 @@ export async function loadWalletProposalViews(
     let record: ChainProposalRecord | null = null;
     try {
       record = await rpc.getProposal(contractId, proposalId);
-    } catch (error) {
-      throw new Error(
-        error instanceof Error ? error.message : "A proposal could not be read from Stellar RPC.",
-      );
+    } catch {
+      throw new Error("A proposal could not be read from Stellar RPC. Retry.");
     }
     if (!record) continue;
     let hasApproved: boolean | null = null;
@@ -631,10 +629,8 @@ export async function loadWalletProposal(
   let record: ChainProposalRecord | null = null;
   try {
     record = await rpc.getProposal(contractId, proposalId);
-  } catch (error) {
-    throw new Error(
-      error instanceof Error ? error.message : "The proposal could not be read from Stellar RPC.",
-    );
+  } catch {
+    throw new Error("The proposal could not be read from Stellar RPC. Retry.");
   }
   if (!record) {
     throw new Error("The proposal could not be read from Stellar RPC.");
