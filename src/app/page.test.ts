@@ -17,4 +17,9 @@ describe("public landing", () => {
     expect(landingSource).toContain("createTreasuryHref");
     expect(landingSource).toContain("APP_ROUTES.overview");
   });
+  it("offers a configured-treasury path in wallet mode", () => {
+    expect(landingSource).toContain("Open Treasuries");
+    expect(landingSource).toContain("coholdConfig.modeConfigured");
+    expect(landingSource).toContain("APP_ROUTES.treasuries");
+  });
 });

@@ -34,12 +34,21 @@ export default function LandingPage() {
             Execution happens after the threshold, not after one officer decides.
           </p>
           <div className="flex flex-wrap items-center gap-3">
-            <Link
-              href={APP_ROUTES.overview}
-              className="inline-flex items-center rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-500"
-            >
-              View Demo
-            </Link>
+            {coholdConfig.modeConfigured && coholdConfig.mode === "demo" ? (
+              <Link
+                href={APP_ROUTES.overview}
+                className="inline-flex items-center rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-500"
+              >
+                View Demo
+              </Link>
+            ) : (
+              <Link
+                href={APP_ROUTES.treasuries}
+                className="inline-flex items-center rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-500"
+              >
+                Open Treasuries
+              </Link>
+            )}
             {coholdConfig.modeConfigured && coholdConfig.mode === "demo" ? (
               <Link
                 href={createTreasuryHref()}
