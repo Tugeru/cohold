@@ -59,16 +59,16 @@ export function Navigation({
   return (
     <>
       <header className="sticky top-0 z-40 w-full border-b border-slate-800 bg-slate-950/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
-          <div className="flex items-center gap-3">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-3 py-3 sm:px-6">
+          <div className="flex items-center gap-3 min-w-0">
             <Link
               href={APP_ROUTES.overview}
-              className="flex items-center gap-2.5 text-left group"
+              className="flex items-center gap-2.5 text-left group shrink-0"
             >
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 shadow-md shadow-emerald-500/20 group-hover:scale-105 transition transform">
                 <ShieldCheck className="h-5 w-5 text-white" />
               </div>
-              <div>
+              <div className="max-[380px]:hidden">
                 <div className="flex items-center gap-2">
                   <span className="text-lg font-bold tracking-tight text-white group-hover:text-emerald-400 transition">
                     Cohold
@@ -84,7 +84,7 @@ export function Navigation({
             </Link>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
             <EnvironmentBadge compact />
             {canMutate && (
               <button
@@ -133,7 +133,7 @@ export function Navigation({
                     <div className="font-semibold text-white leading-tight">
                       {activePersona.name.split(" ")[0]}
                     </div>
-                    <div className="text-[10px] text-emerald-400 font-mono">
+                    <div className="text-[10px] text-emerald-400 font-mono tabular-nums">
                       {activePersona.role}
                     </div>
                   </div>

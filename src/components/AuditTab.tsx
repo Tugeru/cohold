@@ -3,10 +3,9 @@
 import React from "react";
 import { Treasury } from "@/types";
 import { formatAddress, formatDate, timeAgo } from "@/lib/utils";
-import { getStellarExpertUrl } from "@/lib/stellar";
 import {
   FileText,
-  ExternalLink,
+  Info,
   ShieldCheck,
   Zap,
   Coins,
@@ -80,10 +79,20 @@ export function AuditTab({ treasury }: AuditTabProps) {
     <div className="space-y-6">
       <div className="border-b border-slate-800 pb-4">
         <h3 className="text-sm font-bold text-white">
-          Cryptographic Governance Ledger
+          Audit Log
         </h3>
         <p className="text-xs text-slate-400">
-          Complete transparent log of all Soroban transactions, multi-sig approvals, and payouts.
+          Fixture records for the demo walk — none of these entries are
+          confirmed Testnet transactions.
+        </p>
+      </div>
+
+      <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-amber-200 flex items-start gap-2.5">
+        <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+        <p>
+          <strong>Demo audit log.</strong> Every entry below is fixture data
+          for the guided demo. None of these records correspond to a confirmed
+          Stellar Testnet transaction.
         </p>
       </div>
 
@@ -144,13 +153,13 @@ export function AuditTab({ treasury }: AuditTabProps) {
                       {Boolean(parsedDetails.amount) && (
                         <div>
                           Amount:{" "}
-                          <strong className="text-emerald-400 font-mono">
+                          <strong className="text-emerald-400 font-mono tabular-nums">
                             {String(parsedDetails.amount)} {treasury.tokenSymbol}
                           </strong>
                         </div>
                       )}
                       {Boolean(parsedDetails.recipient) && (
-                        <div className="font-mono text-[11px] text-slate-400">
+                        <div className="font-mono tabular-nums text-[11px] text-slate-400">
                           Recipient: {formatAddress(String(parsedDetails.recipient), 8)}
                         </div>
                       )}
@@ -165,19 +174,15 @@ export function AuditTab({ treasury }: AuditTabProps) {
                     </div>
                   )}
 
-                  {/* Tx Hash */}
+                  {/* Demo record marker */}
                   {log.txHash && (
-                    <div className="flex items-center justify-between pt-1 text-[11px] text-slate-400 font-mono">
-                      <span>Stellar Soroban Tx: {formatAddress(log.txHash, 6)}</span>
-                      <a
-                        href={getStellarExpertUrl("tx", log.txHash)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-cyan-400 hover:text-cyan-300"
-                      >
-                        <span>View Explorer</span>
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
+                    <div className="flex items-center justify-between gap-2 pt-1 text-[11px] text-slate-400 font-mono tabular-nums">
+                      <span className="inline-flex items-center gap-1.5 rounded-md bg-slate-950 border border-slate-800 px-2 py-0.5 text-amber-300/90">
+                        Demo record · no chain transaction
+                      </span>
+                      <span className="min-w-0 truncate">
+                        fixture id {formatAddress(log.txHash, 6)}
+                      </span>
                     </div>
                   )}
                 </div>

@@ -401,7 +401,7 @@ export function ProposalsTab({
 
                   {/* Amount Badge */}
                   <div className="text-right">
-                    <div className="text-lg sm:text-xl font-bold font-mono text-emerald-400">
+                    <div className="text-lg sm:text-xl font-bold font-mono tabular-nums text-emerald-400">
                       {formatAmount(prop.amount, treasury.tokenSymbol)}
                     </div>
                   </div>
@@ -425,7 +425,7 @@ export function ProposalsTab({
                       {prop.recipientLabel || "External Address"}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 font-mono text-slate-400 text-[11px]">
+                  <div className="flex items-center gap-2 font-mono tabular-nums text-slate-400 text-[11px]">
                     <span>{formatAddress(prop.recipientAddress, 8)}</span>
                     <a
                       href={getStellarExpertUrl("account", prop.recipientAddress)}
@@ -446,7 +446,7 @@ export function ProposalsTab({
                       <span className="font-semibold text-slate-300">
                         Governance Quorum:
                       </span>
-                      <span className="font-mono font-bold text-emerald-400">
+                      <span className="font-mono tabular-nums font-bold text-emerald-400">
                         {prop.approvalCount} of {prop.threshold} Required
                       </span>
                     </div>
@@ -512,7 +512,7 @@ export function ProposalsTab({
                         </strong>
                       </span>
                     </div>
-                    <div className="flex items-center gap-1.5 font-mono text-[11px] text-emerald-400">
+                    <div className="flex items-center gap-1.5 font-mono tabular-nums text-[11px] text-emerald-400">
                       <span>Tx: {formatAddress(prop.executionTxHash, 6)}</span>
                       <a
                         href={getStellarExpertUrl("tx", prop.executionTxHash)}

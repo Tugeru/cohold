@@ -1,16 +1,20 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import * as StellarSdk from "@stellar/stellar-sdk";
 import {
   buildProposalView,
   buildTreasuryView,
   currentUserApprovalState,
+  loadWalletActivity,
   loadWalletProposal,
   loadWalletProposalViews,
   loadWalletTreasury,
   mergeTreasuryMetadata,
+  normalizeActivityEvent,
   normalizeProposalResult,
   normalizeStatus,
   normalizeTreasuryConfigResult,
   stellarCoholdRpc,
+  type ChainActivityView,
   type ChainProposalRecord,
   type ChainTreasuryConfig,
   type CoholdRpc,
@@ -69,6 +73,9 @@ function mockRpc(overrides: Partial<CoholdRpc> = {}): CoholdRpc {
     },
     async getTokenInfo() {
       return { symbol: "USDC", decimals: 7 };
+    },
+    async getRecentEvents() {
+      return [];
     },
     ...overrides,
   };
@@ -540,6 +547,187 @@ describe("loadWalletProposal", () => {
   });
 });
 
+describe("normalizeActivityEvent", () => {
+  const TX = "a".repeat(64);
+  const CREATOR = `G${"D".repeat(55)}`;
+  const RECIPIENT = `G${"E".repeat(55)}`;
+
+  function rawEvent(
+    overrides: Partial<Parameters<typeof normalizeActivityEvent>[0]> = {},
+  ) {
+    return {
+      id: "event-1",
+      txHash: TX,
+      ledger: 1234,
+      createdAt: "2026-08-10T00:00:00Z",
+      inSuccessfulContractCall: true,
+      topic: [],
+      value: [],
+      ...overrides,
+    };
+  }
+
+  it("normalizes treasury/created into a creator activity", () => {
+    const event = normalizeActivityEvent(
+      rawEvent({ topic: ["treasury", "created"], value: [CREATOR, 3, 4] }),
+    );
+    expect(event).toMatchObject({
+      type: "treasury-created",
+      actor: CREATOR,
+      ledger: 1234,
+      txHash: TX,
+      createdAt: "2026-08-10T00:00:00Z",
+    });
+    expect(event?.proposalId).toBeUndefined();
+    expect(event?.amountBaseUnits).toBeUndefined();
+  });
+
+  it("normalizes treasury/deposit with an i128-scale amount", () => {
+    const event = normalizeActivityEvent(
+      rawEvent({ topic: ["treasury", "deposit"], value: [CREATOR, 10_000_000_000n, 30_000_000_000n] }),
+    );
+    expect(event).toMatchObject({
+      type: "deposit",
+      actor: CREATOR,
+      amountBaseUnits: 10_000_000_000n,
+    });
+  });
+
+  it("normalizes proposal/created with proposer, id, and amount", () => {
+    const event = normalizeActivityEvent(
+      rawEvent({
+        topic: ["proposal", "created"],
+        value: [7, CREATOR, 4_500_000_000n],
+      }),
+    );
+    expect(event).toMatchObject({
+      type: "proposal-created",
+      proposalId: 7,
+      actor: CREATOR,
+      amountBaseUnits: 4_500_000_000n,
+    });
+  });
+
+  it("normalizes proposal/approved without an actor", () => {
+    const event = normalizeActivityEvent(
+      rawEvent({ topic: ["proposal", "approved"], value: [7, 2] }),
+    );
+    expect(event).toMatchObject({ type: "proposal-approved", proposalId: 7 });
+    expect(event?.actor).toBeUndefined();
+  });
+
+  it("normalizes approval/signed with the member", () => {
+    const event = normalizeActivityEvent(
+      rawEvent({ topic: ["approval", "signed"], value: [7, CREATOR] }),
+    );
+    expect(event).toMatchObject({ type: "approval-signed", proposalId: 7, actor: CREATOR });
+  });
+
+  it("normalizes execute/paid with recipient and amount", () => {
+    const event = normalizeActivityEvent(
+      rawEvent({ topic: ["execute", "paid"], value: [7, RECIPIENT, 4_500_000_000n] }),
+    );
+    expect(event).toMatchObject({
+      type: "payment-paid",
+      proposalId: 7,
+      recipient: RECIPIENT,
+      amountBaseUnits: 4_500_000_000n,
+    });
+    expect(event?.actor).toBeUndefined();
+  });
+
+  it("uppercases address fields", () => {
+    const event = normalizeActivityEvent(
+      rawEvent({
+        topic: ["approval", "signed"],
+        value: [7, CREATOR.toLowerCase()],
+      }),
+    );
+    expect(event?.actor).toBe(CREATOR);
+  });
+
+  it("preserves i128 amounts beyond the safe-integer range", () => {
+    const huge = 9_000_000_000_000_000_000_000n;
+    const event = normalizeActivityEvent(
+      rawEvent({ topic: ["execute", "paid"], value: [7, RECIPIENT, huge] }),
+    );
+    expect(event?.amountBaseUnits).toBe(huge);
+  });
+
+  it("rejects events from failed contract calls", () => {
+    const event = normalizeActivityEvent(
+      rawEvent({
+        inSuccessfulContractCall: false,
+        topic: ["proposal", "created"],
+        value: [7, CREATOR, 4_500_000_000n],
+      }),
+    );
+    expect(event).toBeNull();
+  });
+
+  it("rejects unknown topics", () => {
+    const event = normalizeActivityEvent(
+      rawEvent({ topic: ["mystery", "thing"], value: [7] }),
+    );
+    expect(event).toBeNull();
+  });
+
+  it("rejects malformed value shapes", () => {
+    expect(
+      normalizeActivityEvent(rawEvent({ topic: ["proposal", "created"], value: [7, CREATOR] })),
+    ).toBeNull();
+    expect(
+      normalizeActivityEvent(rawEvent({ topic: ["execute", "paid"], value: [7, RECIPIENT, "nope"] })),
+    ).toBeNull();
+    expect(
+      normalizeActivityEvent(rawEvent({ topic: ["treasury", "created"], value: "not-a-vec" })),
+    ).toBeNull();
+  });
+
+  it("rejects non-address actor fields", () => {
+    const event = normalizeActivityEvent(
+      rawEvent({ topic: ["approval", "signed"], value: [7, "not-an-address"] }),
+    );
+    expect(event).toBeNull();
+  });
+});
+
+describe("loadWalletActivity", () => {
+  it("combines treasury metadata and recent events for a contract", async () => {
+    const events: ChainActivityView[] = [
+      {
+        id: "event-1",
+        treasuryContractId: CONTRACT,
+        type: "deposit",
+        actor: MEMBER_ONE,
+        amountBaseUnits: 5_000_000_000n,
+        ledger: 1000,
+        createdAt: "2026-08-10T00:00:00Z",
+        txHash: "a".repeat(64),
+      },
+    ];
+    const rpc = mockRpc({ getRecentEvents: async () => events });
+    const result = await loadWalletActivity(rpc, CONTRACT);
+
+    expect(result.treasury?.name).toBe("IT Society Event Fund");
+    expect(result.events).toEqual(events);
+  });
+
+  it("keeps events when the treasury metadata read fails", async () => {
+    const events: ChainActivityView[] = [];
+    const rpc = mockRpc({
+      getRecentEvents: async () => events,
+      getConfig: async () => {
+        throw new Error("rpc unavailable");
+      },
+    });
+    const result = await loadWalletActivity(rpc, CONTRACT);
+
+    expect(result.treasury).toBeNull();
+    expect(result.events).toEqual([]);
+  });
+});
+
 describe("stellarCoholdRpc", () => {
   it("is constructible without network configuration", () => {
     const rpc = stellarCoholdRpc();
@@ -550,5 +738,69 @@ describe("stellarCoholdRpc", () => {
     expect(typeof rpc.isMember).toBe("function");
     expect(typeof rpc.hasApproved).toBe("function");
     expect(typeof rpc.getTokenInfo).toBe("function");
+    expect(typeof rpc.getRecentEvents).toBe("function");
+  });
+
+  describe("getRecentEvents recent-tail behavior", () => {
+    const TX = "a".repeat(64);
+
+    function approvedEvent(ledger: number) {
+      return {
+        id: `event-${ledger}`,
+        txHash: TX,
+        ledger,
+        ledgerClosedAt: new Date(2026, 7, 10, 0, 0, ledger % 60).toISOString(),
+        inSuccessfulContractCall: true,
+        topic: [
+          StellarSdk.xdr.ScVal.scvSymbol("proposal"),
+          StellarSdk.xdr.ScVal.scvSymbol("approved"),
+        ],
+        value: StellarSdk.xdr.ScVal.scvVec([
+          StellarSdk.xdr.ScVal.scvU32(7),
+          StellarSdk.xdr.ScVal.scvU32(2),
+        ]),
+      };
+    }
+
+    function rpcWithTwoPages(total: number) {
+      const all = Array.from({ length: total }, (_, i) => approvedEvent(2000 + i));
+      const getEvents = vi.fn(async (request: { cursor?: string }) => {
+        const from = request.cursor ? Number(request.cursor) : 0;
+        const page = all.slice(from, from + 100);
+        return { events: page, cursor: String(from + 100) };
+      });
+      const server = {
+        getHealth: async () => ({ oldestLedger: 1000, latestLedger: 3000 }),
+        getLatestLedger: async () => ({ sequence: 3000 }),
+        getEvents,
+      } as unknown as StellarSdk.rpc.Server;
+      return {
+        rpc: stellarCoholdRpc({ rpcUrl: "https://example.invalid", server }),
+        getEvents,
+        all,
+      };
+    }
+
+    it("walks pages and returns only the most recent events", async () => {
+      const { rpc, getEvents, all } = rpcWithTwoPages(110);
+      const views = await rpc.getRecentEvents(CONTRACT);
+
+      expect(getEvents).toHaveBeenCalledTimes(2);
+      expect(views).toHaveLength(100);
+      // The tail starts at the 11th event, not the window start.
+      expect(views[0].ledger).toBe(all[10].ledger);
+      expect(views[99].ledger).toBe(all[109].ledger);
+    });
+
+    it("keeps at most 100 events even when pages are full", async () => {
+      const { rpc, getEvents, all } = rpcWithTwoPages(200);
+      const views = await rpc.getRecentEvents(CONTRACT);
+
+      expect(views).toHaveLength(100);
+      expect(views[0].ledger).toBe(all[100].ledger);
+      expect(views[99].ledger).toBe(all[199].ledger);
+      // Page 1 was full, page 2 was full, so a third fetch confirms the tail.
+      expect(getEvents).toHaveBeenCalledTimes(3);
+    });
   });
 });

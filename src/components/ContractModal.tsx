@@ -128,7 +128,7 @@ soroban contract invoke \\
           {activeTab === "rust" && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-400 font-mono">
+                <span className="text-xs text-slate-400 font-mono tabular-nums">
                   cohold-contract/src/lib.rs (Soroban SDK v21+)
                 </span>
                 <button
@@ -143,7 +143,7 @@ soroban contract invoke \\
                   <span>{copied ? "Copied" : "Copy Rust Code"}</span>
                 </button>
               </div>
-              <pre className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-xs font-mono text-cyan-200 overflow-x-auto leading-relaxed">
+              <pre className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-xs font-mono tabular-nums text-cyan-200 overflow-x-auto leading-relaxed">
                 {RUST_SOROBAN_CONTRACT_CODE}
               </pre>
             </div>
@@ -163,7 +163,7 @@ soroban contract invoke \\
                     className="rounded-xl border border-slate-800 bg-slate-950 p-4 space-y-2"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-mono text-xs font-bold text-emerald-400">
+                      <span className="font-mono tabular-nums text-xs font-bold text-emerald-400">
                         {inv.id}
                       </span>
                       <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400 border border-emerald-500/20">
@@ -200,7 +200,7 @@ soroban contract invoke \\
                   <span>{copied ? "Copied" : "Copy Commands"}</span>
                 </button>
               </div>
-              <pre className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-xs font-mono text-purple-200 overflow-x-auto leading-relaxed">
+              <pre className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-xs font-mono tabular-nums text-purple-200 overflow-x-auto leading-relaxed">
                 {CARGO_CLI_EXAMPLE}
               </pre>
             </div>

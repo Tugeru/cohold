@@ -182,7 +182,7 @@ export function DemoTourModal({
               </div>
               <div className="text-right">
                 <div className="text-xs text-slate-400">Treasury Balance</div>
-                <div className="text-lg font-bold font-mono text-emerald-400">
+                <div className="text-lg font-bold font-mono tabular-nums text-emerald-400">
                   {balance.toLocaleString()} DEMO_UNITS
                 </div>
               </div>
@@ -194,7 +194,7 @@ export function DemoTourModal({
                 <span className="font-semibold text-slate-200">
                   Proposal: Venue Deposit
                 </span>
-                <span className="font-mono font-bold text-amber-400">
+                <span className="font-mono tabular-nums font-bold text-amber-400">
                   4,500 DEMO_UNITS
                 </span>
               </div>
@@ -206,7 +206,7 @@ export function DemoTourModal({
               <div className="space-y-1.5 pt-1">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-400">Approvals:</span>
-                  <span className="font-mono font-bold text-slate-200">
+                  <span className="font-mono tabular-nums font-bold text-slate-200">
                     {approvals.length} / 3 Required
                   </span>
                 </div>
@@ -313,7 +313,7 @@ export function DemoTourModal({
                 </div>
                 <div className="mt-1">{successMessage}</div>
                 {txHash && (
-                  <div className="mt-2 font-mono text-[10px] text-slate-400">
+                  <div className="mt-2 font-mono tabular-nums text-[10px] text-slate-400">
                     Tx Hash: {txHash}
                   </div>
                 )}

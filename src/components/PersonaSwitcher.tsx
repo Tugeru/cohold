@@ -109,7 +109,7 @@ export function PersonaSwitcher({
             </div>
 
             <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
-              <span className="font-mono text-slate-300">
+              <span className="font-mono tabular-nums text-slate-300">
                 {formatAddress(activePersona.address, 6)}
               </span>
               <button
@@ -127,7 +127,7 @@ export function PersonaSwitcher({
               {testnetBalance !== null && (
                 <span className="text-slate-400 hidden sm:inline">
                   · Testnet Balance:{" "}
-                  <span className="font-semibold text-slate-200 font-mono">
+                  <span className="font-semibold text-slate-200 font-mono tabular-nums">
                     {parseFloat(testnetBalance).toLocaleString()} XLM
                   </span>
                 </span>

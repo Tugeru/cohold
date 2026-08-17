@@ -89,6 +89,48 @@ export interface ChainProposalView {
   currentUserApproval: CurrentUserApproval;
 }
 
+/** Normalized activity kinds emitted by the Cohold contract. */
+export type ChainActivityType =
+  | "treasury-created"
+  | "deposit"
+  | "proposal-created"
+  | "approval-signed"
+  | "proposal-approved"
+  | "payment-paid";
+
+/**
+ * One confirmed contract event in wallet-mode activity. Amounts stay in
+ * integer base units; the RPC retention window bounds how far back this
+ * reaches, so a list of these is a recent window, never a full audit.
+ */
+export interface ChainActivityView {
+  /** RPC event id — stable list key. */
+  id: string;
+  treasuryContractId: string;
+  type: ChainActivityType;
+  proposalId?: number;
+  /** Member/proposer/creator address (uppercase). */
+  actor?: string;
+  /** Payment destination (uppercase). */
+  recipient?: string;
+  amountBaseUnits?: bigint;
+  ledger: number;
+  /** Ledger close time (ISO string). */
+  createdAt: string;
+  txHash: string;
+}
+
+/** Decoded event envelope before normalization (topics/values are native). */
+export interface RawChainActivityEvent {
+  id: string;
+  txHash: string;
+  ledger: number;
+  createdAt: string;
+  inSuccessfulContractCall?: boolean;
+  topic: unknown[];
+  value: unknown;
+}
+
 // ---------------------------------------------------------------------------
 // Read seam. Wallet-mode reads go through this interface; nothing else in the
 // app talks to the contract or raw RPC for treasury state.
@@ -103,6 +145,11 @@ export interface CoholdRpc {
   isMember(contractId: string, address: string): Promise<boolean>;
   hasApproved(contractId: string, proposalId: number, address: string): Promise<boolean>;
   getTokenInfo(tokenAddress: string): Promise<ChainTokenInfo>;
+  /**
+   * Recent confirmed contract events in the RPC retention window. Without
+   * `startLedger` the adapter starts at the oldest ledger the RPC serves.
+   */
+  getRecentEvents(contractId: string, startLedger?: number): Promise<ChainActivityView[]>;
 }
 
 const STATUS_BY_NUMBER: Record<number, ChainProposalStatus> = {
@@ -262,6 +309,96 @@ export function normalizeProposalResult(
   };
 }
 
+function toAddress(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim().toUpperCase();
+  return isValidStellarAddress(normalized) || isValidContractAddress(normalized)
+    ? normalized
+    : null;
+}
+
+/**
+ * Normalize one decoded contract event into an activity view. Failed calls,
+ * unknown topics, and malformed payloads are dropped (null) rather than
+ * presented as activity.
+ */
+export function normalizeActivityEvent(
+  raw: RawChainActivityEvent,
+): Omit<ChainActivityView, "treasuryContractId"> | null {
+  if (!raw || raw.inSuccessfulContractCall === false) return null;
+  const group = raw.topic?.[0];
+  const kind = raw.topic?.[1];
+  if (typeof group !== "string" || typeof kind !== "string") return null;
+  if (!Array.isArray(raw.value)) return null;
+  const value = raw.value;
+
+  const base = {
+    id: raw.id,
+    ledger: raw.ledger,
+    createdAt: raw.createdAt,
+    txHash: raw.txHash,
+  };
+
+  if (group === "treasury") {
+    if (kind === "created") {
+      const creator = toAddress(value[0]);
+      if (!creator) return null;
+      return { ...base, type: "treasury-created" as const, actor: creator };
+    }
+    if (kind === "deposit") {
+      const member = toAddress(value[0]);
+      const amount = toBigInt(value[1]);
+      if (!member || amount === null) return null;
+      return { ...base, type: "deposit" as const, actor: member, amountBaseUnits: amount };
+    }
+    return null;
+  }
+
+  if (group === "proposal") {
+    const proposalId = toNonNegativeInt(value[0]);
+    if (proposalId === null) return null;
+    if (kind === "created") {
+      const proposer = toAddress(value[1]);
+      const amount = toBigInt(value[2]);
+      if (!proposer || amount === null) return null;
+      return {
+        ...base,
+        type: "proposal-created" as const,
+        proposalId,
+        actor: proposer,
+        amountBaseUnits: amount,
+      };
+    }
+    if (kind === "approved") {
+      return { ...base, type: "proposal-approved" as const, proposalId };
+    }
+    return null;
+  }
+
+  if (group === "approval" && kind === "signed") {
+    const proposalId = toNonNegativeInt(value[0]);
+    const member = toAddress(value[1]);
+    if (proposalId === null || !member) return null;
+    return { ...base, type: "approval-signed" as const, proposalId, actor: member };
+  }
+
+  if (group === "execute" && kind === "paid") {
+    const proposalId = toNonNegativeInt(value[0]);
+    const recipient = toAddress(value[1]);
+    const amount = toBigInt(value[2]);
+    if (proposalId === null || !recipient || amount === null) return null;
+    return {
+      ...base,
+      type: "payment-paid" as const,
+      proposalId,
+      recipient,
+      amountBaseUnits: amount,
+    };
+  }
+
+  return null;
+}
+
 export function buildTreasuryView(input: {
   contractId: string;
   config: ChainTreasuryConfig;
@@ -296,6 +433,15 @@ const AUTHORITATIVE_FIELDS = [
   "memberCount",
   "members",
 ] as const;
+
+/**
+ * Bounds for the recent-activity scan. `getEvents` is ascending from the
+ * window start, so reaching the tail (the most recent events) requires
+ * walking pages forward. These caps bound that walk on very active
+ * treasuries.
+ */
+const ACTIVITY_SCAN_MAX_PAGES = 20;
+const ACTIVITY_SCAN_MAX_EVENTS = 500;
 
 function valuesAgree(chainValue: unknown, localValue: unknown): boolean {
   if (Array.isArray(chainValue) && Array.isArray(localValue)) {
@@ -508,6 +654,22 @@ export async function loadWalletProposal(
   });
 }
 
+/**
+ * Wallet-mode activity for one treasury: confirmed contract events plus the
+ * treasury view (name/asset metadata) needed to render them. A treasury read
+ * failure degrades to null metadata, never to fabricated activity.
+ */
+export async function loadWalletActivity(
+  rpc: CoholdRpc,
+  contractId: string,
+): Promise<{ treasury: ChainTreasuryView | null; events: ChainActivityView[] }> {
+  const [treasury, events] = await Promise.all([
+    loadWalletTreasury(rpc, contractId).catch(() => null),
+    rpc.getRecentEvents(contractId),
+  ]);
+  return { treasury, events };
+}
+
 // ---------------------------------------------------------------------------
 // Stellar SDK implementation. Read-only calls use the NULL_ACCOUNT source, so
 // they work before any wallet is connected.
@@ -540,6 +702,8 @@ interface SacClientSpec {
 export interface CoholdRpcOptions {
   rpcUrl?: string;
   networkPassphrase?: string;
+  /** Test seam: inject a Soroban RPC server instance. */
+  server?: StellarSdk.rpc.Server;
 }
 
 export function stellarCoholdRpc(
@@ -548,7 +712,7 @@ export function stellarCoholdRpc(
   const rpcUrl = options.rpcUrl ?? STELLAR_TESTNET_RPC_URL;
   const networkPassphrase =
     options.networkPassphrase ?? STELLAR_TESTNET_NETWORK_PASSPHRASE;
-  const server = new StellarSdk.rpc.Server(rpcUrl);
+  const server = options.server ?? new StellarSdk.rpc.Server(rpcUrl);
 
   const clientOptions: contract.ClientOptions = {
     contractId: "",
@@ -603,6 +767,24 @@ export function stellarCoholdRpc(
     const entry = response.entries[0];
     if (!entry) return null;
     return StellarSdk.scValToNative(entry.val.contractData().val());
+  }
+
+  /**
+   * Resolve the oldest ledger RPC still serves, clamped to the retention
+   * window start. A caller-provided start older than retention is pulled
+   * forward so the query does not fail with -32600.
+   */
+  async function resolveActivityStartLedger(
+    requested: number | undefined,
+  ): Promise<number> {
+    const health = await server.getHealth();
+    const oldest = health.oldestLedger ?? 0;
+    if (requested !== undefined && Number.isSafeInteger(requested) && requested > 0) {
+      return oldest > 0 ? Math.max(requested, oldest) : requested;
+    }
+    if (oldest > 0) return oldest;
+    const latest = await server.getLatestLedger();
+    return Math.max(1, latest.sequence - 10_000);
   }
 
   return {
@@ -709,6 +891,43 @@ export function stellarCoholdRpc(
         throw new Error("Token contract returned invalid decimals");
       }
       return { symbol, decimals };
+    },
+
+    async getRecentEvents(contractId, startLedger) {
+      const start = await resolveActivityStartLedger(startLedger);
+      const views: ChainActivityView[] = [];
+      let cursor: string | null = null;
+      for (let page = 0; page < ACTIVITY_SCAN_MAX_PAGES; page++) {
+        const response = await server.getEvents(
+          cursor
+            ? { cursor, limit: 100, filters: [{ type: "contract", contractIds: [contractId] }] }
+            : {
+                startLedger: start,
+                limit: 100,
+                filters: [{ type: "contract", contractIds: [contractId] }],
+              },
+        );
+        for (const event of response.events) {
+          const normalized = normalizeActivityEvent({
+            id: event.id,
+            txHash: event.txHash,
+            ledger: event.ledger,
+            createdAt: event.ledgerClosedAt,
+            inSuccessfulContractCall: event.inSuccessfulContractCall,
+            topic: event.topic.map((topicScv) => StellarSdk.scValToNative(topicScv)),
+            value: StellarSdk.scValToNative(event.value),
+          });
+          if (normalized) {
+            views.push({ ...normalized, treasuryContractId: contractId });
+          }
+        }
+        if (views.length >= ACTIVITY_SCAN_MAX_EVENTS) break;
+        if (response.events.length < 100) break; // tail reached
+        cursor = response.cursor;
+      }
+      // getEvents is ascending; keep only the most recent events so the
+      // list reads as a recent window rather than the start of retention.
+      return views.slice(-100);
     },
   };
 }

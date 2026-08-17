@@ -208,13 +208,13 @@ export function WalletContributeDialog({
     stage.kind === "amount" ? (
       <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950/60 p-4">
         <p className="text-xs text-slate-500">Current treasury balance</p>
-        <p className="mt-1 font-mono text-lg font-semibold text-slate-200">
+        <p className="mt-1 font-mono tabular-nums text-lg font-semibold text-slate-200">
           {treasury.balance === null
             ? "Unavailable"
             : formatDisplay(treasury.balance)}
         </p>
         <p className="mt-3 text-xs text-slate-500">Resulting balance after this contribution</p>
-        <p className="mt-1 font-mono text-lg font-semibold text-slate-200">
+        <p className="mt-1 font-mono tabular-nums text-lg font-semibold text-slate-200">
           {treasury.balance === null || previewAmount === null
             ? "—"
             : formatDisplay((BigInt(treasury.balance) + previewAmount).toString())}
@@ -232,13 +232,13 @@ export function WalletContributeDialog({
       <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
         <div className="flex items-center justify-between">
           <p className="text-xs text-slate-500">Amount</p>
-          <p className="font-mono text-lg font-semibold text-slate-100">
+          <p className="font-mono tabular-nums text-lg font-semibold text-slate-100">
             {formatDisplay(review.amountBaseUnits)}
           </p>
         </div>
         <div className="mt-2 flex items-center justify-between">
           <p className="text-xs text-slate-500">Asset</p>
-          <p className="font-mono text-xs text-slate-300">
+          <p className="font-mono tabular-nums text-xs text-slate-300">
             {decimals === null
               ? `${treasury.tokenAddress.slice(0, 12)}…`
               : `${symbol ?? "token"} · ${treasury.tokenAddress.slice(0, 12)}…`}
@@ -246,7 +246,7 @@ export function WalletContributeDialog({
         </div>
         <div className="mt-2 flex items-center justify-between">
           <p className="text-xs text-slate-500">Current balance</p>
-          <p className="font-mono text-xs text-slate-300">
+          <p className="font-mono tabular-nums text-xs text-slate-300">
             {review.currentBalanceBaseUnits === null
               ? "Unavailable"
               : formatDisplay(review.currentBalanceBaseUnits)}
@@ -254,7 +254,7 @@ export function WalletContributeDialog({
         </div>
         <div className="mt-2 flex items-center justify-between">
           <p className="text-xs text-slate-500">Resulting balance</p>
-          <p className="font-mono text-xs font-semibold text-slate-200">
+          <p className="font-mono tabular-nums text-xs font-semibold text-slate-200">
             {review.resultingBalanceBaseUnits === null
               ? "Unavailable"
               : formatDisplay(review.resultingBalanceBaseUnits)}
@@ -272,7 +272,7 @@ export function WalletContributeDialog({
   );
 
   const hashLine = (hash: string) => (
-    <p className="mt-1 break-all font-mono text-xs text-slate-400">
+    <p className="mt-1 break-all font-mono tabular-nums text-xs text-slate-400">
       {hash}
       <a
         href={walletExplorerUrl("tx", hash)}
@@ -335,9 +335,9 @@ export function WalletContributeDialog({
                     setAmountError(null);
                   }}
                   placeholder={decimals === null ? "Base units" : "0.00"}
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100 focus:border-emerald-500/60 focus:outline-none"
+                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono tabular-nums text-sm text-slate-100 focus:border-emerald-500/60 focus:outline-none"
                 />
-                <span className="shrink-0 font-mono text-xs text-slate-400">
+                <span className="shrink-0 font-mono tabular-nums text-xs text-slate-400">
                   {decimals === null ? "base units" : (symbol ?? "token")}
                 </span>
               </div>
@@ -463,7 +463,7 @@ export function WalletContributeDialog({
               {stage.balanceBaseUnits !== null ? (
                 <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
                   <p className="text-xs text-slate-500">Treasury balance re-read from chain</p>
-                  <p className="mt-1 font-mono text-xl font-semibold text-slate-100">
+                  <p className="mt-1 font-mono tabular-nums text-xl font-semibold text-slate-100">
                     {formatDisplay(stage.balanceBaseUnits)}
                   </p>
                 </div>

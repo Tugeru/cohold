@@ -136,7 +136,7 @@ export function Header({
                   <span className="font-semibold text-white truncate max-w-[100px]">
                     {activePersona.name.split(" ")[0]}
                   </span>
-                  <span className="text-[10px] text-emerald-400 font-mono">
+                  <span className="text-[10px] text-emerald-400 font-mono tabular-nums">
                     ({activePersona.role})
                   </span>
                 </div>

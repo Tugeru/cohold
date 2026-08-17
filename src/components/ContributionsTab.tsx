@@ -74,11 +74,11 @@ export function ContributionsTab({
                       <div className="font-semibold text-white">
                         {c.memberLabel || formatAddress(c.memberAddress)}
                       </div>
-                      <div className="font-mono text-[10px] text-slate-500">
+                      <div className="font-mono tabular-nums text-[10px] text-slate-500">
                         {formatAddress(c.memberAddress, 6)}
                       </div>
                     </td>
-                    <td className="py-3 px-4 font-mono font-bold text-emerald-400">
+                    <td className="py-3 px-4 font-mono tabular-nums font-bold text-emerald-400">
                       +{formatAmount(c.amount, treasury.tokenSymbol)}
                     </td>
                     <td className="py-3 px-4 text-slate-300">
@@ -87,7 +87,7 @@ export function ContributionsTab({
                     <td className="py-3 px-4 text-slate-400">
                       {formatDate(c.createdAt)} ({timeAgo(c.createdAt)})
                     </td>
-                    <td className="py-3 px-4 text-right font-mono">
+                    <td className="py-3 px-4 text-right font-mono tabular-nums">
                       <a
                         href={getStellarExpertUrl("tx", c.txHash)}
                         target="_blank"

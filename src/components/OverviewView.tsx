@@ -118,7 +118,7 @@ export function OverviewView({
             <span>Total Treasury Funds</span>
             <Coins className="h-4 w-4 text-emerald-400" />
           </div>
-          <div className="text-2xl sm:text-3xl font-bold font-mono text-white tracking-tight">
+          <div className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-white tracking-tight">
             {formatAmount(totalBalance, "DEMO_UNITS")}
           </div>
           <div className="text-[11px] text-emerald-400 font-medium">
@@ -132,7 +132,7 @@ export function OverviewView({
             <span>Active Treasuries</span>
             <ShieldCheck className="h-4 w-4 text-cyan-400" />
           </div>
-          <div className="text-2xl sm:text-3xl font-bold font-mono text-white tracking-tight">
+          <div className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-white tracking-tight">
             {activeTreasuriesCount}
           </div>
           <div className="text-[11px] text-slate-400 font-medium">
@@ -146,7 +146,7 @@ export function OverviewView({
             <span>Needs My Approval</span>
             <Clock className="h-4 w-4 text-amber-400" />
           </div>
-          <div className="text-2xl sm:text-3xl font-bold font-mono text-amber-300 tracking-tight">
+          <div className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-amber-300 tracking-tight">
             {needsMyApproval.length}
           </div>
           <div className="text-[11px] text-amber-400/80 font-medium">
@@ -160,7 +160,7 @@ export function OverviewView({
             <span>Ready to Disburse</span>
             <Zap className="h-4 w-4 text-emerald-400" />
           </div>
-          <div className="text-2xl sm:text-3xl font-bold font-mono text-emerald-300 tracking-tight">
+          <div className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-emerald-300 tracking-tight">
             {readyToExecute.length}
           </div>
           <div className="text-[11px] text-emerald-400/80 font-medium">
@@ -217,7 +217,7 @@ export function OverviewView({
                           </h3>
                         </div>
                         <div className="text-left sm:text-right">
-                          <div className="text-base font-bold font-mono text-emerald-400">
+                          <div className="text-base font-bold font-mono tabular-nums text-emerald-400">
                             {formatAmount(p.amount, matchingTreasury?.tokenSymbol || "DEMO")}
                           </div>
                           <div className="text-[11px] text-amber-400 font-medium">
@@ -270,7 +270,7 @@ export function OverviewView({
                       <span className="font-semibold text-slate-300">
                         {t.threshold} of {t.memberCount} Rule
                       </span>
-                      <span className="font-mono text-emerald-400 font-bold">
+                      <span className="font-mono tabular-nums text-emerald-400 font-bold">
                         {formatAmount(t.balance, t.tokenSymbol)}
                       </span>
                     </div>
@@ -320,7 +320,7 @@ export function OverviewView({
                       <span className="font-bold text-white truncate max-w-[140px]">
                         {p.title}
                       </span>
-                      <span className="font-mono font-bold text-emerald-400">
+                      <span className="font-mono tabular-nums font-bold text-emerald-400">
                         {formatAmount(p.amount, "DEMO")}
                       </span>
                     </div>

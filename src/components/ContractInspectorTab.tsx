@@ -55,7 +55,7 @@ export function ContractInspectorTab({ treasury }: ContractInspectorTabProps) {
                   Stellar Testnet
                 </span>
               </div>
-              <div className="font-mono text-xs text-slate-300 mt-0.5 flex items-center gap-2">
+              <div className="font-mono tabular-nums text-xs text-slate-300 mt-0.5 flex items-center gap-2">
                 <span>{treasury.contractAddress}</span>
                 <button
                   onClick={() => copy(treasury.contractAddress)}
@@ -127,7 +127,7 @@ export function ContractInspectorTab({ treasury }: ContractInspectorTabProps) {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-4">
               <div className="text-xs text-slate-400 font-medium">Contract Balance</div>
-              <div className="text-xl font-bold font-mono text-emerald-400 mt-1">
+              <div className="text-xl font-bold font-mono tabular-nums text-emerald-400 mt-1">
                 {formatAmount(treasury.balance, treasury.tokenSymbol)}
               </div>
               <div className="text-[10px] text-slate-500 mt-1">DataKey::ContractBalance</div>
@@ -135,7 +135,7 @@ export function ContractInspectorTab({ treasury }: ContractInspectorTabProps) {
 
             <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-4">
               <div className="text-xs text-slate-400 font-medium">Threshold Quorum</div>
-              <div className="text-xl font-bold font-mono text-amber-400 mt-1">
+              <div className="text-xl font-bold font-mono tabular-nums text-amber-400 mt-1">
                 {treasury.threshold} / {treasury.memberCount}
               </div>
               <div className="text-[10px] text-slate-500 mt-1">TreasuryConfig.threshold</div>
@@ -143,7 +143,7 @@ export function ContractInspectorTab({ treasury }: ContractInspectorTabProps) {
 
             <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-4">
               <div className="text-xs text-slate-400 font-medium">Proposals Created</div>
-              <div className="text-xl font-bold font-mono text-cyan-400 mt-1">
+              <div className="text-xl font-bold font-mono tabular-nums text-cyan-400 mt-1">
                 {proposals.length} Total
               </div>
               <div className="text-[10px] text-slate-500 mt-1">DataKey::ProposalCount</div>
@@ -151,7 +151,7 @@ export function ContractInspectorTab({ treasury }: ContractInspectorTabProps) {
 
             <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-4">
               <div className="text-xs text-slate-400 font-medium">Network Passphrase</div>
-              <div className="text-xs font-mono text-slate-200 mt-1 truncate">
+              <div className="text-xs font-mono tabular-nums text-slate-200 mt-1 truncate">
                 Test SDF Network ; Sep 2015
               </div>
               <div className="text-[10px] text-slate-500 mt-1">Stellar Testnet RPC</div>
@@ -170,7 +170,7 @@ export function ContractInspectorTab({ treasury }: ContractInspectorTabProps) {
                   className="rounded-xl border border-slate-800 bg-slate-950 p-3 text-xs space-y-1"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-mono font-bold text-emerald-400">
+                    <span className="font-mono tabular-nums font-bold text-emerald-400">
                       {inv.id}: {inv.name}
                     </span>
                     <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400 border border-emerald-500/20">
@@ -191,7 +191,7 @@ export function ContractInspectorTab({ treasury }: ContractInspectorTabProps) {
       {activeSubTab === "rust" && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-400 font-mono">
+            <span className="text-xs text-slate-400 font-mono tabular-nums">
               src/lib.rs (Soroban SDK)
             </span>
             <button
@@ -206,7 +206,7 @@ export function ContractInspectorTab({ treasury }: ContractInspectorTabProps) {
               <span>{copied ? "Copied" : "Copy Rust Code"}</span>
             </button>
           </div>
-          <pre className="rounded-2xl border border-slate-800 bg-slate-950 p-4 text-xs font-mono text-cyan-200 overflow-x-auto leading-relaxed max-h-[600px]">
+          <pre className="rounded-2xl border border-slate-800 bg-slate-950 p-4 text-xs font-mono tabular-nums text-cyan-200 overflow-x-auto leading-relaxed max-h-[600px]">
             {RUST_SOROBAN_CONTRACT_CODE}
           </pre>
         </div>
@@ -220,28 +220,28 @@ export function ContractInspectorTab({ treasury }: ContractInspectorTabProps) {
           </h4>
           <div className="space-y-3 text-xs">
             <div className="rounded-xl border border-slate-800 bg-slate-950 p-3 space-y-1">
-              <div className="font-mono font-bold text-cyan-400">DataKey::Config</div>
+              <div className="font-mono tabular-nums font-bold text-cyan-400">DataKey::Config</div>
               <p className="text-slate-400 text-[11px]">
                 Stores <code className="text-slate-200">TreasuryConfig</code> (creator, token address, threshold = {treasury.threshold}, member_count = {treasury.memberCount}, name = &quot;{treasury.name}&quot;).
               </p>
             </div>
 
             <div className="rounded-xl border border-slate-800 bg-slate-950 p-3 space-y-1">
-              <div className="font-mono font-bold text-cyan-400">DataKey::Member(Address) -&gt; bool</div>
+              <div className="font-mono tabular-nums font-bold text-cyan-400">DataKey::Member(Address) -&gt; bool</div>
               <p className="text-slate-400 text-[11px]">
                 Maps each member Stellar address to boolean true. Verified via <code className="text-slate-200">is_member()</code> and <code className="text-slate-200">require_auth()</code>.
               </p>
             </div>
 
             <div className="rounded-xl border border-slate-800 bg-slate-950 p-3 space-y-1">
-              <div className="font-mono font-bold text-cyan-400">DataKey::Approval(proposal_id, member_address) -&gt; bool</div>
+              <div className="font-mono tabular-nums font-bold text-cyan-400">DataKey::Approval(proposal_id, member_address) -&gt; bool</div>
               <p className="text-slate-400 text-[11px]">
                 Prevents duplicate approvals by verifying uniqueness for each proposal ID before incrementing the approval counter.
               </p>
             </div>
 
             <div className="rounded-xl border border-slate-800 bg-slate-950 p-3 space-y-1">
-              <div className="font-mono font-bold text-cyan-400">DataKey::ContractBalance -&gt; i128</div>
+              <div className="font-mono tabular-nums font-bold text-cyan-400">DataKey::ContractBalance -&gt; i128</div>
               <p className="text-slate-400 text-[11px]">
                 Maintains authoritative internal treasury token balance ({formatAmount(treasury.balance, treasury.tokenSymbol)}).
               </p>

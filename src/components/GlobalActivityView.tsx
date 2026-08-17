@@ -2,7 +2,6 @@
 
 import React, { useCallback, useState, useEffect } from "react";
 import { formatAddress, formatDate, timeAgo } from "@/lib/utils";
-import { getStellarExpertUrl } from "@/lib/stellar";
 import {
   History,
   Coins,
@@ -11,9 +10,9 @@ import {
   Zap,
   Receipt,
   ShieldCheck,
-  ExternalLink,
   Filter,
   RefreshCw,
+  Info,
 } from "lucide-react";
 
 export function GlobalActivityView() {
@@ -108,10 +107,11 @@ export function GlobalActivityView() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
-            Activity & Audit Ledger
+            Activity
           </h1>
           <p className="text-xs text-slate-400">
-            Chronological cryptographic record of all transactions, proposals, and approvals
+            Fixture records for the demo walk — none of these rows are
+            confirmed Testnet transactions.
           </p>
         </div>
 
@@ -170,11 +170,21 @@ export function GlobalActivityView() {
         </div>
       </div>
 
+      {/* Demo-mode notice: fixtures are not confirmed transactions */}
+      <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-amber-200 flex items-start gap-2.5">
+        <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+        <p>
+          <strong>Demo activity.</strong> Every row below is fixture data for
+          the guided demo. None of these records correspond to a confirmed
+          Stellar Testnet transaction.
+        </p>
+      </div>
+
       {/* Activity Timeline */}
       {loading ? (
         <div className="py-12 text-center text-xs text-slate-400 space-y-2">
           <RefreshCw className="h-5 w-5 animate-spin mx-auto text-emerald-400" />
-          <p>Loading activity ledger...</p>
+          <p>Loading activity records...</p>
         </div>
       ) : activities.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-slate-800 bg-slate-950/40 p-12 text-center text-xs text-slate-400">
@@ -237,14 +247,14 @@ export function GlobalActivityView() {
                       {Boolean(detailsObj.amount) && (
                         <div>
                           Amount:{" "}
-                          <strong className="text-emerald-400 font-mono">
+                          <strong className="text-emerald-400 font-mono tabular-nums">
                             {String(detailsObj.amount)}{" "}
                             {item.treasury?.tokenSymbol || "DEMO"}
                           </strong>
                         </div>
                       )}
                       {Boolean(detailsObj.recipient) && (
-                        <div className="font-mono text-[11px] text-slate-400">
+                        <div className="font-mono tabular-nums text-[11px] text-slate-400">
                           Recipient: {formatAddress(String(detailsObj.recipient), 8)}
                         </div>
                       )}
@@ -260,21 +270,18 @@ export function GlobalActivityView() {
                     </div>
                   )}
 
-                  {/* Stellar transaction hash */}
-                  {item.txHash && (
-                    <div className="flex items-center justify-between pt-1 text-[11px] text-slate-400 font-mono">
-                      <span>Stellar Tx: {formatAddress(item.txHash, 6)}</span>
-                      <a
-                        href={getStellarExpertUrl("tx", item.txHash)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-cyan-400 hover:text-cyan-300"
-                      >
-                        <span>View Explorer</span>
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    </div>
-                  )}
+                  {/* Demo records carry no real chain transaction */}
+                  <div className="flex items-center justify-between pt-1 text-[11px] text-slate-500">
+                    <span className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-950 px-2 py-0.5 font-semibold text-slate-400">
+                      <Info className="h-3 w-3" />
+                      Demo record · no chain transaction
+                    </span>
+                    {item.txHash && (
+                      <span className="font-mono tabular-nums">
+                        fixture id {formatAddress(item.txHash, 6)}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             );

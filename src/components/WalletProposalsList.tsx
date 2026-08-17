@@ -96,7 +96,7 @@ export function WalletProposalsList() {
           <h1 className="text-2xl font-semibold text-slate-100">Proposals</h1>
           <p className="mt-1 text-sm text-slate-400">
             Read-only proposal list for the configured treasury{" "}
-            <span className="font-mono text-slate-500">{contractId.slice(0, 10)}…</span> on
+            <span className="font-mono tabular-nums text-slate-500">{contractId.slice(0, 10)}…</span> on
             Stellar Testnet.
           </p>
         </div>
@@ -120,10 +120,10 @@ export function WalletProposalsList() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-slate-100">
-                      <span className="font-mono text-slate-500">#{proposal.id}</span>{" "}
+                      <span className="font-mono tabular-nums text-slate-500">#{proposal.id}</span>{" "}
                       {proposal.description}
                     </p>
-                    <p className="mt-1 font-mono text-xs text-slate-400">
+                    <p className="mt-1 font-mono tabular-nums text-xs  text-slate-400">
                       {proposal.tokenSymbol
                         ? formatBaseAmount(
                             proposal.amount,

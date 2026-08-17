@@ -256,7 +256,7 @@ export function CreateProposalModal({
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="4500"
                 min="1"
-                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2 text-sm text-white font-mono focus:border-emerald-500 focus:outline-none"
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2 text-sm text-white font-mono tabular-nums focus:border-emerald-500 focus:outline-none"
               />
               <div className="text-[10px] text-slate-400 mt-1">
                 Available treasury balance: {formatAmount(treasury.balance, treasury.tokenSymbol)}
@@ -304,7 +304,7 @@ export function CreateProposalModal({
               value={recipientAddress}
               onChange={(e) => setRecipientAddress(e.target.value)}
               placeholder="G..."
-              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2 text-xs font-mono text-slate-200 placeholder:text-slate-600 focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2 text-xs font-mono tabular-nums text-slate-200 placeholder:text-slate-600 focus:border-emerald-500 focus:outline-none"
             />
             <p className="text-[10px] text-slate-400 mt-1">
               Upon reaching threshold, the Soroban contract executes payment directly to this recipient address.

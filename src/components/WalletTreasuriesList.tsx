@@ -52,7 +52,7 @@ function TreasuryCard({ item, onRefresh }: { item: ListItem; onRefresh: () => vo
       <div className="flex items-start justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold text-slate-100">{view.name}</h3>
-          <p className="mt-1 font-mono text-xs text-slate-500">{view.contractId}</p>
+          <p className="mt-1 font-mono tabular-nums text-xs text-slate-500">{view.contractId}</p>
         </div>
         <span className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-300">
           Testnet · chain
@@ -61,7 +61,7 @@ function TreasuryCard({ item, onRefresh }: { item: ListItem; onRefresh: () => vo
       <div className="mt-5 grid grid-cols-3 gap-4">
         <div>
           <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Balance</p>
-          <p className="mt-1 font-mono text-xl font-semibold text-slate-100">
+          <p className="mt-1 font-mono tabular-nums text-xl font-semibold text-slate-100">
             {view.balance === null
               ? "Unavailable"
               : view.tokenSymbol
@@ -76,7 +76,7 @@ function TreasuryCard({ item, onRefresh }: { item: ListItem; onRefresh: () => vo
           <p className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-slate-500">
             <ShieldCheck className="h-3 w-3" /> Governance
           </p>
-          <p className="mt-1 font-mono text-xl font-semibold text-slate-100">
+          <p className="mt-1 font-mono tabular-nums text-xl font-semibold text-slate-100">
             {view.threshold}
             <span className="text-sm text-slate-500"> / {view.memberCount} members</span>
           </p>
@@ -85,7 +85,7 @@ function TreasuryCard({ item, onRefresh }: { item: ListItem; onRefresh: () => vo
           <p className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-slate-500">
             <Users className="h-3 w-3" /> Members
           </p>
-          <p className="mt-1 font-mono text-xl font-semibold text-slate-100">
+          <p className="mt-1 font-mono tabular-nums text-xl font-semibold text-slate-100">
             {view.membersAuthoritative ? view.memberCount : view.members.length}
             {!view.membersAuthoritative && (
               <span className="text-sm text-amber-400/80"> · unverified</span>

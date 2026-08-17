@@ -155,7 +155,7 @@ export function ContributeModal({
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="1000"
                 min="1"
-                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2.5 text-base font-mono text-white placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2.5 text-base font-mono tabular-nums text-white placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
               />
               <div className="absolute right-3.5 top-2.5 text-xs font-bold text-slate-400">
                 {treasury.tokenSymbol}

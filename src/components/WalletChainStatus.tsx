@@ -90,18 +90,31 @@ export function WalletApprovalChip({
 export function WalletApprovalRail({
   approvalCount,
   threshold,
+  membersCount,
 }: {
   approvalCount: number;
   threshold: number;
+  membersCount?: number;
 }) {
   const pct = threshold > 0 ? Math.min(100, Math.round((approvalCount / threshold) * 100)) : 0;
   return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between text-[11px] text-slate-400">
+    <div className="space-y-1.5">
+      <div className="text-[11px] text-slate-400">
         <span className="font-medium">
-          {approvalCount} of {threshold} approvals
+          Approval rule:{" "}
+          {membersCount !== undefined && membersCount > 0
+            ? `${threshold} of ${membersCount} members`
+            : `${threshold} required`}
         </span>
-        <span className="font-mono">{pct}%</span>
+      </div>
+      <div className="flex items-center justify-between text-[11px] text-slate-400">
+        <span>
+          Current approvals:{" "}
+          <span className="font-semibold text-slate-200 tabular-nums">
+            {approvalCount} of {threshold} required
+          </span>
+        </span>
+        <span className="font-mono tabular-nums">{pct}%</span>
       </div>
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
         <div

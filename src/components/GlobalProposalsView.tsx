@@ -210,6 +210,9 @@ export function GlobalProposalsView({
           <p className="text-xs text-slate-400">
             Consolidated review and approval status across all shared treasuries
           </p>
+          <span className="mt-2 inline-flex items-center rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-amber-300">
+            Demo mode · fixture amounts — no Testnet transactions
+          </span>
         </div>
 
         {/* Tab Filters */}
@@ -348,7 +351,7 @@ export function GlobalProposalsView({
                   </div>
 
                   <div className="text-left sm:text-right">
-                    <div className="text-lg sm:text-xl font-bold font-mono text-emerald-400">
+                    <div className="text-lg sm:text-xl font-bold font-mono tabular-nums text-emerald-400">
                       {formatAmount(p.amount, tokenSym)}
                     </div>
                   </div>
@@ -369,14 +372,14 @@ export function GlobalProposalsView({
                     <strong className="text-white">
                       {p.recipientLabel || formatAddress(p.recipientAddress)}
                     </strong>
-                    <span className="text-[11px] font-mono text-slate-400 ml-2 hidden sm:inline">
+                    <span className="text-[11px] font-mono tabular-nums text-slate-400 ml-2 hidden sm:inline">
                       ({formatAddress(p.recipientAddress, 6)})
                     </span>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <span className="text-slate-400">Quorum:</span>
-                    <span className="font-mono font-bold text-emerald-400">
+                    <span className="font-mono tabular-nums font-bold text-emerald-400">
                       {p.approvalCount} of {p.threshold} Signatures
                     </span>
                   </div>

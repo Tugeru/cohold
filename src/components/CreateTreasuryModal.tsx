@@ -446,7 +446,7 @@ export function CreateTreasuryModal({
                     value={tokenSymbol}
                     onChange={(e) => setTokenSymbol(e.target.value)}
                     placeholder="DEMO_UNITS or XLM"
-                    className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white font-mono uppercase focus:border-emerald-500 focus:outline-none"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white font-mono tabular-nums uppercase focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
               </div>
@@ -462,7 +462,7 @@ export function CreateTreasuryModal({
                   onChange={(e) => setInitialDeposit(e.target.value)}
                   placeholder="0"
                   min="0"
-                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2 text-sm text-white font-mono focus:border-emerald-500 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2 text-sm text-white font-mono tabular-nums focus:border-emerald-500 focus:outline-none"
                 />
                 <p className="text-[11px] text-slate-400 mt-1">
                   Seed tokens will be minted to the contract balance on creation.
@@ -536,7 +536,7 @@ export function CreateTreasuryModal({
                           value={m.address}
                           onChange={(e) => updateMember(idx, "address", e.target.value)}
                           placeholder="Stellar Public Key (G... 56 characters)"
-                          className="w-full rounded-lg border border-slate-800 bg-slate-900 px-2.5 py-1.5 text-xs font-mono text-slate-300 placeholder:text-slate-600 focus:border-emerald-500 focus:outline-none"
+                          className="w-full rounded-lg border border-slate-800 bg-slate-900 px-2.5 py-1.5 text-xs font-mono tabular-nums text-slate-300 placeholder:text-slate-600 focus:border-emerald-500 focus:outline-none"
                         />
                       </div>
                     </div>
@@ -560,7 +560,7 @@ export function CreateTreasuryModal({
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="text-2xl font-bold font-mono text-emerald-400">
+                    <span className="text-2xl font-bold font-mono tabular-nums text-emerald-400">
                       {threshold} of {members.length}
                     </span>
                     <div className="text-[11px] text-slate-400 font-medium">
@@ -578,7 +578,7 @@ export function CreateTreasuryModal({
                   className="w-full accent-emerald-500 cursor-pointer"
                 />
 
-                <div className="flex justify-between text-[11px] text-slate-500 font-mono">
+                <div className="flex justify-between text-[11px] text-slate-500 font-mono tabular-nums">
                   <span>1 (Any single member)</span>
                   <span>{Math.ceil(members.length / 2)} (Majority)</span>
                   <span>{members.length} (Unanimous)</span>
@@ -602,7 +602,7 @@ export function CreateTreasuryModal({
                     Total Members: <span className="text-white font-semibold">{members.length} Signers</span>
                   </div>
                   <div>
-                    Initial Balance: <span className="text-emerald-400 font-semibold font-mono">{initialDeposit} {tokenSymbol}</span>
+                    Initial Balance: <span className="text-emerald-400 font-semibold font-mono tabular-nums">{initialDeposit} {tokenSymbol}</span>
                   </div>
                 </div>
                 <p className="text-[11px] text-slate-400 pt-2 border-t border-emerald-500/20">

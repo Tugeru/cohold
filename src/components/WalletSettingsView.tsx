@@ -136,7 +136,7 @@ export function WalletSettingsView({ onResetDemo }: WalletSettingsViewProps) {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <span className="text-slate-400">Public Stellar Address:</span>
-              <div className="font-mono text-cyan-300 text-[11px] sm:text-xs break-all mt-0.5">
+              <div className="font-mono tabular-nums text-cyan-300 text-[11px] sm:text-xs break-all mt-0.5">
                 {actorAddress ?? "Connect Freighter to show the public address."}
               </div>
             </div>
@@ -167,7 +167,7 @@ export function WalletSettingsView({ onResetDemo }: WalletSettingsViewProps) {
           <div className="pt-2 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="text-slate-400">
               Testnet Native Balance:{" "}
-              <strong className="text-white font-mono">
+              <strong className="text-white font-mono tabular-nums">
                 {testnetBalance !== null && actorAddress
                   ? `${parseFloat(testnetBalance).toLocaleString()} XLM`
                   : actorAddress
@@ -225,7 +225,7 @@ export function WalletSettingsView({ onResetDemo }: WalletSettingsViewProps) {
                   <div>
                     <div className="text-xs font-bold text-white">{p.name}</div>
                     <div className="text-[11px] text-slate-400">{p.role}</div>
-                    <div className="text-[10px] font-mono text-slate-500 mt-1">
+                    <div className="text-[10px] font-mono tabular-nums text-slate-500 mt-1">
                       {formatAddress(p.address, 4)}
                     </div>
                   </div>

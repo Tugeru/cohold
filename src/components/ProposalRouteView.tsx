@@ -6,6 +6,7 @@ import { NotFoundStatus, ResourceStatus } from "@/components/ResourceStatus";
 import { OverviewSkeleton } from "@/components/Skeletons";
 import { WalletSetupState } from "@/components/WalletSetupState";
 import { useDemoData } from "@/context/DemoDataContext";
+import { useWallet } from "@/context/WalletContext";
 import { coholdConfig } from "@/lib/cohold-config";
 import { WalletProposalView } from "@/components/WalletProposalView";
 import { APP_ROUTES } from "@/lib/app-routes";
@@ -17,6 +18,7 @@ import { ArrowLeft, FileSpreadsheet } from "lucide-react";
 type ProposalRecord = Proposal & { treasury?: Partial<Treasury> };
 
 export function ProposalRouteView({ id }: { id: string }) {
+  const { activePersona } = useWallet();
   const { canMutate, refreshToken } = useDemoData();
   const [state, setState] = useState<ResourceState<ProposalRecord> | { status: "loading" }>({
     status: "loading",
@@ -87,6 +89,10 @@ export function ProposalRouteView({ id }: { id: string }) {
 
   const proposal = state.data;
   const token = proposal.treasury?.tokenSymbol || "DEMO";
+  const myApproval = proposal.approvals?.find(
+    (approval) =>
+      approval.approverAddress.toUpperCase() === activePersona?.address.toUpperCase(),
+  );
 
   return (
     <div className="space-y-6">
@@ -112,11 +118,19 @@ export function ProposalRouteView({ id }: { id: string }) {
 
       <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
+          <div className="min-w-0">
             <div className="text-[11px] text-slate-400">Amount</div>
-            <div className="text-2xl font-bold font-mono text-emerald-400">
-              {formatAmount(proposal.amount, token)}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="text-2xl font-bold font-mono tabular-nums text-emerald-400">
+                {formatAmount(proposal.amount, token)}
+              </div>
+              <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-300">
+                Demo data
+              </span>
             </div>
+            <p className="mt-1 text-[11px] text-slate-500">
+              Fixture amount — displayed for the demo; no Testnet transaction.
+            </p>
           </div>
           <div className="text-xs text-slate-400 space-y-1">
             <div>
@@ -124,8 +138,31 @@ export function ProposalRouteView({ id }: { id: string }) {
               <span className="font-semibold text-white uppercase">{proposal.status}</span>
             </div>
             <div>
-              Approvals: {proposal.approvalCount} of {proposal.threshold}
+              Approval rule:{" "}
+              <span className="font-semibold text-slate-200">
+                {proposal.threshold} approvals required
+              </span>
             </div>
+            <div>
+              Current approvals:{" "}
+              <span className="font-semibold tabular-nums text-slate-200">
+                {proposal.approvalCount} of {proposal.threshold}
+              </span>
+            </div>
+            {proposal.approvals && activePersona && (
+              <div>
+                Your approval:{" "}
+                {myApproval ? (
+                  <span className="font-semibold text-emerald-400">
+                    Recorded · {activePersona.name}
+                  </span>
+                ) : (
+                  <span className="text-slate-500">
+                    Not recorded — you have not signed yet
+                  </span>
+                )}
+              </div>
+            )}
             <div>Created {formatDate(proposal.createdAt)}</div>
           </div>
         </div>

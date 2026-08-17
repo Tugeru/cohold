@@ -148,7 +148,7 @@ export function TreasuryDetail({
             <span>Available Treasury Balance</span>
             <Coins className="h-4 w-4 text-emerald-400" />
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold font-mono text-white tracking-tight">
+          <div className="text-2xl sm:text-3xl font-extrabold font-mono tabular-nums text-white tracking-tight">
             {formatAmount(treasury.balance, treasury.tokenSymbol)}
           </div>
           <div className="text-xs text-emerald-400 font-medium">
@@ -162,7 +162,7 @@ export function TreasuryDetail({
             <span>Governance Rule</span>
             <ShieldCheck className="h-4 w-4 text-amber-400" />
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold font-mono text-emerald-400 tracking-tight">
+          <div className="text-2xl sm:text-3xl font-extrabold font-mono tabular-nums text-emerald-400 tracking-tight">
             {treasury.threshold} of {treasury.memberCount}
           </div>
           <div className="text-xs text-slate-400 font-medium">
@@ -176,7 +176,7 @@ export function TreasuryDetail({
             <span>Pending Proposals</span>
             <FileSpreadsheet className="h-4 w-4 text-cyan-400" />
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold font-mono text-white tracking-tight">
+          <div className="text-2xl sm:text-3xl font-extrabold font-mono tabular-nums text-white tracking-tight">
             {pendingCount}
           </div>
           <div className="text-xs text-slate-400 font-medium">
@@ -190,7 +190,7 @@ export function TreasuryDetail({
             <span>Smart Contract</span>
             <Code2 className="h-4 w-4 text-purple-400" />
           </div>
-          <div className="text-sm font-bold font-mono text-slate-200 truncate mt-1">
+          <div className="text-sm font-bold font-mono tabular-nums text-slate-200 truncate mt-1">
             {formatAddress(treasury.contractAddress, 7)}
           </div>
           <div className="text-xs text-slate-400">

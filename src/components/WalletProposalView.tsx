@@ -302,10 +302,10 @@ export function WalletProposalView({ id }: { id: string }) {
       </a>
 
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-semibold text-slate-100">
-              <span className="font-mono text-slate-500">#{proposal.id}</span>{" "}
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-semibold text-slate-100">
+              <span className="font-mono tabular-nums text-slate-500">#{proposal.id}</span>{" "}
               {proposal.description}
             </h1>
             <WalletStatusChip status={proposal.status} />
@@ -316,7 +316,7 @@ export function WalletProposalView({ id }: { id: string }) {
         </div>
         <button
           onClick={refresh}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800"
         >
           <RefreshCw className="h-3.5 w-3.5" />
           Refresh from chain
@@ -328,8 +328,15 @@ export function WalletProposalView({ id }: { id: string }) {
           <p className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-slate-500">
             <Send className="h-3 w-3" /> Amount
           </p>
-          <p className="mt-2 font-mono text-2xl font-semibold text-slate-100">{displayAmount}</p>
-          <p className="mt-1 text-xs text-slate-500">Contract-authoritative amount</p>
+          <p className="mt-2 break-words font-mono tabular-nums text-2xl font-semibold  text-slate-100">
+            {displayAmount}
+          </p>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 text-[10px] font-semibold text-cyan-300">
+              Testnet
+            </span>
+            <span className="text-xs text-slate-500">Contract-authoritative amount</span>
+          </div>
         </div>
         <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
           <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
@@ -339,6 +346,7 @@ export function WalletProposalView({ id }: { id: string }) {
             <WalletApprovalRail
               approvalCount={proposal.approvalCount}
               threshold={proposal.threshold}
+              membersCount={treasury.membersAuthoritative ? treasury.members.length : undefined}
             />
           </div>
           <div className="mt-3">
@@ -358,7 +366,7 @@ export function WalletProposalView({ id }: { id: string }) {
               <User className="h-3 w-3" /> Proposer
             </dt>
             <dd className="mt-1 flex items-center gap-2">
-              <span className="break-all font-mono text-xs text-slate-300">{proposal.proposer}</span>
+              <span className="break-all font-mono tabular-nums text-xs text-slate-300">{proposal.proposer}</span>
               <a
                 href={walletExplorerUrl("account", proposal.proposer)}
                 target="_blank"
@@ -374,7 +382,7 @@ export function WalletProposalView({ id }: { id: string }) {
               <Send className="h-3 w-3" /> Recipient
             </dt>
             <dd className="mt-1 flex items-center gap-2">
-              <span className="break-all font-mono text-xs text-slate-300">
+              <span className="break-all font-mono tabular-nums text-xs text-slate-300">
                 {proposal.recipient}
               </span>
               <a

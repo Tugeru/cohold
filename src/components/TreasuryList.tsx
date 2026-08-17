@@ -268,7 +268,7 @@ export function TreasuryList({
                     <div className="text-[10px] text-slate-400 uppercase font-semibold">
                       Contract Balance
                     </div>
-                    <div className="text-lg font-bold font-mono text-emerald-400">
+                    <div className="text-lg font-bold font-mono tabular-nums text-emerald-400">
                       {formatAmount(t.balance, t.tokenSymbol)}
                     </div>
                   </div>
@@ -276,7 +276,7 @@ export function TreasuryList({
                     <div className="text-[10px] text-slate-400 uppercase font-semibold">
                       Quorum Rule
                     </div>
-                    <div className="text-sm font-bold font-mono text-slate-200">
+                    <div className="text-sm font-bold font-mono tabular-nums text-slate-200">
                       {t.threshold} of {t.memberCount} ({quorumPercent}%)
                     </div>
                   </div>

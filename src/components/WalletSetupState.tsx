@@ -29,13 +29,13 @@ export function WalletSetupState() {
             : "Cohold is running in wallet mode, but its Testnet contract and token identifiers are not configured. Spending, deposits, proposals, and approvals are disabled until the setup is complete."}
         </p>
         {!isModeConfigured ? (
-          <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 text-left font-mono text-xs text-slate-300">
+          <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 text-left font-mono tabular-nums text-xs text-slate-300">
             <div className="text-slate-500">Accepted mode values</div>
             <div className="mt-2">NEXT_PUBLIC_COHOLD_MODE=demo</div>
             <div>NEXT_PUBLIC_COHOLD_MODE=wallet</div>
           </div>
         ) : !isConfigured && (
-          <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 text-left font-mono text-xs text-slate-300">
+          <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 text-left font-mono tabular-nums text-xs text-slate-300">
             <div className="text-slate-500">Required environment</div>
             <div className="mt-2">NEXT_PUBLIC_STELLAR_CONTRACT_ID</div>
             <div>NEXT_PUBLIC_STELLAR_TOKEN_ID</div>

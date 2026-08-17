@@ -57,19 +57,19 @@ export function MembersTab({ treasury }: MembersTabProps) {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
           <div className="rounded-xl border border-slate-800 bg-slate-950 p-3">
             <div className="text-[11px] text-slate-400 font-medium">Total Member Roster</div>
-            <div className="text-lg font-bold font-mono text-white mt-0.5">
+            <div className="text-lg font-bold font-mono tabular-nums text-white mt-0.5">
               {treasury.memberCount} Members
             </div>
           </div>
           <div className="rounded-xl border border-slate-800 bg-slate-950 p-3">
             <div className="text-[11px] text-slate-400 font-medium">Quorum Required</div>
-            <div className="text-lg font-bold font-mono text-emerald-400 mt-0.5">
+            <div className="text-lg font-bold font-mono tabular-nums text-emerald-400 mt-0.5">
               {treasury.threshold} Approvals
             </div>
           </div>
           <div className="rounded-xl border border-slate-800 bg-slate-950 p-3">
             <div className="text-[11px] text-slate-400 font-medium">Unilateral Outflows Allowed</div>
-            <div className="text-lg font-bold font-mono text-rose-400 mt-0.5">
+            <div className="text-lg font-bold font-mono tabular-nums text-rose-400 mt-0.5">
               0 (Strictly Blocked)
             </div>
           </div>
@@ -142,7 +142,7 @@ export function MembersTab({ treasury }: MembersTabProps) {
                 </div>
 
                 {/* Address bar */}
-                <div className="mt-3 rounded-lg bg-slate-950 px-3 py-2 flex items-center justify-between text-xs text-slate-300 font-mono">
+                <div className="mt-3 rounded-lg bg-slate-950 px-3 py-2 flex items-center justify-between text-xs text-slate-300 font-mono tabular-nums">
                   <span>{formatAddress(m.address, 8)}</span>
                   <div className="flex items-center gap-2">
                     <button

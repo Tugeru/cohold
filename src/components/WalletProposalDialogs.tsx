@@ -332,20 +332,20 @@ export function WalletCreateProposalDialog({
           <p className="text-xs text-slate-500">Treasury</p>
           <p className="text-right text-xs text-slate-300">
             {review.treasuryName}
-            <span className="mt-0.5 block break-all font-mono text-[10px] text-slate-500">
+            <span className="mt-0.5 block break-all font-mono tabular-nums text-[10px] text-slate-500">
               {review.treasuryId}
             </span>
           </p>
         </div>
         <div className="mt-2 flex items-start justify-between gap-3">
           <p className="text-xs text-slate-500">Amount</p>
-          <p className="text-right font-mono text-base font-semibold text-slate-100">
+          <p className="text-right font-mono tabular-nums text-base font-semibold text-slate-100">
             {formatDisplay(review.amountBaseUnits)}
           </p>
         </div>
         <div className="mt-2 flex items-start justify-between gap-3">
           <p className="text-xs text-slate-500">Asset</p>
-          <p className="break-all text-right font-mono text-xs text-slate-300">
+          <p className="break-all text-right font-mono tabular-nums text-xs text-slate-300">
             {decimals === null
               ? review.assetContractId
               : `${review.assetSymbol ?? "token"} · ${review.assetContractId}`}
@@ -353,7 +353,7 @@ export function WalletCreateProposalDialog({
         </div>
         <div className="mt-2 flex items-start justify-between gap-3">
           <p className="text-xs text-slate-500">Recipient</p>
-          <p className="break-all text-right font-mono text-xs text-slate-300">
+          <p className="break-all text-right font-mono tabular-nums text-xs text-slate-300">
             {review.recipient}
           </p>
         </div>
@@ -363,7 +363,7 @@ export function WalletCreateProposalDialog({
         </div>
         <div className="mt-2 flex items-start justify-between gap-3">
           <p className="text-xs text-slate-500">Proposed by</p>
-          <p className="break-all text-right font-mono text-xs text-slate-300">
+          <p className="break-all text-right font-mono tabular-nums text-xs text-slate-300">
             {review.proposerAddress}
           </p>
         </div>
@@ -399,7 +399,7 @@ export function WalletCreateProposalDialog({
   );
 
   const hashLine = (hash: string) => (
-    <p className="mt-1 break-all font-mono text-xs text-slate-400">
+    <p className="mt-1 break-all font-mono tabular-nums text-xs text-slate-400">
       {hash}
       <a
         href={walletExplorerUrl("tx", hash)}
@@ -463,9 +463,9 @@ export function WalletCreateProposalDialog({
                       setFormError(null);
                     }}
                     placeholder={decimals === null ? "Base units" : "0.00"}
-                    className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100 focus:border-blue-500/60 focus:outline-none"
+                    className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono tabular-nums text-sm text-slate-100 focus:border-blue-500/60 focus:outline-none"
                   />
-                  <span className="shrink-0 font-mono text-xs text-slate-400">
+                  <span className="shrink-0 font-mono tabular-nums text-xs text-slate-400">
                     {decimals === null ? "base units" : (symbol ?? "token")}
                   </span>
                 </div>
@@ -490,7 +490,7 @@ export function WalletCreateProposalDialog({
                     setFormError(null);
                   }}
                   placeholder="G…"
-                  className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100 focus:border-blue-500/60 focus:outline-none"
+                  className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono tabular-nums text-sm text-slate-100 focus:border-blue-500/60 focus:outline-none"
                 />
                 <p className="mt-1 text-[11px] text-slate-500">
                   The address that receives the payment at execute time. The recipient does not
@@ -931,20 +931,20 @@ export function WalletApproveDialog({
           <p className="text-xs text-slate-500">Treasury</p>
           <p className="text-right text-xs text-slate-300">
             {treasury.name}
-            <span className="mt-0.5 block break-all font-mono text-[10px] text-slate-500">
+            <span className="mt-0.5 block break-all font-mono tabular-nums text-[10px] text-slate-500">
               {treasury.contractId}
             </span>
           </p>
         </div>
         <div className="mt-2 flex items-start justify-between gap-3">
           <p className="text-xs text-slate-500">Amount</p>
-          <p className="text-right font-mono text-base font-semibold text-slate-100">
+          <p className="text-right font-mono tabular-nums text-base font-semibold text-slate-100">
             {formatDisplay(proposal.amount)}
           </p>
         </div>
         <div className="mt-2 flex items-start justify-between gap-3">
           <p className="text-xs text-slate-500">Asset</p>
-          <p className="break-all text-right font-mono text-xs text-slate-300">
+          <p className="break-all text-right font-mono tabular-nums text-xs text-slate-300">
             {decimals === null
               ? treasury.tokenAddress
               : `${symbol ?? "token"} · ${treasury.tokenAddress}`}
@@ -952,7 +952,7 @@ export function WalletApproveDialog({
         </div>
         <div className="mt-2 flex items-start justify-between gap-3">
           <p className="text-xs text-slate-500">Recipient</p>
-          <p className="break-all text-right font-mono text-xs text-slate-300">
+          <p className="break-all text-right font-mono tabular-nums text-xs text-slate-300">
             {proposal.recipient}
           </p>
         </div>
@@ -972,7 +972,7 @@ export function WalletApproveDialog({
         <p className="mt-3 flex items-start gap-2 text-xs text-slate-400">
           <User className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-500" />
           You are approving as{" "}
-          <span className="break-all font-mono text-slate-300">{memberAddress}</span>
+          <span className="break-all font-mono tabular-nums text-slate-300">{memberAddress}</span>
         </p>
       </div>
       <div className="flex items-start gap-2 rounded-xl border border-slate-800 bg-slate-950/60 p-3">
@@ -986,7 +986,7 @@ export function WalletApproveDialog({
   );
 
   const hashLine = (hash: string) => (
-    <p className="mt-1 break-all font-mono text-xs text-slate-400">
+    <p className="mt-1 break-all font-mono tabular-nums text-xs text-slate-400">
       {hash}
       <a
         href={walletExplorerUrl("tx", hash)}
@@ -1018,7 +1018,7 @@ export function WalletApproveDialog({
             </div>
             <div>
               <h2 className="text-base font-bold text-white">
-                Approve proposal <span className="font-mono">#{proposal.id}</span>
+                Approve proposal <span className="font-mono tabular-nums">#{proposal.id}</span>
               </h2>
               <p className="text-xs text-slate-400">{treasury.name}</p>
             </div>
@@ -1433,20 +1433,20 @@ export function WalletExecuteDialog({
           <p className="text-xs text-slate-500">Treasury</p>
           <p className="text-right text-xs text-slate-300">
             {treasury.name}
-            <span className="mt-0.5 block break-all font-mono text-[10px] text-slate-500">
+            <span className="mt-0.5 block break-all font-mono tabular-nums text-[10px] text-slate-500">
               {treasury.contractId}
             </span>
           </p>
         </div>
         <div className="mt-2 flex items-start justify-between gap-3">
           <p className="text-xs text-slate-500">Amount</p>
-          <p className="text-right font-mono text-base font-semibold text-slate-100">
+          <p className="text-right font-mono tabular-nums text-base font-semibold text-slate-100">
             {formatDisplay(proposal.amount)}
           </p>
         </div>
         <div className="mt-2 flex items-start justify-between gap-3">
           <p className="text-xs text-slate-500">Asset</p>
-          <p className="break-all text-right font-mono text-xs text-slate-300">
+          <p className="break-all text-right font-mono tabular-nums text-xs text-slate-300">
             {decimals === null
               ? treasury.tokenAddress
               : `${symbol ?? "token"} · ${treasury.tokenAddress}`}
@@ -1454,7 +1454,7 @@ export function WalletExecuteDialog({
         </div>
         <div className="mt-2 flex items-start justify-between gap-3">
           <p className="text-xs text-slate-500">Recipient</p>
-          <p className="break-all text-right font-mono text-xs text-slate-300">
+          <p className="break-all text-right font-mono tabular-nums text-xs text-slate-300">
             {proposal.recipient}
           </p>
         </div>
@@ -1473,7 +1473,7 @@ export function WalletExecuteDialog({
         </div>
         <p className="mt-3 flex items-start gap-2 text-xs text-slate-400">
           <User className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-500" />
-          You are executing as <span className="break-all font-mono text-slate-300">{callerAddress}</span>
+          You are executing as <span className="break-all font-mono tabular-nums text-slate-300">{callerAddress}</span>
         </p>
       </div>
       <div className="flex items-start gap-2 rounded-xl border border-slate-800 bg-slate-950/60 p-3">
@@ -1487,7 +1487,7 @@ export function WalletExecuteDialog({
   );
 
   const hashLine = (hash: string) => (
-    <p className="mt-1 break-all font-mono text-xs text-slate-400">
+    <p className="mt-1 break-all font-mono tabular-nums text-xs text-slate-400">
       {hash}
       <a
         href={walletExplorerUrl("tx", hash)}
@@ -1519,7 +1519,7 @@ export function WalletExecuteDialog({
             </div>
             <div>
               <h2 className="text-base font-bold text-white">
-                Execute proposal <span className="font-mono">#{proposal.id}</span>
+                Execute proposal <span className="font-mono tabular-nums">#{proposal.id}</span>
               </h2>
               <p className="text-xs text-slate-400">{treasury.name}</p>
             </div>

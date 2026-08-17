@@ -193,7 +193,7 @@ export function WalletTreasuryView({ id }: { id: string }) {
               Testnet · chain
             </span>
           </div>
-          <p className="mt-1 flex items-center gap-1.5 font-mono text-xs text-slate-500">
+          <p className="mt-1 flex items-center gap-1.5 font-mono tabular-nums text-xs text-slate-500">
             {view.contractId}
             <a
               href={walletExplorerUrl("contract", view.contractId)}
@@ -241,8 +241,17 @@ export function WalletTreasuryView({ id }: { id: string }) {
           <p className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-slate-500">
             <Coins className="h-3 w-3" /> Balance
           </p>
-          <p className="mt-2 font-mono text-2xl font-semibold text-slate-100">{balanceLabel}</p>
-          <p className="mt-1 font-mono text-xs text-slate-500">
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <p className="font-mono tabular-nums text-2xl font-semibold text-slate-100">
+              {balanceLabel}
+            </p>
+            {view.balance !== null && (
+              <span className="rounded-full border border-cyan-500/25 bg-cyan-500/10 px-2 py-0.5 text-[10px] font-semibold text-cyan-300">
+                Testnet · chain
+              </span>
+            )}
+          </div>
+          <p className="mt-1 font-mono tabular-nums text-xs text-slate-500">
             {view.balance === null
               ? "balance read failed"
               : `${view.tokenSymbol ?? "token"} · ${view.tokenAddress.slice(0, 12)}…`}
@@ -252,7 +261,7 @@ export function WalletTreasuryView({ id }: { id: string }) {
           <p className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-slate-500">
             <ShieldCheck className="h-3 w-3" /> Governance threshold
           </p>
-          <p className="mt-2 font-mono text-2xl font-semibold text-slate-100">
+          <p className="mt-2 font-mono tabular-nums text-2xl font-semibold text-slate-100">
             {view.threshold}
             <span className="text-base text-slate-500"> / {view.memberCount} members</span>
           </p>
@@ -262,7 +271,7 @@ export function WalletTreasuryView({ id }: { id: string }) {
           <p className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-slate-500">
             <Users className="h-3 w-3" /> Creator
           </p>
-          <p className="mt-2 break-all font-mono text-xs text-slate-300">{view.creator}</p>
+          <p className="mt-2 break-all font-mono tabular-nums text-xs text-slate-300">{view.creator}</p>
           <a
             href={walletExplorerUrl("account", view.creator)}
             target="_blank"
@@ -288,7 +297,7 @@ export function WalletTreasuryView({ id }: { id: string }) {
                 key={address}
                 className="flex items-center justify-between gap-3 rounded-lg bg-slate-950/60 px-3 py-2"
               >
-                <span className="font-mono text-xs text-slate-300">{address}</span>
+                <span className="font-mono tabular-nums text-xs text-slate-300">{address}</span>
                 {walletAddress === address && (
                   <span className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-300">
                     You
@@ -333,10 +342,10 @@ export function WalletTreasuryView({ id }: { id: string }) {
                   <div className="flex items-center justify-between gap-4">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-slate-200">
-                        <span className="font-mono text-slate-500">#{proposal.id}</span>{" "}
+                        <span className="font-mono tabular-nums text-slate-500">#{proposal.id}</span>{" "}
                         {proposal.description}
                       </p>
-                      <p className="mt-1 font-mono text-xs text-slate-400">
+                      <p className="mt-1 font-mono tabular-nums text-xs  text-slate-400">
                         {proposal.tokenSymbol
                           ? formatBaseAmount(
                               proposal.amount,

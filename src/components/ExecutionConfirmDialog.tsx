@@ -79,7 +79,7 @@ export function ExecutionConfirmDialog({
             <div className="text-xs text-emerald-300 font-semibold uppercase tracking-wider">
               Disbursement Amount
             </div>
-            <div className="text-3xl sm:text-4xl font-extrabold font-mono text-emerald-400">
+            <div className="text-3xl sm:text-4xl font-extrabold font-mono tabular-nums text-emerald-400">
               {formatAmount(proposal.amount, treasury.tokenSymbol)}
             </div>
             <div className="text-xs text-slate-400 pt-1">
@@ -105,7 +105,7 @@ export function ExecutionConfirmDialog({
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-slate-800/80 pb-2">
               <span className="text-slate-400">Recipient Stellar Address:</span>
-              <span className="font-mono text-cyan-300 text-[11px] break-all">
+              <span className="font-mono tabular-nums text-cyan-300 text-[11px] break-all">
                 {formatAddress(proposal.recipientAddress, 8)}
               </span>
             </div>
@@ -120,7 +120,7 @@ export function ExecutionConfirmDialog({
 
             <div className="flex items-center justify-between pt-1">
               <span className="text-slate-400">Remaining Balance:</span>
-              <span className="font-mono font-bold text-slate-200">
+              <span className="font-mono tabular-nums font-bold text-slate-200">
                 {formatAmount(remainingBalance, treasury.tokenSymbol)}
               </span>
             </div>
