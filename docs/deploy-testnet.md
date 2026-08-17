@@ -1,0 +1,96 @@
+# Testnet Treasury Bootstrap
+
+One command deploys two initialized Testnet treasuries from the reviewed Cohold
+Wasm, records a secret-free manifest, and prints the `NEXT_PUBLIC_*` values for
+wallet mode.
+
+## Prerequisites
+
+- `stellar` CLI 27+ on `PATH` (`stellar --version`).
+- Rust toolchain with the `wasm32-unknown-unknown` target installed (the
+  bootstrap runs `stellar contract build --package cohold`).
+- Testnet reachability. The CLI ships a `testnet` network config
+  (`https://soroban-testnet.stellar.org/`); the bootstrap verifies it and fails
+  with a clear error if it is missing or unreachable.
+
+## Identities
+
+The bootstrap uses the stellar CLI keyring — identities live in
+`~/.config/stellar/` (or `$XDG_CONFIG_HOME/stellar`), **never in the repo**.
+Each identity is created with `stellar keys generate <name> --fund` on first
+run; existing identities are reused so public keys stay stable across runs.
+
+| Identity               | Role                                                            |
+| ---------------------- | --------------------------------------------------------------- |
+| `cohold-deployer`      | Pays deploy fees; source for read-only sanity calls             |
+| `cohold-member-a`      | Member of treasuries A and B; creator of A                      |
+| `cohold-member-b`      | Member of treasuries A and B; creator of B                      |
+| `cohold-member-c`      | Member of treasuries A and B                                    |
+| `cohold-member-d`      | Member of treasuries A and B                                    |
+| `cohold-recipient`     | Non-member recipient for execute scenarios (later slices)       |
+| `cohold-outsider`      | Non-member for negative authorization tests (later slices)      |
+
+Public keys are recorded in `deployments/testnet.json` after the first run and
+can be shown any time with `stellar keys public-key <name>`. Secret keys never
+leave the keyring and are never written to the repository.
+
+## Run
+
+```sh
+npm run testnet:bootstrap
+```
+
+Sequence, in order: verify CLI and Testnet config → build the Wasm → hash it
+(SHA-256) → resolve the native XLM SAC id → ensure identities (create + fund
+missing ones) → deploy Contract A → initialize as **IT Society Event Fund**
+(members A–D, threshold 3) → deploy Contract B → initialize as **Capstone
+Project Fund** (members B–D, threshold 2) → read-only sanity on both instances
+(`get_config`, `get_members`, `get_balance`) → write `deployments/testnet.json`
+→ print the `NEXT_PUBLIC_*` values.
+
+Sanity verifies on-chain facts: name, token id, threshold, member count,
+creator, member list, and a zero opening balance. Any mismatch aborts with a
+non-zero exit before the manifest is written.
+
+## Output
+
+`deployments/testnet.json` records `network`, `rpc`, `asset`, `tokenId`, `git
+SHA`, `wasmSha256`, `timestamp`, both treasuries (contract id, name, creator,
+members, threshold), and the identity public keys. No secrets.
+
+The script prints lines to paste into `.env`:
+
+```
+NEXT_PUBLIC_COHOLD_MODE=wallet
+NEXT_PUBLIC_STELLAR_NETWORK=TESTNET
+NEXT_PUBLIC_STELLAR_CONTRACT_ID=C…
+NEXT_PUBLIC_STELLAR_CONTRACT_IDS=C…,C…
+NEXT_PUBLIC_STELLAR_TOKEN_ID=CDLZ…
+```
+
+Treasury A is the primary `NEXT_PUBLIC_STELLAR_CONTRACT_ID`; both are listed in
+`NEXT_PUBLIC_STELLAR_CONTRACT_IDS`.
+
+## Re-runs and safety
+
+The bootstrap refuses to overwrite an existing manifest: a second run fails
+with an actionable error unless `--force` is passed.
+
+- `--force` deploys two **fresh** instances, backs the previous manifest up to
+  `deployments/archive/testnet.<timestamp>.json`, and overwrites
+  `deployments/testnet.json`. Old contract instances become orphans — they can
+  still hold funds and are no longer referenced by the app. Prefer a clean
+  manifest restore over repeated force runs.
+
+## Failure modes
+
+- **Friendbot rate-limited or unreachable** during identity creation: retry;
+  the error names the identity.
+- **Identity exists but is unfunded** (aborted first run): fund it manually
+  with `stellar keys fund <name>` and re-run; funding works once per account.
+- **Build errors**: install the wasm target with
+  `rustup target add wasm32-unknown-unknown` and ensure Cargo can resolve the
+  workspace.
+- **Network misconfiguration**: `stellar network add testnet --rpc-url
+  https://soroban-testnet.stellar.org/ --network-passphrase "Test SDF Network ;
+  September 2015"`.
