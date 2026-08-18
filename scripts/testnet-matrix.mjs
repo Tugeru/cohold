@@ -29,6 +29,9 @@ export const REQUIRED_SECRETS = [
 
 const CONTRACT_ID_RE = /^C[A-Z2-7]{55}$/;
 
+/** Stellar secret key (seed) strkey: 'S' + 55 base32 chars. */
+const SECRET_RE = /^S[A-Z2-7]{55}$/;
+
 /**
  * Resolved live-matrix env:
  *   { contractIdA, contractIdB, tokenId, resolvedSecretCount }
@@ -44,6 +47,14 @@ export function resolveMatrixEnv(env, manifestPath = MANIFEST_PATH) {
       `Missing non-public Testnet secrets: ${missing.join(", ")}. ` +
         "Export them (e.g. from the stellar CLI keyring via `stellar keys secret <identity>`) " +
         "before running the live matrix.",
+    );
+  }
+  const malformed = REQUIRED_SECRETS.filter(
+    (key) => env[key]?.trim() && !SECRET_RE.test(env[key].trim()),
+  );
+  if (malformed.length > 0) {
+    errors.push(
+      `Malformed Testnet secrets (must be S… 56-char Stellar secret keys): ${malformed.join(", ")}.`,
     );
   }
 

@@ -37,6 +37,7 @@ import {
   type SignAndSendProposalOutcome,
 } from "@/lib/proposal-flow";
 import { STELLAR_TESTNET_NETWORK_PASSPHRASE } from "@/lib/stellar";
+import { resolveMatrixGate } from "@/lib/testnet-matrix-gate";
 import type { WalletSignatureResult } from "@/lib/wallet-adapter";
 
 const MAINNET_PASSPHRASE = "Public Global Stellar Network ; September 2015";
@@ -101,16 +102,15 @@ const secretB = process.env.COHOLD_TESTNET_SECRET_B ?? "";
 const secretC = process.env.COHOLD_TESTNET_SECRET_C ?? "";
 const secretD = process.env.COHOLD_TESTNET_SECRET_D ?? "";
 
-const CONTRACT_ID_RE = /^C[A-Z2-7]{55}$/;
-const enabled =
-  Boolean(secretA) &&
-  Boolean(secretB) &&
-  Boolean(secretC) &&
-  Boolean(secretD) &&
-  CONTRACT_ID_RE.test(contractIdA) &&
-  CONTRACT_ID_RE.test(contractIdB) &&
-  CONTRACT_ID_RE.test(tokenId) &&
-  contractIdA !== contractIdB;
+// Collection-time guard: vitest evaluates the describe callback even for a
+// skipped suite, so the gate must hold BEFORE any Keypair/RPC work runs.
+// (resolveMatrixGate also rejects malformed keys — an empty or partial
+// secret must never reach Keypair.fromSecret.)
+const enabled = resolveMatrixGate(process.env, {
+  contractIdA,
+  contractIdB,
+  tokenId,
+}).enabled;
 
 /** Compact proposal read used by the flow seams (chain shape after unwrap). */
 type FlowProposal = {
@@ -196,6 +196,7 @@ async function expectRejectedSubmission(
  */
 
 describe.skipIf(!enabled)("Testnet readiness matrix: isolation and negatives", () => {
+  if (!enabled) return; // collection guard: no Keypair/RPC at module scope
   const rpc = stellarCoholdRpc();
   const memberA = Keypair.fromSecret(secretA).publicKey().toUpperCase();
   const memberB = Keypair.fromSecret(secretB).publicKey().toUpperCase();

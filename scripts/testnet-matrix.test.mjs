@@ -13,7 +13,7 @@ const MANIFEST = {
   ],
 };
 const SECRETS = Object.fromEntries(
-  REQUIRED_SECRETS.map((key, index) => [key, `S${String(index).repeat(55)}`]),
+  REQUIRED_SECRETS.map((key) => [key, `S${"A".repeat(55)}`]),
 );
 
 describe("testnet matrix env resolution", () => {
@@ -30,6 +30,16 @@ describe("testnet matrix env resolution", () => {
   it("treats empty-string secrets as missing", () => {
     const env = Object.fromEntries(REQUIRED_SECRETS.map((key) => [key, "  "]));
     expect(resolveMatrixEnv(env, "/nonexistent").ok).toBe(false);
+  });
+
+  it("rejects malformed secrets even when every name is present", () => {
+    const env = { ...SECRETS, COHOLD_TESTNET_SECRET_A: "not-a-secret" };
+    const resolution = resolveMatrixEnv(env, manifestPath(MANIFEST));
+    expect(resolution.ok).toBe(false);
+    expect(resolution.errors.join("\n")).toContain(
+      "COHOLD_TESTNET_SECRET_A",
+    );
+    expect(resolution.errors.join("\n")).toContain("Malformed Testnet secrets");
   });
 
   it("defaults contract ids to the public manifest", () => {
