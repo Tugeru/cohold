@@ -1,7 +1,14 @@
 node_modules
 .next
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+secrets/
 *.log
 .DS_Store
 /target
 test_snapshots
+.vercel

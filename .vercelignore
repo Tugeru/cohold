@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.example
+.git
+.github
+node_modules
+.next
+.vercel
+*.pem
+*.key
+*.p12
+secrets/
