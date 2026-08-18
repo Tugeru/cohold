@@ -26,7 +26,7 @@ import {
   stellarProposalExecutor,
 } from "@/lib/proposal-flow";
 import { STELLAR_TESTNET_NETWORK_PASSPHRASE } from "@/lib/stellar";
-import { resolveMatrixGate } from "@/lib/testnet-matrix-gate";
+import { REQUIRED_TESTNET_SECRETS, resolveMatrixGate } from "@/lib/testnet-matrix-gate";
 import type { WalletSignatureResult } from "@/lib/wallet-adapter";
 
 const XLM = 10_000_000n; // wrapped native, 7 decimals
@@ -129,11 +129,24 @@ const secretA = process.env.COHOLD_TESTNET_SECRET_A ?? "";
 const secretB = process.env.COHOLD_TESTNET_SECRET_B ?? "";
 const secretD = process.env.COHOLD_TESTNET_SECRET_D ?? "";
 
-const enabled = resolveMatrixGate(process.env, {
+const gate = resolveMatrixGate(process.env, {
   contractIdA,
   contractIdB,
   tokenId,
-}).enabled;
+});
+const enabled = gate.enabled;
+
+// Skipping is only legitimate when NO live credentials are configured
+// (normal local/CI runs). A partial or malformed setup must fail loudly —
+// a silent "skipped" hides a broken evidence harness.
+const anySecretConfigured = REQUIRED_TESTNET_SECRETS.some(
+  (name) => ((process.env[name] ?? "").trim().length > 0),
+);
+if (anySecretConfigured && !enabled) {
+  it("refuses to run with partial or malformed Testnet credentials", () => {
+    expect(gate.problems.join("; "), gate.problems.join("; ")).toEqual("");
+  });
+}
 
 /**
  * Evidence recording is explicit: only `npm run test:walkthrough` sets
@@ -148,11 +161,21 @@ if (enabled && recordEvidence) {
   // The recorded runGitSha must describe the exact tree that executed:
   // refuse to write an acceptance record from uncommitted code.
   try {
-    const dirty = execSync("git status --porcelain", { encoding: "utf8" }).trim();
+    const dirty = execSync("git status --porcelain", { encoding: "utf8" })
+      .split("\n")
+      // The evidence file itself is the artifact being written (stale
+      // content before capture is expected); tsconfig.tsbuildinfo is a
+      // typecheck side effect. Everything else must be committed.
+      .filter(
+        (line) =>
+          line.length > 0 &&
+          !line.includes("deployments/walkthrough.json") &&
+          !line.includes("tsconfig.tsbuildinfo"),
+      );
     if (dirty.length > 0) {
       throw new Error(
         "refusing to record acceptance evidence from a dirty worktree; commit the walkthrough changes first. Dirty: " +
-          dirty.slice(0, 200),
+          dirty.join("; ").slice(0, 200),
       );
     }
   } catch (error) {
