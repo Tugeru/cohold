@@ -1,0 +1,110 @@
+{
+  "network": "testnet",
+  "rpc": "https://soroban-testnet.stellar.org/",
+  "deploymentGitSha": "a3ac5612fae5068938179574471afec8940785c5",
+  "wasmSha256": "aa33eea8aa948a1b9043d0fcfa86fc057f1d649abab45fccc8bd070e63ff7616",
+  "generatedBy": "src/lib/mvp-walkthrough.testnet.test.ts",
+  "timestamp": "2026-08-18T01:18:28.727Z",
+  "tokenId": "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC",
+  "treasuries": [
+    {
+      "key": "A",
+      "name": "IT Society Event Fund",
+      "id": "CCYKPLZE4OT7LIBUPWRQ4UGARQTOVBORYLV3ZQIKSKVI77Z5JVV3CVR2",
+      "members": [
+        "GCDL3PHABKF5ZHG7ZO7UEP25GPNBGMVWRYQSGRWNDI2ZAKMNHNFGBYB7",
+        "GAZWTJVFLORJOH74AB2ZWNODQKLKHG6OVME73CC3GBL4P6BZYRKLJX52",
+        "GDBDCCY6MMQGWDRZEXBDEUVESAUO2GQ7FZ3A66BJ2KS6MFSNDIHIRIG4",
+        "GDFY5PMGT54AQRZUD4YUHYX2WBPBQHHZ47ZQVO47HK3SED4WZX5NP333"
+      ],
+      "threshold": 3
+    },
+    {
+      "key": "B",
+      "name": "Capstone Project Fund",
+      "id": "CABEVCDWFZ2W4W3H75T3DIOTEGHAVEPM2KETRROZNVHT2OVGUV4UVCYZ",
+      "members": [
+        "GAZWTJVFLORJOH74AB2ZWNODQKLKHG6OVME73CC3GBL4P6BZYRKLJX52",
+        "GDBDCCY6MMQGWDRZEXBDEUVESAUO2GQ7FZ3A66BJ2KS6MFSNDIHIRIG4",
+        "GDFY5PMGT54AQRZUD4YUHYX2WBPBQHHZ47ZQVO47HK3SED4WZX5NP333"
+      ],
+      "threshold": 2
+    }
+  ],
+  "wallet": {
+    "proposer": "GCDL3PHABKF5ZHG7ZO7UEP25GPNBGMVWRYQSGRWNDI2ZAKMNHNFGBYB7",
+    "approver2": "GAZWTJVFLORJOH74AB2ZWNODQKLKHG6OVME73CC3GBL4P6BZYRKLJX52",
+    "approver3": "GDFY5PMGT54AQRZUD4YUHYX2WBPBQHHZ47ZQVO47HK3SED4WZX5NP333",
+    "executor": "GDFY5PMGT54AQRZUD4YUHYX2WBPBQHHZ47ZQVO47HK3SED4WZX5NP333",
+    "recipient": "GAGDZEKVL4TATSYQMQIK7T3OSGQ2KUC7SSV2HGVSSGFBXPOVDZUXVS5A"
+  },
+  "steps": [
+    {
+      "step": "fund",
+      "detail": "GCDL3PHABKF5ZHG7ZO7UEP25GPNBGMVWRYQSGRWNDI2ZAKMNHNFGBYB7 contributes 2.5000000 XLM",
+      "outcome": "confirmed",
+      "txHash": "1a6e3600358e699f70332dc27268e40ab8c5001640da82a22519f395d7435530",
+      "treasuryBalanceBaseUnits": "120000000",
+      "treasuryBalanceXlm": "12.0000000"
+    },
+    {
+      "step": "propose",
+      "detail": "GCDL3PHABKF5ZHG7ZO7UEP25GPNBGMVWRYQSGRWNDI2ZAKMNHNFGBYB7 creates proposal 25: 2.5000000 XLM → GAGDZEKVL4TATSYQMQIK7T3OSGQ2KUC7SSV2HGVSSGFBXPOVDZUXVS5A",
+      "outcome": "confirmed (approval #1 recorded)",
+      "txHash": "350e69dce72e14c7bace3bdc73069bc6511705bcf05d6dab6b5cd7085f4190cb",
+      "proposalId": 25,
+      "approvalCount": 1,
+      "proposalStatus": "pending",
+      "treasuryBalanceBaseUnits": "120000000",
+      "treasuryBalanceXlm": "12.0000000"
+    },
+    {
+      "step": "approve",
+      "detail": "GAZWTJVFLORJOH74AB2ZWNODQKLKHG6OVME73CC3GBL4P6BZYRKLJX52 approves → pending (2/3)",
+      "outcome": "confirmed",
+      "txHash": "c7e8f675ec1b887e0e2fa13db3bfb296ea8096f6d80089ed4da33e15dcc16a2e",
+      "proposalId": 25,
+      "approvalCount": 2,
+      "proposalStatus": "pending"
+    },
+    {
+      "step": "execute",
+      "detail": "GDFY5PMGT54AQRZUD4YUHYX2WBPBQHHZ47ZQVO47HK3SED4WZX5NP333 attempts execute at 2/3",
+      "outcome": "rejected",
+      "rejectedReason": "ThresholdNotReached (contract #7)",
+      "proposalId": 25
+    },
+    {
+      "step": "approve",
+      "detail": "GDFY5PMGT54AQRZUD4YUHYX2WBPBQHHZ47ZQVO47HK3SED4WZX5NP333 approves → approved (3/3)",
+      "outcome": "confirmed",
+      "txHash": "fe5ed56a6b2029cb54c0d4861c797edf615f4875051f12733a73e41a4855990d",
+      "proposalId": 25,
+      "approvalCount": 3,
+      "proposalStatus": "approved"
+    },
+    {
+      "step": "execute",
+      "detail": "GDFY5PMGT54AQRZUD4YUHYX2WBPBQHHZ47ZQVO47HK3SED4WZX5NP333 executes 2.5000000 XLM → GAGDZEKVL4TATSYQMQIK7T3OSGQ2KUC7SSV2HGVSSGFBXPOVDZUXVS5A",
+      "outcome": "confirmed",
+      "txHash": "58fbe14e643aa4a1142bd343f2e008fa6c5ca83c5472a056583062e645b111bd",
+      "proposalId": 25,
+      "proposalStatus": "executed",
+      "treasuryBalanceBaseUnits": "95000000",
+      "treasuryBalanceXlm": "9.5000000",
+      "recipientBalanceBaseUnits": "100665000000",
+      "recipientBalanceXlm": "10066.5000000"
+    },
+    {
+      "step": "execute",
+      "detail": "GDFY5PMGT54AQRZUD4YUHYX2WBPBQHHZ47ZQVO47HK3SED4WZX5NP333 attempts execute again",
+      "outcome": "rejected",
+      "rejectedReason": "AlreadyExecuted (contract #11)",
+      "proposalId": 25,
+      "treasuryBalanceBaseUnits": "95000000",
+      "treasuryBalanceXlm": "9.5000000",
+      "recipientBalanceBaseUnits": "100665000000",
+      "recipientBalanceXlm": "10066.5000000"
+    }
+  ]
+}
