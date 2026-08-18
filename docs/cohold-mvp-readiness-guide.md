@@ -195,16 +195,16 @@ Rules:
 - only members may create proposals;
 - amount must be greater than zero;
 - recipient must be valid;
-- proposal starts as Pending;
+- proposal starts as Pending (creating it records the proposer's approval
+  as #1, so a 1-of-1 threshold proposal is Approved immediately);
 - amount and recipient are immutable after creation.
 
 ## 8. Approval Flow
 
-For a 3-of-4 treasury:
+For a 3-of-4 treasury (creation records the proposer's approval as #1):
 
 ```text
-0 / 3
-→ 1 / 3
+1 / 3
 → 2 / 3
 → 3 / 3
 → Approved

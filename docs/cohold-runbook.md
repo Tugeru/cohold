@@ -200,10 +200,30 @@ Treasury/token ids default to the public manifest
 secret is missing and the suite asserts live config matches the manifest, so
 a stale deployment fails loudly.
 
-The GitHub workflow `.github/workflows/testnet-live.yml` runs the same command
-from `workflow_dispatch` using `COHOLD_TESTNET_SECRET_*` repository secrets —
-it is protected by design (not triggered on PRs) and is not a required
-public PR check.
+The canonical acceptance walkthrough (fund → propose → 2/3 rejected execute →
+3/3 execute → verify → double execute rejected on treasury A) runs the same
+way and writes the secret-free evidence record to
+`deployments/walkthrough.json`, which `docs/mvp-acceptance.md` quotes:
+
+```sh
+export COHOLD_TESTNET_SECRET_A="$(stellar keys secret cohold-member-a)"
+export COHOLD_TESTNET_SECRET_B="$(stellar keys secret cohold-member-b)"
+export COHOLD_TESTNET_SECRET_C="$(stellar keys secret cohold-outsider)"  # non-member
+export COHOLD_TESTNET_SECRET_D="$(stellar keys secret cohold-member-d)"
+npm run test:walkthrough
+```
+
+`npm run test:walkthrough` is the only command that rewrites the evidence
+file (`COHOLD_WALKTHROUGH_EVIDENCE=1`); plain `npm test` / `npm run verify`
+with secrets exported validates the flow without touching the committed
+record.
+
+The GitHub workflow `.github/workflows/testnet-live.yml` runs the isolation
+and negatives matrix (`npm run test:testnet`) from `workflow_dispatch` using
+`COHOLD_TESTNET_SECRET_*` repository secrets — it is protected by design
+(not triggered on PRs) and is not a required public PR check. The
+walkthrough's evidence capture stays a local, committed-tree action:
+`npm run test:walkthrough` against the checked-out slice.
 
 ## 4. RPC history limits
 
@@ -218,11 +238,15 @@ older data beyond the MVP scope, use a Horizon/archive-backed indexer.
 All commands run without a live wallet, a deployed contract, or Postgres.
 
 ```sh
-npm run lint        # ESLint (eslint-config-next)
-npm run typecheck   # tsc --noEmit, strict
-npm test            # Vitest unit suite
-npm run build       # production build
+npm run verify     # lint + typecheck + unit tests (agent-safe, no build)
+npm run build      # production build — separate human/CI step
 ```
+
+`npm run verify` runs `npm run lint`, `npm run typecheck`, and `npm test`
+in order. It deliberately does **not** run `npm run build`: builds rewrite
+`.next` and break the dev server's HMR inside long-lived agent sessions.
+Run the build explicitly before substantial changes or when CI asks for it
+(CI runs lint, typecheck, tests, and build via `.github/workflows/ci.yml`).
 
 Contract bindings: `packages/cohold-contract` is generated from the built
 Wasm. After changing the Rust contract interface, run
