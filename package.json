@@ -15,7 +15,7 @@
     "testnet:bootstrap": "node scripts/testnet-bootstrap.mjs",
     "testnet:matrix": "node scripts/testnet-matrix.mjs",
     "test:testnet": "npm run testnet:matrix",
-    "test:walkthrough": "vitest run src/lib/mvp-walkthrough.testnet.test.ts"
+    "test:walkthrough": "COHOLD_WALKTHROUGH_EVIDENCE=1 vitest run src/lib/mvp-walkthrough.testnet.test.ts"
   },
   "dependencies": {
     "@stellar/freighter-api": "^6.0.1",

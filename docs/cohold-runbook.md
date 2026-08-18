@@ -206,8 +206,17 @@ way and writes the secret-free evidence record to
 `deployments/walkthrough.json`, which `docs/mvp-acceptance.md` quotes:
 
 ```sh
+export COHOLD_TESTNET_SECRET_A="$(stellar keys secret cohold-member-a)"
+export COHOLD_TESTNET_SECRET_B="$(stellar keys secret cohold-member-b)"
+export COHOLD_TESTNET_SECRET_C="$(stellar keys secret cohold-outsider)"  # non-member
+export COHOLD_TESTNET_SECRET_D="$(stellar keys secret cohold-member-d)"
 npm run test:walkthrough
 ```
+
+`npm run test:walkthrough` is the only command that rewrites the evidence
+file (`COHOLD_WALKTHROUGH_EVIDENCE=1`); plain `npm test` / `npm run verify`
+with secrets exported validates the flow without touching the committed
+record.
 
 The GitHub workflow `.github/workflows/testnet-live.yml` runs the same command
 from `workflow_dispatch` using `COHOLD_TESTNET_SECRET_*` repository secrets —

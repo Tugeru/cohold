@@ -14,6 +14,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync, writeFileSync } from "node:fs";
+import { execSync } from "node:child_process";
 import { Address, Keypair, contract as stellarContract } from "@stellar/stellar-sdk";
 import { basicNodeSigner } from "@stellar/stellar-sdk/contract";
 import { stellarCoholdRpc, type ChainProposalRecord, type ChainProposalStatus } from "@/lib/contract-adapter";
@@ -53,8 +54,12 @@ interface EvidenceStep {
   proposalId?: number;
   approvalCount?: number;
   proposalStatus?: string;
+  treasuryBeforeBaseUnits?: string;
+  treasuryBeforeXlm?: string;
   treasuryBalanceBaseUnits?: string;
   treasuryBalanceXlm?: string;
+  recipientBeforeBaseUnits?: string;
+  recipientBeforeXlm?: string;
   recipientBalanceBaseUnits?: string;
   recipientBalanceXlm?: string;
   rejectedReason?: string;
@@ -66,6 +71,7 @@ interface EvidenceRecord {
   deploymentGitSha: string;
   wasmSha256: string;
   generatedBy: string;
+  runGitSha: string;
   timestamp: string;
   tokenId: string;
   treasuries: Array<{
@@ -110,15 +116,14 @@ const manifest = readManifest();
 const treasurySpec = (key: "A" | "B") =>
   manifest.treasuries.find((t) => t.key === key)!;
 
-const contractIdA = (process.env.COHOLD_TESTNET_CONTRACT_ID ?? treasurySpec("A").id)
-  .trim()
-  .toUpperCase();
-const contractIdB = (process.env.COHOLD_TESTNET_CONTRACT_ID_B ?? treasurySpec("B").id)
-  .trim()
-  .toUpperCase();
-const tokenId = (process.env.COHOLD_TESTNET_TOKEN_ID ?? manifest.tokenId)
-  .trim()
-  .toUpperCase();
+/**
+ * The canonical acceptance run targets the manifest deployment itself —
+ * no env overrides here (the isolation matrix keeps those). Recording a
+ * treasury other than the documented one would void the evidence record.
+ */
+const contractIdA = treasurySpec("A").id.trim().toUpperCase();
+const contractIdB = treasurySpec("B").id.trim().toUpperCase();
+const tokenId = manifest.tokenId.trim().toUpperCase();
 
 const secretA = process.env.COHOLD_TESTNET_SECRET_A ?? "";
 const secretB = process.env.COHOLD_TESTNET_SECRET_B ?? "";
@@ -129,6 +134,15 @@ const enabled = resolveMatrixGate(process.env, {
   contractIdB,
   tokenId,
 }).enabled;
+
+/**
+ * Evidence recording is explicit: only `npm run test:walkthrough` sets
+ * COHOLD_WALKTHROUGH_EVIDENCE=1. Plain `npm test` / `npm run verify` with
+ * secrets exported validates the flow but never rewrites the committed
+ * deployments/walkthrough.json, so the local check cannot silently drift the
+ * acceptance record.
+ */
+const recordEvidence = process.env.COHOLD_WALKTHROUGH_EVIDENCE === "1";
 
 const EVIDENCE_PATH = new URL("../../deployments/walkthrough.json", import.meta.url);
 
@@ -203,6 +217,16 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
   const memberB = Keypair.fromSecret(secretB).publicKey().toUpperCase();
   const memberD = Keypair.fromSecret(secretD).publicKey().toUpperCase();
   const recipient = manifest.identities.recipient;
+  const memberSet = [...treasurySpec("A").members].map((m) => m.toUpperCase());
+
+  // The secrets must BE the documented actors; otherwise the evidence record
+  // would carry the manifest roles for someone else's keys.
+  expect(memberA).toBe(manifest.identities.memberA.toUpperCase());
+  expect(memberB).toBe(manifest.identities.memberB.toUpperCase());
+  expect(memberD).toBe(manifest.identities.memberD.toUpperCase());
+  expect(memberSet).toContain(memberA);
+  expect(memberSet).toContain(memberB);
+  expect(memberSet).toContain(memberD);
 
   async function recipientBalance(): Promise<bigint> {
     const sac = await stellarContract.Client.from<{
@@ -232,6 +256,11 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
     const steps: EvidenceStep[] = [];
 
     // ---- 1. Fund: member A tops treasury A toward the walkthrough target.
+    // Rerun safety: each canon run executes exactly 2.5 XLM, so the residual
+    // 9.5 XLM refills to 12.0 — idempotent. External funding pushing the
+    // balance ABOVE the target fails the run below *before* any mutation
+    // (the refill is skipped), so drifted balances are never silently
+    // absorbed into the acceptance record.
     const balanceBefore = await rpc.getBalance(contractIdA);
     expect(balanceBefore).not.toBeNull();
     const treasuryStart = balanceBefore!;
@@ -266,6 +295,8 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
         detail: `${memberA} contributes ${xlm(refill)} XLM`,
         outcome: "confirmed",
         txHash: sent.hash,
+        treasuryBeforeBaseUnits: treasuryStart.toString(),
+        treasuryBeforeXlm: xlm(treasuryStart),
         treasuryBalanceBaseUnits: confirmed.balanceBaseUnits!,
         treasuryBalanceXlm: xlm(confirmed.balanceBaseUnits!),
       });
@@ -274,6 +305,8 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
         step: "fund",
         detail: `treasury already at target (${xlm(treasuryStart)} XLM); no contribution needed`,
         outcome: "skipped",
+        treasuryBeforeBaseUnits: treasuryStart.toString(),
+        treasuryBeforeXlm: xlm(treasuryStart),
         treasuryBalanceBaseUnits: treasuryStart.toString(),
         treasuryBalanceXlm: xlm(treasuryStart),
       });
@@ -330,6 +363,8 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
       proposalStatus: created.proposalStatus!,
       treasuryBalanceBaseUnits: balanceAfterFund.toString(),
       treasuryBalanceXlm: xlm(balanceAfterFund),
+      recipientBeforeBaseUnits: recipientBefore.toString(),
+      recipientBeforeXlm: xlm(recipientBefore),
     });
 
     // ---- 3. Approve to 2/3 (member B); execute must be rejected.
@@ -338,7 +373,10 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
       if (!record) return null;
       return { approvalCount: record.approvalCount, status: record.status };
     };
-    const approveAs = async (secret: string): Promise<{ hash: string; status: string }> => {
+    const approveAs = async (
+      secret: string,
+      expectedAfterCount: number,
+    ): Promise<{ hash: string; status: string; approvalCount: number }> => {
       const member = Keypair.fromSecret(secret).publicKey().toUpperCase();
       const currentRecord = await rpc.getProposal(contractIdA, proposalId);
       expect(currentRecord).not.toBeNull();
@@ -375,10 +413,18 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
           if (outcome.status !== "confirmed") throw new Error(String(outcome));
         },
       );
-      return { hash: sent.hash, status: confirmed.proposalStatus! };
+      // Authoritative re-read: the confirming step must observe the new count.
+      expect(confirmed.approvalCount).toBe(expectedAfterCount);
+      const recordAfter = (await rpc.getProposal(contractIdA, proposalId))!;
+      expect(recordAfter.approvalCount).toBe(expectedAfterCount);
+      return {
+        hash: sent.hash,
+        status: confirmed.proposalStatus!,
+        approvalCount: confirmed.approvalCount!,
+      };
     };
 
-    const approval2 = await approveAs(secretB);
+    const approval2 = await approveAs(secretB, 2);
     expect(approval2.status).toBe("pending"); // 2/3 still pending
     steps.push({
       step: "approve",
@@ -386,7 +432,7 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
       outcome: "confirmed",
       txHash: approval2.hash,
       proposalId,
-      approvalCount: 2,
+      approvalCount: approval2.approvalCount,
       proposalStatus: approval2.status,
     });
 
@@ -412,7 +458,7 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
     expect(await rpc.getBalance(contractIdA)).toBe(balanceAfterFund);
 
     // ---- 4. Approve to 3/3 (member D) → Approved, balance unchanged.
-    const approval3 = await approveAs(secretD);
+    const approval3 = await approveAs(secretD, 3);
     expect(approval3.status).toBe("approved");
     steps.push({
       step: "approve",
@@ -420,7 +466,7 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
       outcome: "confirmed",
       txHash: approval3.hash,
       proposalId,
-      approvalCount: 3,
+      approvalCount: approval3.approvalCount,
       proposalStatus: approval3.status,
     });
     const approved = (await rpc.getProposal(contractIdA, proposalId))!;
@@ -476,8 +522,12 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
       txHash: executeSent.hash,
       proposalId,
       proposalStatus: executed.proposalStatus!,
+      treasuryBeforeBaseUnits: balanceAfterFund!.toString(),
+      treasuryBeforeXlm: xlm(balanceAfterFund!),
       treasuryBalanceBaseUnits: executed.treasuryBalanceBaseUnits!,
       treasuryBalanceXlm: xlm(executed.treasuryBalanceBaseUnits!),
+      recipientBeforeBaseUnits: recipientBefore.toString(),
+      recipientBeforeXlm: xlm(recipientBefore),
       recipientBalanceBaseUnits: recipientAfterExecute.toString(),
       recipientBalanceXlm: xlm(recipientAfterExecute),
     });
@@ -558,9 +608,24 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
         recipient,
       },
       steps,
+      runGitSha: (() => {
+        // Source commit the evidence was captured with; the doc quotes it so
+        // a reviewer can reproduce the record at an exact tree state.
+        try {
+          return execSync("git rev-parse HEAD", { encoding: "utf8" }).trim();
+        } catch {
+          return "unknown (no git)";
+        }
+      })(),
     };
-    writeFileSync(EVIDENCE_PATH, `${JSON.stringify(evidence, null, 2)}\n`);
-    console.log(`MVP walkthrough evidence written to deployments/walkthrough.json`);
-    console.log(JSON.stringify(steps, null, 2));
+    if (recordEvidence) {
+      writeFileSync(EVIDENCE_PATH, `${JSON.stringify(evidence, null, 2)}\n`);
+      console.log("MVP walkthrough evidence written to deployments/walkthrough.json");
+      console.log(JSON.stringify(steps, null, 2));
+    } else {
+      console.log(
+        "Walkthrough validated; evidence NOT written (set COHOLD_WALKTHROUGH_EVIDENCE=1 via npm run test:walkthrough to record)",
+      );
+    }
   }, 900_000);
 });
