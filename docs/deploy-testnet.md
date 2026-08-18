@@ -84,6 +84,47 @@ with an actionable error unless `--force` is passed.
   still hold funds and are no longer referenced by the app. Prefer a clean
   manifest restore over repeated force runs.
 
+## Live acceptance matrix
+
+`npm run test:testnet` proves on the deployed treasuries that the contract —
+not the UI — governs shared funds: outsider writes (`NotMember`), duplicate
+approval (`AlreadyApproved`), under-threshold execute
+(`ThresholdNotReached`), approved over-balance execute (`InsufficientBalance`
+leaving the proposal `Approved`), double execute (`AlreadyExecuted`),
+competing proposals (only one solvent execution wins), wrong-network and
+wrong-actor signatures rejected by Testnet RPC, wallet cancel, permissionless
+execute by a non-member fee-payer, and cross-treasury isolation (treasury A
+churn never moves treasury B and vice versa).
+
+The runner reads the treasury/token ids from the public
+`deployments/testnet.json` manifest and requires all four secret keys; it
+never runs with blank or public credentials. Secrets are exported from the CLI
+keyring — they never enter the repo:
+
+```sh
+export COHOLD_TESTNET_SECRET_A="$(stellar keys secret cohold-member-a)"
+export COHOLD_TESTNET_SECRET_B="$(stellar keys secret cohold-member-b)"
+export COHOLD_TESTNET_SECRET_C="$(stellar keys secret cohold-outsider)"
+export COHOLD_TESTNET_SECRET_D="$(stellar keys secret cohold-member-d)"
+npm run test:testnet
+```
+
+Per-contract deployment drift is detected: the suite asserts the live
+`get_config`/`get_members` match the manifest before exercising any flow, so
+an out-of-date manifest fails loudly instead of testing the wrong treasury.
+
+The suite is rerun-safe (append-only proposals; treasury A refills to a target
+balance each run and competing-proposal amounts derive from the measured
+balance) and spends real Testnet XLM — keep the actor accounts funded
+(`stellar keys fund <name>` tops up only accounts funded exactly once by
+Friendbot; manual funding via Horizon is fine after that).
+
+The live workflow (`.github/workflows/testnet-live.yml`) is
+`workflow_dispatch`-only and is **not** a required public PR check. To run it
+in Actions: create repository secrets named `COHOLD_TESTNET_SECRET_A` through
+`COHOLD_TESTNET_SECRET_D` with the `stellar keys secret` output above, then
+trigger the workflow from the Actions tab.
+
 ## Failure modes
 
 - **Friendbot rate-limited or unreachable** during identity creation: retry;
