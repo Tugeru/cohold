@@ -320,8 +320,12 @@ export function stellarTreasuryDeployExecutor(
     // Deploy a fresh instance: contract id is derived from the deployer
     // address, a random salt, and the wasm hash. `Client.deploy` fetches the
     // spec from the uploaded wasm and returns a client bound to the new id.
+    // The Cohold wasm has no `#[constructor]`, so constructor args must be
+    // `null`: any truthy object (e.g. `{}`) makes the SDK look up
+    // `__constructor` in the spec and throw "no such entry: __constructor"
+    // before a transaction is ever built.
     const tx = await contract.Client.deploy(
-      {},
+      null,
       {
         wasmHash,
         address: publicKey,

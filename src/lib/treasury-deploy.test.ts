@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import {
   createTreasuryDeployFlow,
+  stellarTreasuryDeployExecutor,
   validateTreasuryDetails,
   type TreasuryDeployFlow,
   type TreasuryDeployFlowDeps,
@@ -9,6 +10,18 @@ import {
   type TreasuryTxState,
 } from "./treasury-deploy";
 import type { WalletSignatureResult } from "./wallet-adapter";
+import type * as StellarSdkModule from "@stellar/stellar-sdk";
+
+const { deployMock } = vi.hoisted(() => ({ deployMock: vi.fn() }));
+
+vi.mock("@stellar/stellar-sdk", async (importOriginal) => {
+  const actual = await importOriginal<typeof StellarSdkModule>();
+  return {
+    ...actual,
+    rpc: { ...actual.rpc, Server: vi.fn() },
+    contract: { ...actual.contract, Client: { deploy: deployMock } },
+  };
+});
 
 const MEMBER_A = `G${"A".repeat(55)}`;
 const MEMBER_B = `G${"B".repeat(55)}`;
@@ -377,5 +390,37 @@ describe("createTreasuryDeployFlow.deploy", () => {
     const outcome = await flow.deploy({ ...details, members: [MEMBER_B] }, CREATOR, TOKEN);
     expect(outcome.status).toBe("validation");
     expect(executor.calls.uploads).toHaveLength(0);
+  });
+});
+
+describe("stellarTreasuryDeployExecutor.createContract", () => {
+  beforeEach(() => {
+    deployMock.mockReset();
+    deployMock.mockResolvedValue({
+      toXDR: () => XDR,
+      simulation: undefined,
+      result: { options: { contractId: CONTRACT_ID } },
+    });
+  });
+
+  it("passes null constructor args so the SDK never looks up __constructor", async () => {
+    const executor = stellarTreasuryDeployExecutor({
+      rpcUrl: "https://rpc.example.test",
+      networkPassphrase: "test-passphrase",
+    });
+    const outcome = await executor.createContract(WASM_HASH, CREATOR);
+
+    expect(deployMock).toHaveBeenCalledTimes(1);
+    const [args, options] = deployMock.mock.calls[0];
+    // The Cohold wasm has no #[constructor]. A truthy args object (e.g. {})
+    // makes the SDK call spec.funcArgsToScVals("__constructor", args), which
+    // throws "no such entry: __constructor" before any transaction is built.
+    expect(args).toBeNull();
+    expect(options).toMatchObject({
+      wasmHash: WASM_HASH,
+      address: CREATOR,
+      publicKey: CREATOR,
+    });
+    expect(outcome).toEqual({ preparedTxXdr: XDR, contractId: CONTRACT_ID });
   });
 });
