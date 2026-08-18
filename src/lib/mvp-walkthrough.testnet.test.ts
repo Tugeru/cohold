@@ -218,6 +218,38 @@ async function confirmUntilDone<T extends { status: string }>(
   return outcome as Extract<T, { status: "confirmed" }>;
 }
 
+/**
+ * Bounded authoritative re-read: a post-confirm RPC read can transiently
+ * miss (null), lag one ledger, or reject outright. Retry until
+ * `isAcceptable`, then fail loudly — evidence is only ever sourced from a
+ * read that stabilized.
+ */
+async function readUntil<T>(
+  read: () => Promise<T>,
+  isAcceptable: (value: T) => boolean,
+  attempts = 4,
+): Promise<T> {
+  let value: T | undefined;
+  let readError: unknown | undefined;
+  for (let attemptNumber = 0; attemptNumber < attempts; attemptNumber += 1) {
+    try {
+      value = await read();
+      readError = undefined;
+      if (isAcceptable(value)) return value;
+    } catch (error) {
+      readError = error;
+    }
+    if (attemptNumber + 1 < attempts) {
+      await new Promise((resolve) => setTimeout(resolve, 5_000));
+    }
+  }
+  const lastValue =
+    readError !== undefined
+      ? `read threw: ${readError instanceof Error ? readError.message : String(readError)}`
+      : `last value: ${JSON.stringify(value)}`;
+  throw new Error(`authoritative read did not stabilize; ${lastValue}`);
+}
+
 /** Compact proposal read used by the flow seams (chain shape after unwrap). */
 type FlowProposal = {
   proposalId: number;
@@ -322,6 +354,8 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
     const treasuryStart = balanceBefore!;
     const targetBalance = 12n * XLM;
     const refill = treasuryStart < targetBalance ? targetBalance - treasuryStart : 0n;
+    let contributedHash: string | null = null;
+    let confirmedBalance: string | null = null;
     if (refill > 0n) {
       const contribute = createContributeFlow({
         executor: stellarContributeExecutor({ rpcUrl: manifest.rpc }),
@@ -339,33 +373,39 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
       const sent = await contribute.signAndSend(prepared.preparedTxXdr);
       expect(sent.status).toBe("submitted");
       if (sent.status !== "submitted" || !sent.hash) throw new Error(String(sent));
+      contributedHash = sent.hash;
       const confirmed = await confirmUntilDone(
         () => contribute.confirm(sent.hash),
-        (outcome) => outcome.status === "confirmed" && outcome.balanceBaseUnits !== null,
+        (outcome) =>
+          outcome.status === "confirmed" &&
+          outcome.balanceBaseUnits === targetBalance.toString(),
       );
-      steps.push({
-        step: "fund",
-        detail: `${memberA} contributes ${xlm(refill)} XLM`,
-        outcome: "confirmed",
-        txHash: sent.hash,
-        treasuryBeforeBaseUnits: treasuryStart.toString(),
-        treasuryBeforeXlm: xlm(treasuryStart),
-        treasuryBalanceBaseUnits: confirmed.balanceBaseUnits!,
-        treasuryBalanceXlm: xlm(confirmed.balanceBaseUnits!),
-      });
-    } else {
-      steps.push({
-        step: "fund",
-        detail: `treasury already at target (${xlm(treasuryStart)} XLM); no contribution needed`,
-        outcome: "skipped",
-        treasuryBeforeBaseUnits: treasuryStart.toString(),
-        treasuryBeforeXlm: xlm(treasuryStart),
-        treasuryBalanceBaseUnits: treasuryStart.toString(),
-        treasuryBalanceXlm: xlm(treasuryStart),
-      });
+      confirmedBalance = confirmed.balanceBaseUnits;
     }
-    const balanceAfterFund = (await rpc.getBalance(contractIdA))!;
-    expect(balanceAfterFund).toBe(targetBalance);
+    // Evidence is sourced from the STABILIZED authoritative read, never from
+    // the flow's first (possibly stale) confirm read.
+    const balanceAfterFund = await readUntil(
+      () => rpc.getBalance(contractIdA),
+      (balance) => balance !== null && balance === targetBalance,
+    );
+    if (contributedHash !== null) {
+      // The flow's confirm read must agree with the authoritative read —
+      // a stale non-null flow read would otherwise corrupt the record.
+      expect(confirmedBalance).toBe(balanceAfterFund!.toString());
+    }
+    steps.push({
+      step: "fund",
+      detail:
+        contributedHash !== null
+          ? `${memberA} contributes ${xlm(refill)} XLM`
+          : `treasury already at target (${xlm(treasuryStart)} XLM); no contribution needed`,
+      outcome: contributedHash !== null ? "confirmed" : "skipped",
+      txHash: contributedHash ?? undefined,
+      treasuryBeforeBaseUnits: treasuryStart.toString(),
+      treasuryBeforeXlm: xlm(treasuryStart),
+      treasuryBalanceBaseUnits: balanceAfterFund!.toString(),
+      treasuryBalanceXlm: xlm(balanceAfterFund!),
+    });
 
     // ---- 2. Propose: member A creates a 2.5 XLM proposal to a non-member.
     const proposalAmount = 25_000_000n; // 2.5 XLM
@@ -400,9 +440,9 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
       () => create.confirm(createSent.hash, proposalId),
       (outcome) =>
         outcome.status === "confirmed" &&
-        outcome.proposalId !== null &&
-        outcome.approvalCount !== null &&
-        outcome.proposalStatus !== null,
+        outcome.proposalId === proposalId &&
+        outcome.approvalCount === 1 &&
+        outcome.proposalStatus === "pending",
     );
     expect(created.proposalId).toBe(proposalId);
     expect(created.approvalCount).toBe(1);
@@ -415,8 +455,8 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
       proposalId,
       approvalCount: created.approvalCount!,
       proposalStatus: created.proposalStatus!,
-      treasuryBalanceBaseUnits: balanceAfterFund.toString(),
-      treasuryBalanceXlm: xlm(balanceAfterFund),
+      treasuryBalanceBaseUnits: balanceAfterFund!.toString(),
+      treasuryBalanceXlm: xlm(balanceAfterFund!),
       recipientBeforeBaseUnits: recipientBefore.toString(),
       recipientBeforeXlm: xlm(recipientBefore),
       recipientBalanceBaseUnits: recipientBefore.toString(),
@@ -467,12 +507,18 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
         (outcome) =>
           outcome.status === "confirmed" &&
           outcome.approvalCount !== null &&
-          outcome.proposalStatus !== null,
+          outcome.approvalCount === expectedAfterCount &&
+          outcome.proposalStatus !== null &&
+          outcome.proposalStatus ===
+            (expectedAfterCount >= treasurySpec("A").threshold ? "approved" : "pending"),
       );
       // Authoritative re-read: the confirming step must observe the new count.
       expect(confirmed.approvalCount).toBe(expectedAfterCount);
-      const recordAfter = (await rpc.getProposal(contractIdA, proposalId))!;
-      expect(recordAfter.approvalCount).toBe(expectedAfterCount);
+      const recordAfter = await readUntil(
+        () => rpc.getProposal(contractIdA, proposalId),
+        (record) => record !== null && record.approvalCount === expectedAfterCount,
+      );
+      expect(recordAfter!.status).toBe(confirmed.proposalStatus!);
       return {
         hash: sent.hash,
         status: confirmed.proposalStatus!,
@@ -591,11 +637,21 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
       () => execute.confirm(executeSent.hash),
       (outcome) =>
         outcome.status === "confirmed" &&
-        outcome.proposalStatus !== null &&
-        outcome.treasuryBalanceBaseUnits !== null,
+        outcome.proposalStatus === "executed" &&
+        outcome.treasuryBalanceBaseUnits ===
+          (balanceAfterFund! - proposalAmount).toString(),
     );
     expect(executed.proposalStatus).toBe("executed");
-    const recipientAfterExecute = await recipientBalance();
+    const balanceAfterExecute = await readUntil(
+      () => rpc.getBalance(contractIdA),
+      (balance) => balance !== null && balance === balanceAfterFund! - proposalAmount,
+    );
+    // The flow's confirm balance must agree with the stabilized read.
+    expect(executed.treasuryBalanceBaseUnits).toBe(balanceAfterExecute!.toString());
+    const recipientAfterExecute = await readUntil(
+      () => recipientBalance(),
+      (balance) => balance === recipientBefore + proposalAmount,
+    );
     steps.push({
       step: "execute",
       detail: `${memberD} executes ${xlm(proposalAmount)} XLM → ${recipient}`,
@@ -605,8 +661,8 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
       proposalStatus: executed.proposalStatus!,
       treasuryBeforeBaseUnits: balanceAfterFund!.toString(),
       treasuryBeforeXlm: xlm(balanceAfterFund!),
-      treasuryBalanceBaseUnits: executed.treasuryBalanceBaseUnits!,
-      treasuryBalanceXlm: xlm(executed.treasuryBalanceBaseUnits!),
+      treasuryBalanceBaseUnits: balanceAfterExecute!.toString(),
+      treasuryBalanceXlm: xlm(balanceAfterExecute!),
       recipientBeforeBaseUnits: recipientBefore.toString(),
       recipientBeforeXlm: xlm(recipientBefore),
       recipientBalanceBaseUnits: recipientAfterExecute.toString(),
@@ -614,7 +670,6 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
     });
 
     // Verify: exact amount reached the exact recipient.
-    const balanceAfterExecute = (await rpc.getBalance(contractIdA))!;
     expect(balanceAfterExecute).toBe(balanceAfterFund! - proposalAmount);
     expect(recipientAfterExecute).toBe(recipientBefore + proposalAmount);
 
@@ -656,8 +711,14 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
     expect(doubleRejected).toBe(true);
     // Re-read AFTER the rejection: "nothing moves" must be proven by fresh
     // post-attempt reads, not by reusing the pre-attempt values.
-    const balanceAfterDoubleExecute = (await rpc.getBalance(contractIdA))!;
-    const recipientAfterDoubleExecute = await recipientBalance();
+    const balanceAfterDoubleExecute = await readUntil(
+      () => rpc.getBalance(contractIdA),
+      (balance) => balance !== null && balance === balanceAfterExecute,
+    );
+    const recipientAfterDoubleExecute = await readUntil(
+      () => recipientBalance(),
+      (balance) => balance === recipientAfterExecute,
+    );
     expect(balanceAfterDoubleExecute).toBe(balanceAfterExecute!);
     expect(recipientAfterDoubleExecute).toBe(recipientAfterExecute);
     steps.push({
@@ -669,7 +730,7 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
       treasuryBeforeBaseUnits: balanceAfterExecute!.toString(),
       treasuryBeforeXlm: xlm(balanceAfterExecute!),
       treasuryBalanceBaseUnits: balanceAfterDoubleExecute!.toString(),
-      treasuryBalanceXlm: xlm(balanceAfterDoubleExecute),
+      treasuryBalanceXlm: xlm(balanceAfterDoubleExecute!),
       recipientBeforeBaseUnits: recipientAfterExecute.toString(),
       recipientBeforeXlm: xlm(recipientAfterExecute),
       recipientBalanceBaseUnits: recipientAfterDoubleExecute.toString(),
