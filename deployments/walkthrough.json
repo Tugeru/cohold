@@ -4,7 +4,7 @@
   "deploymentGitSha": "a3ac5612fae5068938179574471afec8940785c5",
   "wasmSha256": "aa33eea8aa948a1b9043d0fcfa86fc057f1d649abab45fccc8bd070e63ff7616",
   "generatedBy": "src/lib/mvp-walkthrough.testnet.test.ts",
-  "timestamp": "2026-08-18T01:18:28.727Z",
+  "timestamp": "2026-08-18T01:52:07.456Z",
   "tokenId": "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC",
   "treasuries": [
     {
@@ -43,68 +43,107 @@
       "step": "fund",
       "detail": "GCDL3PHABKF5ZHG7ZO7UEP25GPNBGMVWRYQSGRWNDI2ZAKMNHNFGBYB7 contributes 2.5000000 XLM",
       "outcome": "confirmed",
-      "txHash": "1a6e3600358e699f70332dc27268e40ab8c5001640da82a22519f395d7435530",
+      "txHash": "96ddb89bba27ce80e546ae78299a1d9ce3b322fafc15a86dea3c2f0a87d12870",
+      "treasuryBeforeBaseUnits": "95000000",
+      "treasuryBeforeXlm": "9.5000000",
       "treasuryBalanceBaseUnits": "120000000",
       "treasuryBalanceXlm": "12.0000000"
     },
     {
       "step": "propose",
-      "detail": "GCDL3PHABKF5ZHG7ZO7UEP25GPNBGMVWRYQSGRWNDI2ZAKMNHNFGBYB7 creates proposal 25: 2.5000000 XLM → GAGDZEKVL4TATSYQMQIK7T3OSGQ2KUC7SSV2HGVSSGFBXPOVDZUXVS5A",
+      "detail": "GCDL3PHABKF5ZHG7ZO7UEP25GPNBGMVWRYQSGRWNDI2ZAKMNHNFGBYB7 creates proposal 33: 2.5000000 XLM → GAGDZEKVL4TATSYQMQIK7T3OSGQ2KUC7SSV2HGVSSGFBXPOVDZUXVS5A",
       "outcome": "confirmed (approval #1 recorded)",
-      "txHash": "350e69dce72e14c7bace3bdc73069bc6511705bcf05d6dab6b5cd7085f4190cb",
-      "proposalId": 25,
+      "txHash": "cf15b571c1b17353daae36cfbfd1c2b5b42b34749cc45075f7b207206c36a6db",
+      "proposalId": 33,
       "approvalCount": 1,
       "proposalStatus": "pending",
       "treasuryBalanceBaseUnits": "120000000",
-      "treasuryBalanceXlm": "12.0000000"
+      "treasuryBalanceXlm": "12.0000000",
+      "recipientBeforeBaseUnits": "100845000000",
+      "recipientBeforeXlm": "10084.5000000",
+      "recipientBalanceBaseUnits": "100845000000",
+      "recipientBalanceXlm": "10084.5000000"
     },
     {
       "step": "approve",
       "detail": "GAZWTJVFLORJOH74AB2ZWNODQKLKHG6OVME73CC3GBL4P6BZYRKLJX52 approves → pending (2/3)",
       "outcome": "confirmed",
-      "txHash": "c7e8f675ec1b887e0e2fa13db3bfb296ea8096f6d80089ed4da33e15dcc16a2e",
-      "proposalId": 25,
+      "txHash": "4cc0ffbd6c887a1c681241f43e1ee4ee44fe4a1dc81ce231b37990c26ddfa0c9",
+      "proposalId": 33,
       "approvalCount": 2,
-      "proposalStatus": "pending"
+      "proposalStatus": "pending",
+      "treasuryBeforeBaseUnits": "120000000",
+      "treasuryBeforeXlm": "12.0000000",
+      "treasuryBalanceBaseUnits": "120000000",
+      "treasuryBalanceXlm": "12.0000000",
+      "recipientBeforeBaseUnits": "100845000000",
+      "recipientBeforeXlm": "10084.5000000",
+      "recipientBalanceBaseUnits": "100845000000",
+      "recipientBalanceXlm": "10084.5000000"
     },
     {
       "step": "execute",
       "detail": "GDFY5PMGT54AQRZUD4YUHYX2WBPBQHHZ47ZQVO47HK3SED4WZX5NP333 attempts execute at 2/3",
       "outcome": "rejected",
       "rejectedReason": "ThresholdNotReached (contract #7)",
-      "proposalId": 25
+      "proposalId": 33,
+      "treasuryBeforeBaseUnits": "120000000",
+      "treasuryBeforeXlm": "12.0000000",
+      "treasuryBalanceBaseUnits": "120000000",
+      "treasuryBalanceXlm": "12.0000000",
+      "recipientBeforeBaseUnits": "100845000000",
+      "recipientBeforeXlm": "10084.5000000",
+      "recipientBalanceBaseUnits": "100845000000",
+      "recipientBalanceXlm": "10084.5000000"
     },
     {
       "step": "approve",
       "detail": "GDFY5PMGT54AQRZUD4YUHYX2WBPBQHHZ47ZQVO47HK3SED4WZX5NP333 approves → approved (3/3)",
       "outcome": "confirmed",
-      "txHash": "fe5ed56a6b2029cb54c0d4861c797edf615f4875051f12733a73e41a4855990d",
-      "proposalId": 25,
+      "txHash": "cf74f8ec042aa0bae117ab371d62bfc87216309aaa102b4137be6a2d87cd7ed9",
+      "proposalId": 33,
       "approvalCount": 3,
-      "proposalStatus": "approved"
+      "proposalStatus": "approved",
+      "treasuryBeforeBaseUnits": "120000000",
+      "treasuryBeforeXlm": "12.0000000",
+      "treasuryBalanceBaseUnits": "120000000",
+      "treasuryBalanceXlm": "12.0000000",
+      "recipientBeforeBaseUnits": "100845000000",
+      "recipientBeforeXlm": "10084.5000000",
+      "recipientBalanceBaseUnits": "100845000000",
+      "recipientBalanceXlm": "10084.5000000"
     },
     {
       "step": "execute",
       "detail": "GDFY5PMGT54AQRZUD4YUHYX2WBPBQHHZ47ZQVO47HK3SED4WZX5NP333 executes 2.5000000 XLM → GAGDZEKVL4TATSYQMQIK7T3OSGQ2KUC7SSV2HGVSSGFBXPOVDZUXVS5A",
       "outcome": "confirmed",
-      "txHash": "58fbe14e643aa4a1142bd343f2e008fa6c5ca83c5472a056583062e645b111bd",
-      "proposalId": 25,
+      "txHash": "c62de74ce9625139fd8a36ce605734e4139435e8735adcb3c33b7f163e8e85bc",
+      "proposalId": 33,
       "proposalStatus": "executed",
+      "treasuryBeforeBaseUnits": "120000000",
+      "treasuryBeforeXlm": "12.0000000",
       "treasuryBalanceBaseUnits": "95000000",
       "treasuryBalanceXlm": "9.5000000",
-      "recipientBalanceBaseUnits": "100665000000",
-      "recipientBalanceXlm": "10066.5000000"
+      "recipientBeforeBaseUnits": "100845000000",
+      "recipientBeforeXlm": "10084.5000000",
+      "recipientBalanceBaseUnits": "100870000000",
+      "recipientBalanceXlm": "10087.0000000"
     },
     {
       "step": "execute",
       "detail": "GDFY5PMGT54AQRZUD4YUHYX2WBPBQHHZ47ZQVO47HK3SED4WZX5NP333 attempts execute again",
       "outcome": "rejected",
       "rejectedReason": "AlreadyExecuted (contract #11)",
-      "proposalId": 25,
+      "proposalId": 33,
+      "treasuryBeforeBaseUnits": "95000000",
+      "treasuryBeforeXlm": "9.5000000",
       "treasuryBalanceBaseUnits": "95000000",
       "treasuryBalanceXlm": "9.5000000",
-      "recipientBalanceBaseUnits": "100665000000",
-      "recipientBalanceXlm": "10066.5000000"
+      "recipientBeforeBaseUnits": "100870000000",
+      "recipientBeforeXlm": "10087.0000000",
+      "recipientBalanceBaseUnits": "100870000000",
+      "recipientBalanceXlm": "10087.0000000"
     }
-  ]
+  ],
+  "runGitSha": "e3828bae467f707de98d2384109c8be4c572714a"
 }

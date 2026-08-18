@@ -52,7 +52,9 @@ this manifest before exercising any flow (drift fails loudly).
 | Treasury A | `CCYKPLZE4OT7LIBUPWRQ4UGARQTOVBORYLV3ZQIKSKVI77Z5JVV3CVR2` |
 | Treasury B | `CABEVCDWFZ2W4W3H75T3DIOTEGHAVEPM2KETRROZNVHT2OVGUV4UVCYZ` |
 
-Evidence capture commit (walkthrough + matrix run): `911a275`.
+Evidence capture commits: walkthrough run at `e3828ba` (this slice's
+stabilized walkthrough test); isolation/negatives matrix run at `911a275`
+(matrix suite unchanged through this slice).
 
 One deployed contract instance = one treasury. Treasury A and treasury B are
 separate instances of the same Wasm with independent members, thresholds, and
@@ -88,22 +90,22 @@ are driven through the exact flow modules the UI uses
 (`contribute-flow`, `proposal-flow`) by
 `src/lib/mvp-walkthrough.testnet.test.ts`, which records every hash and
 balance to `deployments/walkthrough.json` (rewritten at
-`2026-08-18T01:18:28.727Z`). The Freighter steps below are the browser-side
-form of the same sequence.
+`2026-08-18T01:52:07.456Z`, captured at commit `e3828ba`). The Freighter
+steps below are the browser-side form of the same sequence.
 
 | # | Step | Wallet | Result | Evidence |
 |---|---|---|---|---|
 | 1 | Connect Freighter on Testnet; verify the network badge | member A | connected | manual (wrong network blocks actions — matrix §5) |
-| 2 | Fund the treasury with 2.5000000 XLM | member A | confirmed; balance → 12.0000000 XLM | `1a6e3600358e699f70332dc27268e40ab8c5001640da82a22519f395d7435530` |
-| 3 | Create proposal #25: 2.5000000 XLM → recipient | member A | confirmed; `approval_count = 1` (creation is the proposer's approval), status `pending`, progress 1/3 | `350e69dce72e14c7bace3bdc73069bc6511705bcf05d6dab6b5cd7085f4190cb` |
-| 4 | Approve | member B | confirmed; 2/3, still `pending` | `c7e8f675ec1b887e0e2fa13db3bfb296ea8096f6d80089ed4da33e15dcc16a2e` |
-| 5 | Attempt execute at 2/3 | member D | **rejected** `ThresholdNotReached` (contract #7); proposal `pending`, balance unchanged | walkthrough.json step 3 |
-| 6 | Approve | member D | confirmed; 3/3 → `approved` | `fe5ed56a6b2029cb54c0d4861c797edf615f4875051f12733a73e41a4855990d` |
-| 7 | Execute | member D (permissionless) | confirmed; treasury 12.0000000 → 9.5000000 XLM; recipient 10064.0000000 → 10066.5000000 XLM (exact +2.5000000) | `58fbe14e643aa4a1142bd343f2e008fa6c5ca83c5472a056583062e645b111bd` |
-| 8 | Attempt execute again | member D | **rejected** `AlreadyExecuted` (contract #11); balances unchanged | walkthrough.json step 7 |
+| 2 | Fund the treasury with 2.5000000 XLM | member A | confirmed; balance 9.5000000 → 12.0000000 XLM | `96ddb89bba27ce80e546ae78299a1d9ce3b322fafc15a86dea3c2f0a87d12870` |
+| 3 | Create proposal #33: 2.5000000 XLM → recipient | member A | confirmed; `approval_count = 1` (creation is the proposer's approval), status `pending`, progress 1/3 | `cf15b571c1b17353daae36cfbfd1c2b5b42b34749cc45075f7b207206c36a6db` |
+| 4 | Approve | member B | confirmed; 2/3, still `pending` | `4cc0ffbd6c887a1c681241f43e1ee4ee44fe4a1dc81ce231b37990c26ddfa0c9` |
+| 5 | Attempt execute at 2/3 | member D | **rejected** `ThresholdNotReached` (contract #7); proposal `pending`, balances unchanged | walkthrough.json step `execute` #1 |
+| 6 | Approve | member D | confirmed; 3/3 → `approved` | `cf74f8ec042aa0bae117ab371d62bfc87216309aaa102b4137be6a2d87cd7ed9` |
+| 7 | Execute | member D (permissionless) | confirmed; treasury 12.0000000 → 9.5000000 XLM; recipient 10084.5000000 → 10087.0000000 XLM (exact +2.5000000) | `c62de74ce9625139fd8a36ce605734e4139435e8735adcb3c33b7f163e8e85bc` |
+| 8 | Attempt execute again | member D | **rejected** `AlreadyExecuted` (contract #11); balances unchanged | walkthrough.json step `execute` #2 |
 
-Recipient balance before the walkthrough: 10064.0000000 XLM; after:
-10066.5000000 XLM. Proposal #25 terms are immutable on-chain: amount
+Recipient balance before the walkthrough: 10084.5000000 XLM; after:
+10087.0000000 XLM. Proposal #33 terms are immutable on-chain: amount
 2.5000000 XLM, recipient (non-member) — re-read from the contract after
 each step.
 
@@ -130,7 +132,7 @@ All amounts in XLM (native, 7 decimals), base units in
 | Balance | Before | After |
 |---|---|---|
 | Treasury A | 9.5000000 (funded to 12.0000000) | 9.5000000 |
-| Recipient (non-member) | 10064.0000000 | 10066.5000000 |
+| Recipient (non-member) | 10084.5000000 | 10087.0000000 |
 
 Contribution `2.5000000` XLM brings the treasury to `12.0000000`;
 execute debits exactly `2.5000000` from treasury A and credits exactly
