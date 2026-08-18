@@ -8,7 +8,6 @@ import { ProposalsTab } from "./ProposalsTab";
 import { MembersTab } from "./MembersTab";
 import { ContributionsTab } from "./ContributionsTab";
 import { AuditTab } from "./AuditTab";
-import { ContractInspectorTab } from "./ContractInspectorTab";
 import { CreateProposalModal } from "./CreateProposalModal";
 import { ContributeModal } from "./ContributeModal";
 import { formatAddress, formatAmount, formatDate } from "@/lib/utils";
@@ -24,11 +23,9 @@ import {
   Code2,
   ExternalLink,
   Lock,
-  Layers,
   Sparkles,
   RefreshCw,
   Plus,
-  Radio,
 } from "lucide-react";
 
 interface TreasuryDetailProps {
@@ -44,7 +41,7 @@ export function TreasuryDetail({
 }: TreasuryDetailProps) {
   const { activePersona } = useWallet();
   const [activeTab, setActiveTab] = useState<
-    "proposals" | "members" | "deposits" | "audit" | "contract"
+    "proposals" | "members" | "deposits" | "audit"
   >("proposals");
   const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
   const [isContributeModalOpen, setIsContributeModalOpen] = useState(false);
@@ -257,18 +254,6 @@ export function TreasuryDetail({
             <History className="h-4 w-4" />
             <span>Audit Trail</span>
           </button>
-
-          <button
-            onClick={() => setActiveTab("contract")}
-            className={`flex items-center gap-2 px-4 py-2.5 font-bold transition border-b-2 shrink-0 ${
-              activeTab === "contract"
-                ? "border-emerald-500 text-white"
-                : "border-transparent text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            <Code2 className="h-4 w-4" />
-            <span>Contract Inspector</span>
-          </button>
         </div>
       </div>
 
@@ -292,10 +277,6 @@ export function TreasuryDetail({
         )}
 
         {activeTab === "audit" && <AuditTab treasury={treasury} />}
-
-        {activeTab === "contract" && (
-          <ContractInspectorTab treasury={treasury} />
-        )}
       </div>
 
       {/* Mobile Sticky Bottom Action Bar (§11.5 / §20) */}

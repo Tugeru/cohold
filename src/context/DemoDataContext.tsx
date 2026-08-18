@@ -17,13 +17,10 @@ interface DemoDataValue {
   canMutate: boolean;
   openCreateTreasury: () => void;
   openDemoTour: () => void;
-  openContractModal: () => void;
   setCreateTreasuryOpen: (open: boolean) => void;
   setDemoTourOpen: (open: boolean) => void;
-  setContractModalOpen: (open: boolean) => void;
   isCreateTreasuryOpen: boolean;
   isDemoTourOpen: boolean;
-  isContractModalOpen: boolean;
   resetDemo: () => Promise<void>;
 }
 
@@ -38,7 +35,6 @@ export function DemoDataProvider({ children }: { children: React.ReactNode }) {
   const [refreshToken, setRefreshToken] = useState(0);
   const [isCreateTreasuryOpen, setCreateTreasuryOpen] = useState(false);
   const [isDemoTourOpen, setDemoTourOpen] = useState(false);
-  const [isContractModalOpen, setContractModalOpen] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -106,13 +102,10 @@ export function DemoDataProvider({ children }: { children: React.ReactNode }) {
         canMutate,
         openCreateTreasury: () => setCreateTreasuryOpen(true),
         openDemoTour: () => setDemoTourOpen(true),
-        openContractModal: () => setContractModalOpen(true),
         setCreateTreasuryOpen,
         setDemoTourOpen,
-        setContractModalOpen,
         isCreateTreasuryOpen,
         isDemoTourOpen,
-        isContractModalOpen,
         resetDemo,
       }}
     >

@@ -4,8 +4,8 @@ import React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Navigation } from "@/components/Navigation";
+import { BrandMark } from "@/components/BrandMark";
 import { CreateTreasuryModal } from "@/components/CreateTreasuryModal";
-import { ContractModal } from "@/components/ContractModal";
 import { DemoTourModal } from "@/components/DemoTourModal";
 import { EnvironmentBadge } from "@/components/EnvironmentBadge";
 import { useDemoData } from "@/context/DemoDataContext";
@@ -18,7 +18,6 @@ import {
   Settings,
   PlusCircle,
   PlayCircle,
-  Code2,
 } from "lucide-react";
 
 const navIcons: Record<AppNavKey, React.ReactNode> = {
@@ -45,13 +44,10 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
     canMutate,
     openCreateTreasury,
     openDemoTour,
-    openContractModal,
     setCreateTreasuryOpen,
     setDemoTourOpen,
-    setContractModalOpen,
     isCreateTreasuryOpen,
     isDemoTourOpen,
-    isContractModalOpen,
   } = useDemoData();
 
   const pendingProposalsCount = proposals.filter((p) => p.status === "pending").length;
@@ -61,7 +57,6 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
       <Navigation
         onCreateTreasury={openCreateTreasury}
         onOpenDemoTour={openDemoTour}
-        onOpenContractModal={openContractModal}
         pendingProposalsCount={pendingProposalsCount}
         canMutate={canMutate}
       />
@@ -137,15 +132,6 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
                 <span>Run PRD §26 Demo</span>
               </button>
             )}
-
-            <button
-              type="button"
-              onClick={openContractModal}
-              className="w-full flex items-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-850 border border-slate-800 px-3 py-2 text-xs font-medium text-slate-300 transition"
-            >
-              <Code2 className="h-4 w-4 text-cyan-400" />
-              <span>Soroban Contract</span>
-            </button>
           </div>
 
           <div className="mt-auto pt-6 border-t border-slate-800/80 text-[11px] text-slate-400 space-y-1 px-3">
@@ -160,9 +146,7 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
       <footer className="border-t border-slate-800/80 bg-slate-950 py-8 px-4 sm:px-6 mt-12 text-xs text-slate-400 hidden sm:block">
         <div className="mx-auto max-w-7xl flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-500 text-slate-950 font-bold text-xs">
-              C
-            </div>
+            <BrandMark size={16} />
             <span className="font-bold text-white">Cohold</span>
             <span className="text-slate-500">·</span>
             <span>Shared funds. Shared control.</span>
@@ -172,14 +156,6 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
             <EnvironmentBadge />
             <span>·</span>
             <span>Zero Unilateral Custody</span>
-            <span>·</span>
-            <button
-              type="button"
-              onClick={openContractModal}
-              className="text-cyan-400 hover:underline"
-            >
-              Contract Rust Source
-            </button>
           </div>
         </div>
       </footer>
@@ -194,11 +170,6 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
           }}
         />
       )}
-
-      <ContractModal
-        isOpen={isContractModalOpen}
-        onClose={() => setContractModalOpen(false)}
-      />
 
       {canMutate && (
         <DemoTourModal

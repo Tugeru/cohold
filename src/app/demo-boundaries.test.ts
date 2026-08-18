@@ -25,7 +25,6 @@ const environmentBadgeSource = readFileSync(
   "utf8",
 );
 const modalExports = [
-  ["../components/ContractModal.tsx", "ContractModal"],
   ["../components/ContributeModal.tsx", "ContributeModal"],
   ["../components/CreateProposalModal.tsx", "CreateProposalModal"],
   ["../components/CreateTreasuryModal.tsx", "CreateTreasuryModal"],

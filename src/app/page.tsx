@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandMark } from "@/components/BrandMark";
 import { EnvironmentBadge } from "@/components/EnvironmentBadge";
 import { coholdConfig } from "@/lib/cohold-config";
 import { APP_ROUTES, createTreasuryHref } from "@/lib/app-routes";
@@ -9,9 +10,7 @@ export default function LandingPage() {
       <header className="border-b border-slate-800">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500 text-slate-950 font-bold">
-              C
-            </div>
+            <BrandMark size={28} />
             <div>
               <div className="text-sm font-bold tracking-tight text-white">Cohold</div>
               <p className="text-[11px] text-slate-400">Shared funds. Shared control.</p>

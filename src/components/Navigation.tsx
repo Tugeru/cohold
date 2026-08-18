@@ -16,7 +16,6 @@ import {
   Settings,
   PlusCircle,
   PlayCircle,
-  Code2,
   Menu,
   X,
   ChevronDown,
@@ -25,7 +24,6 @@ import {
 interface NavigationProps {
   onCreateTreasury: () => void;
   onOpenDemoTour: () => void;
-  onOpenContractModal: () => void;
   pendingProposalsCount: number;
   canMutate: boolean;
 }
@@ -46,7 +44,6 @@ const navItems = APP_NAV.map((item) => ({
 export function Navigation({
   onCreateTreasury,
   onOpenDemoTour,
-  onOpenContractModal,
   pendingProposalsCount,
   canMutate,
 }: NavigationProps) {
@@ -99,15 +96,6 @@ export function Navigation({
                 </span>
               </button>
             )}
-
-            <button
-              type="button"
-              onClick={onOpenContractModal}
-              className="hidden md:flex items-center gap-1.5 rounded-xl bg-slate-900 border border-slate-800 px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white hover:border-slate-700 transition"
-            >
-              <Code2 className="h-3.5 w-3.5 text-cyan-400" />
-              <span>Smart Contract</span>
-            </button>
 
             {canMutate && (
               <button
@@ -235,18 +223,6 @@ export function Navigation({
                   <span>Run PRD Section 26 Demo Walkthrough</span>
                 </button>
               )}
-
-              <button
-                type="button"
-                onClick={() => {
-                  onOpenContractModal();
-                  setMobileMenuOpen(false);
-                }}
-                className="flex items-center justify-center gap-2 rounded-xl bg-slate-900 border border-slate-800 p-2.5 text-xs font-medium text-slate-300"
-              >
-                <Code2 className="h-4 w-4 text-cyan-400" />
-                <span>Inspect Soroban Contract Source</span>
-              </button>
             </div>
           </div>
         )}
