@@ -144,6 +144,23 @@ const enabled = resolveMatrixGate(process.env, {
  */
 const recordEvidence = process.env.COHOLD_WALKTHROUGH_EVIDENCE === "1";
 
+if (enabled && recordEvidence) {
+  // The recorded runGitSha must describe the exact tree that executed:
+  // refuse to write an acceptance record from uncommitted code.
+  try {
+    const dirty = execSync("git status --porcelain", { encoding: "utf8" }).trim();
+    if (dirty.length > 0) {
+      throw new Error(
+        "refusing to record acceptance evidence from a dirty worktree; commit the walkthrough changes first. Dirty: " +
+          dirty.slice(0, 200),
+      );
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith("refusing")) throw error;
+    // No git available: proceed and label the record as unverifiable.
+  }
+}
+
 const EVIDENCE_PATH = new URL("../../deployments/walkthrough.json", import.meta.url);
 
 /**
@@ -247,6 +264,8 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
     const asset = { contractId: tokenId, symbol: "XLM", decimals: 7 };
     const config = await rpc.getConfig(contractIdA);
     expect(config).not.toBeNull();
+    expect(config!.name).toBe(treasurySpec("A").name);
+    expect(config!.tokenAddress).toBe(tokenId);
     expect(config!.threshold).toBe(treasurySpec("A").threshold);
     const members = (await rpc.getMemberList(contractIdA)) ?? [];
     expect([...members].sort()).toEqual(
@@ -434,6 +453,14 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
       proposalId,
       approvalCount: approval2.approvalCount,
       proposalStatus: approval2.status,
+      treasuryBeforeBaseUnits: balanceAfterFund!.toString(),
+      treasuryBeforeXlm: xlm(balanceAfterFund!),
+      treasuryBalanceBaseUnits: balanceAfterFund!.toString(),
+      treasuryBalanceXlm: xlm(balanceAfterFund!),
+      recipientBeforeBaseUnits: recipientBefore.toString(),
+      recipientBeforeXlm: xlm(recipientBefore),
+      recipientBalanceBaseUnits: recipientBefore.toString(),
+      recipientBalanceXlm: xlm(recipientBefore),
     });
 
     let underThresholdRejected = false;
@@ -452,10 +479,19 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
       outcome: underThresholdRejected ? "rejected" : "unexpected",
       rejectedReason: "ThresholdNotReached (contract #7)",
       proposalId,
+      treasuryBeforeBaseUnits: balanceAfterFund!.toString(),
+      treasuryBeforeXlm: xlm(balanceAfterFund!),
+      treasuryBalanceBaseUnits: balanceAfterFund!.toString(),
+      treasuryBalanceXlm: xlm(balanceAfterFund!),
+      recipientBeforeBaseUnits: recipientBefore.toString(),
+      recipientBeforeXlm: xlm(recipientBefore),
+      recipientBalanceBaseUnits: recipientBefore.toString(),
+      recipientBalanceXlm: xlm(recipientBefore),
     });
     expect(underThresholdRejected).toBe(true);
     expect((await rpc.getProposal(contractIdA, proposalId))!.status).toBe("pending");
     expect(await rpc.getBalance(contractIdA)).toBe(balanceAfterFund);
+    expect(await recipientBalance()).toBe(recipientBefore);
 
     // ---- 4. Approve to 3/3 (member D) → Approved, balance unchanged.
     const approval3 = await approveAs(secretD, 3);
@@ -468,6 +504,14 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
       proposalId,
       approvalCount: approval3.approvalCount,
       proposalStatus: approval3.status,
+      treasuryBeforeBaseUnits: balanceAfterFund!.toString(),
+      treasuryBeforeXlm: xlm(balanceAfterFund!),
+      treasuryBalanceBaseUnits: balanceAfterFund!.toString(),
+      treasuryBalanceXlm: xlm(balanceAfterFund!),
+      recipientBeforeBaseUnits: recipientBefore.toString(),
+      recipientBeforeXlm: xlm(recipientBefore),
+      recipientBalanceBaseUnits: recipientBefore.toString(),
+      recipientBalanceXlm: xlm(recipientBefore),
     });
     const approved = (await rpc.getProposal(contractIdA, proposalId))!;
     expect(approved.status).toBe("approved");
@@ -585,8 +629,12 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
       outcome: "rejected",
       rejectedReason: "AlreadyExecuted (contract #11)",
       proposalId,
+      treasuryBeforeBaseUnits: balanceAfterExecute!.toString(),
+      treasuryBeforeXlm: xlm(balanceAfterExecute!),
       treasuryBalanceBaseUnits: balanceAfterDoubleExecute!.toString(),
       treasuryBalanceXlm: xlm(balanceAfterDoubleExecute),
+      recipientBeforeBaseUnits: recipientAfterExecute.toString(),
+      recipientBeforeXlm: xlm(recipientAfterExecute),
       recipientBalanceBaseUnits: recipientAfterDoubleExecute.toString(),
       recipientBalanceXlm: xlm(recipientAfterDoubleExecute),
     });
@@ -616,7 +664,8 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
       steps,
       runGitSha: (() => {
         // Source commit the evidence was captured with; the doc quotes it so
-        // a reviewer can reproduce the record at an exact tree state.
+        // a reviewer can reproduce the record at an exact tree state. The
+        // dirty-tree check above guarantees the tree matches this SHA.
         try {
           return execSync("git rev-parse HEAD", { encoding: "utf8" }).trim();
         } catch {
