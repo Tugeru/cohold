@@ -411,6 +411,20 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
     const proposalAmount = 25_000_000n; // 2.5 XLM
     const recipientBefore = await recipientBalance();
     const proposalId = (await rpc.getProposalCount(contractIdA))! + 1;
+
+    // Re-read the proposal after a step and assert its immutable terms
+    // (amount + recipient) are unchanged on-chain. The acceptance doc records
+    // "terms re-read from the contract after each step" — the walkthrough
+    // must actually prove that.
+    async function expectProposalTerms(id = proposalId) {
+      const record = await readUntil(
+        () => rpc.getProposal(contractIdA, id),
+        (r) => r !== null,
+      );
+      expect(record!.amount.toString()).toBe(proposalAmount.toString());
+      expect(record!.recipient).toBe(recipient);
+      return record!;
+    }
     const create = createProposalFlow({
       executor: stellarProposalExecutor({ rpcUrl: manifest.rpc }),
       contractId: contractIdA,
@@ -447,6 +461,7 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
     expect(created.proposalId).toBe(proposalId);
     expect(created.approvalCount).toBe(1);
     expect(created.proposalStatus).toBe("pending");
+    await expectProposalTerms();
     steps.push({
       step: "propose",
       detail: `${memberA} creates proposal ${proposalId}: ${xlm(proposalAmount)} XLM → ${recipient}`,
@@ -572,7 +587,7 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
       recipientBalanceXlm: xlm(recipientBefore),
     });
     expect(underThresholdRejected).toBe(true);
-    expect((await rpc.getProposal(contractIdA, proposalId))!.status).toBe("pending");
+    expect((await expectProposalTerms()).status).toBe("pending");
     expect(await rpc.getBalance(contractIdA)).toBe(balanceAfterFund);
     expect(await recipientBalance()).toBe(recipientBefore);
 
@@ -596,11 +611,9 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
       recipientBalanceBaseUnits: recipientBefore.toString(),
       recipientBalanceXlm: xlm(recipientBefore),
     });
-    const approved = (await rpc.getProposal(contractIdA, proposalId))!;
+    const approved = await expectProposalTerms();
     expect(approved.status).toBe("approved");
     expect(approved.approvalCount).toBe(3);
-    expect(approved.amount.toString()).toBe(proposalAmount.toString());
-    expect(approved.recipient).toBe(recipient);
 
     // ---- 5. Execute (permissionless; member D pays the fee).
     const execute = executeFlow({
@@ -642,6 +655,7 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
           (balanceAfterFund! - proposalAmount).toString(),
     );
     expect(executed.proposalStatus).toBe("executed");
+    await expectProposalTerms();
     const balanceAfterExecute = await readUntil(
       () => rpc.getBalance(contractIdA),
       (balance) => balance !== null && balance === balanceAfterFund! - proposalAmount,
@@ -709,6 +723,7 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
       doubleRejected = /Error\(Contract, #11\)/.test(String(err));
     }
     expect(doubleRejected).toBe(true);
+    await expectProposalTerms();
     // Re-read AFTER the rejection: "nothing moves" must be proven by fresh
     // post-attempt reads, not by reusing the pre-attempt values.
     const balanceAfterDoubleExecute = await readUntil(
