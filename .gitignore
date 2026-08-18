@@ -12,3 +12,4 @@ secrets/
 /target
 test_snapshots
 .vercel
+.agents
