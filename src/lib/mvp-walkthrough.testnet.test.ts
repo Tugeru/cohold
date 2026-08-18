@@ -188,21 +188,33 @@ const EVIDENCE_PATH = new URL("../../deployments/walkthrough.json", import.meta.
 
 /**
  * Bounded confirm retry: Testnet inclusion can lag one or two ledgers
- * (pollTransaction returns NOT_FOUND → flows report "confirmation-pending").
- * The UI keeps polling; the evidence capture retries a few times before
- * failing loudly, so a slow ledger never voids an evidence run.
+ * (pollTransaction returns NOT_FOUND → flows report "confirmation-pending"),
+ * and a SUCCESS result can arrive before the follow-up contract re-read is
+ * visible (flows then confirm with null fields). Both are transient; the UI
+ * keeps polling. The evidence capture retries until `isReady` (the exact
+ * fields the evidence record needs) or `failed`, then fails loudly.
  */
 async function confirmUntilDone<T extends { status: string }>(
   attempt: () => Promise<T>,
-  expectConfirmed: (outcome: T) => void,
+  isReady: (outcome: T) => boolean,
   maxAttempts = 4,
 ): Promise<Extract<T, { status: "confirmed" }>> {
   let outcome = await attempt();
-  for (let attemptNumber = 1; outcome.status === "confirmation-pending" && attemptNumber < maxAttempts; attemptNumber += 1) {
+  for (
+    let attemptNumber = 1;
+    !isReady(outcome) &&
+    outcome.status !== "failed" &&
+    attemptNumber < maxAttempts;
+    attemptNumber += 1
+  ) {
     await new Promise((resolve) => setTimeout(resolve, 5_000));
     outcome = await attempt();
   }
-  expectConfirmed(outcome);
+  if (outcome.status !== "confirmed" || !isReady(outcome)) {
+    throw new Error(
+      `confirm did not reach a ready state after ${maxAttempts} attempts: ${JSON.stringify(outcome)}`,
+    );
+  }
   return outcome as Extract<T, { status: "confirmed" }>;
 }
 
@@ -252,7 +264,9 @@ function signWith(secret: string, passphrase = STELLAR_TESTNET_NETWORK_PASSPHRAS
 
 describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () => {
   if (!enabled) return; // collection guard: no Keypair/RPC at module scope
-  const rpc = stellarCoholdRpc();
+  // Every network interaction in this suite must hit the same endpoint the
+  // deployment manifest records — no NEXT_PUBLIC_STELLAR_RPC_URL override.
+  const rpc = stellarCoholdRpc({ rpcUrl: manifest.rpc });
   const memberA = Keypair.fromSecret(secretA).publicKey().toUpperCase();
   const memberB = Keypair.fromSecret(secretB).publicKey().toUpperCase();
   const memberD = Keypair.fromSecret(secretD).publicKey().toUpperCase();
@@ -310,7 +324,7 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
     const refill = treasuryStart < targetBalance ? targetBalance - treasuryStart : 0n;
     if (refill > 0n) {
       const contribute = createContributeFlow({
-        executor: stellarContributeExecutor(),
+        executor: stellarContributeExecutor({ rpcUrl: manifest.rpc }),
         contractId: contractIdA,
         memberAddress: memberA,
         asset,
@@ -327,10 +341,7 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
       if (sent.status !== "submitted" || !sent.hash) throw new Error(String(sent));
       const confirmed = await confirmUntilDone(
         () => contribute.confirm(sent.hash),
-        (outcome) => {
-          expect(outcome.status).toBe("confirmed");
-          if (outcome.status !== "confirmed") throw new Error(String(outcome));
-        },
+        (outcome) => outcome.status === "confirmed" && outcome.balanceBaseUnits !== null,
       );
       steps.push({
         step: "fund",
@@ -361,7 +372,7 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
     const recipientBefore = await recipientBalance();
     const proposalId = (await rpc.getProposalCount(contractIdA))! + 1;
     const create = createProposalFlow({
-      executor: stellarProposalExecutor(),
+      executor: stellarProposalExecutor({ rpcUrl: manifest.rpc }),
       contractId: contractIdA,
       treasuryName: treasurySpec("A").name,
       memberAddress: memberA,
@@ -387,10 +398,11 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
     }
     const created = await confirmUntilDone(
       () => create.confirm(createSent.hash, proposalId),
-      (outcome) => {
-        expect(outcome.status).toBe("confirmed");
-        if (outcome.status !== "confirmed") throw new Error(String(outcome));
-      },
+      (outcome) =>
+        outcome.status === "confirmed" &&
+        outcome.proposalId !== null &&
+        outcome.approvalCount !== null &&
+        outcome.proposalStatus !== null,
     );
     expect(created.proposalId).toBe(proposalId);
     expect(created.approvalCount).toBe(1);
@@ -407,6 +419,8 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
       treasuryBalanceXlm: xlm(balanceAfterFund),
       recipientBeforeBaseUnits: recipientBefore.toString(),
       recipientBeforeXlm: xlm(recipientBefore),
+      recipientBalanceBaseUnits: recipientBefore.toString(),
+      recipientBalanceXlm: xlm(recipientBefore),
     });
 
     // ---- 3. Approve to 2/3 (member B); execute must be rejected.
@@ -424,7 +438,7 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
       expect(currentRecord).not.toBeNull();
       const current = currentRecord!;
       const approve = approveFlow({
-        executor: stellarProposalExecutor(),
+        executor: stellarProposalExecutor({ rpcUrl: manifest.rpc }),
         contractId: contractIdA,
         treasuryName: treasurySpec("A").name,
         memberAddress: member,
@@ -450,10 +464,10 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
       if (sent.status !== "submitted" || !sent.hash) throw new Error(String(sent));
       const confirmed = await confirmUntilDone(
         () => approve.confirm(sent.hash),
-        (outcome) => {
-          expect(outcome.status).toBe("confirmed");
-          if (outcome.status !== "confirmed") throw new Error(String(outcome));
-        },
+        (outcome) =>
+          outcome.status === "confirmed" &&
+          outcome.approvalCount !== null &&
+          outcome.proposalStatus !== null,
       );
       // Authoritative re-read: the confirming step must observe the new count.
       expect(confirmed.approvalCount).toBe(expectedAfterCount);
@@ -488,7 +502,7 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
 
     let underThresholdRejected = false;
     try {
-      await stellarProposalExecutor().simulateExecute({
+      await stellarProposalExecutor({ rpcUrl: manifest.rpc }).simulateExecute({
         contractId: contractIdA,
         callerAddress: memberD,
         proposalId,
@@ -544,7 +558,7 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
 
     // ---- 5. Execute (permissionless; member D pays the fee).
     const execute = executeFlow({
-      executor: stellarProposalExecutor(),
+      executor: stellarProposalExecutor({ rpcUrl: manifest.rpc }),
       contractId: contractIdA,
       treasuryName: treasurySpec("A").name,
       callerAddress: memberD,
@@ -575,10 +589,10 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
     }
     const executed = await confirmUntilDone(
       () => execute.confirm(executeSent.hash),
-      (outcome) => {
-        expect(outcome.status).toBe("confirmed");
-        if (outcome.status !== "confirmed") throw new Error(String(outcome));
-      },
+      (outcome) =>
+        outcome.status === "confirmed" &&
+        outcome.proposalStatus !== null &&
+        outcome.treasuryBalanceBaseUnits !== null,
     );
     expect(executed.proposalStatus).toBe("executed");
     const recipientAfterExecute = await recipientBalance();
@@ -606,7 +620,7 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
 
     // ---- 6. Double execute must be rejected and nothing moves.
     const doubleExecute = executeFlow({
-      executor: stellarProposalExecutor(),
+      executor: stellarProposalExecutor({ rpcUrl: manifest.rpc }),
       contractId: contractIdA,
       treasuryName: treasurySpec("A").name,
       callerAddress: memberD,
@@ -631,7 +645,7 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
     expect(doublePrepared.status).toBe("already-executed");
     let doubleRejected = false;
     try {
-      await stellarProposalExecutor().simulateExecute({
+      await stellarProposalExecutor({ rpcUrl: manifest.rpc }).simulateExecute({
         contractId: contractIdA,
         callerAddress: memberD,
         proposalId,

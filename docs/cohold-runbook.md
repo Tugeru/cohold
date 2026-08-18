@@ -218,10 +218,12 @@ file (`COHOLD_WALKTHROUGH_EVIDENCE=1`); plain `npm test` / `npm run verify`
 with secrets exported validates the flow without touching the committed
 record.
 
-The GitHub workflow `.github/workflows/testnet-live.yml` runs the same command
-from `workflow_dispatch` using `COHOLD_TESTNET_SECRET_*` repository secrets —
-it is protected by design (not triggered on PRs) and is not a required
-public PR check.
+The GitHub workflow `.github/workflows/testnet-live.yml` runs the isolation
+and negatives matrix (`npm run test:testnet`) from `workflow_dispatch` using
+`COHOLD_TESTNET_SECRET_*` repository secrets — it is protected by design
+(not triggered on PRs) and is not a required public PR check. The
+walkthrough's evidence capture stays a local, committed-tree action:
+`npm run test:walkthrough` against the checked-out slice.
 
 ## 4. RPC history limits
 
