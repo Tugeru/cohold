@@ -573,16 +573,22 @@ describe.skipIf(!enabled)("Testnet MVP acceptance walkthrough (treasury A)", () 
       doubleRejected = /Error\(Contract, #11\)/.test(String(err));
     }
     expect(doubleRejected).toBe(true);
+    // Re-read AFTER the rejection: "nothing moves" must be proven by fresh
+    // post-attempt reads, not by reusing the pre-attempt values.
+    const balanceAfterDoubleExecute = (await rpc.getBalance(contractIdA))!;
+    const recipientAfterDoubleExecute = await recipientBalance();
+    expect(balanceAfterDoubleExecute).toBe(balanceAfterExecute!);
+    expect(recipientAfterDoubleExecute).toBe(recipientAfterExecute);
     steps.push({
       step: "execute",
       detail: `${memberD} attempts execute again`,
       outcome: "rejected",
       rejectedReason: "AlreadyExecuted (contract #11)",
       proposalId,
-      treasuryBalanceBaseUnits: balanceAfterExecute!.toString(),
-      treasuryBalanceXlm: xlm(balanceAfterExecute),
-      recipientBalanceBaseUnits: recipientAfterExecute.toString(),
-      recipientBalanceXlm: xlm(recipientAfterExecute),
+      treasuryBalanceBaseUnits: balanceAfterDoubleExecute!.toString(),
+      treasuryBalanceXlm: xlm(balanceAfterDoubleExecute),
+      recipientBalanceBaseUnits: recipientAfterDoubleExecute.toString(),
+      recipientBalanceXlm: xlm(recipientAfterDoubleExecute),
     });
 
     const evidence: EvidenceRecord = {
