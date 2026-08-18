@@ -173,6 +173,7 @@ substantial changes or rely on CI).
 
 | Run | Workflow | Result |
 |---|---|---|
+| CI PR #36 slice/25 `94dc96b` (this slice) | CI | success (1m54s) — Contract tests + Quality checks |
 | CI push `main` `911a275` (isolation + negatives matrix commit) | CI | success (2m1s) |
 | CI PR slice/24 isolation + negatives | CI | success (1m53s) |
 | CI push `main` 8815c8a (execute reviews + testnet execution coverage) | CI | success (1m53s) |
