@@ -200,6 +200,15 @@ Treasury/token ids default to the public manifest
 secret is missing and the suite asserts live config matches the manifest, so
 a stale deployment fails loudly.
 
+The canonical acceptance walkthrough (fund → propose → 2/3 rejected execute →
+3/3 execute → verify → double execute rejected on treasury A) runs the same
+way and writes the secret-free evidence record to
+`deployments/walkthrough.json`, which `docs/mvp-acceptance.md` quotes:
+
+```sh
+npm run test:walkthrough
+```
+
 The GitHub workflow `.github/workflows/testnet-live.yml` runs the same command
 from `workflow_dispatch` using `COHOLD_TESTNET_SECRET_*` repository secrets —
 it is protected by design (not triggered on PRs) and is not a required
@@ -218,11 +227,15 @@ older data beyond the MVP scope, use a Horizon/archive-backed indexer.
 All commands run without a live wallet, a deployed contract, or Postgres.
 
 ```sh
-npm run lint        # ESLint (eslint-config-next)
-npm run typecheck   # tsc --noEmit, strict
-npm test            # Vitest unit suite
-npm run build       # production build
+npm run verify     # lint + typecheck + unit tests (agent-safe, no build)
+npm run build      # production build — separate human/CI step
 ```
+
+`npm run verify` runs `npm run lint`, `npm run typecheck`, and `npm test`
+in order. It deliberately does **not** run `npm run build`: builds rewrite
+`.next` and break the dev server's HMR inside long-lived agent sessions.
+Run the build explicitly before substantial changes or when CI asks for it
+(CI runs lint, typecheck, tests, and build via `.github/workflows/ci.yml`).
 
 Contract bindings: `packages/cohold-contract` is generated from the built
 Wasm. After changing the Rust contract interface, run
