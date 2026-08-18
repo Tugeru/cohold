@@ -1,0 +1,37 @@
+name: Testnet live matrix
+
+# Live acceptance only: the matrix spends real Testnet XLM and mutates the
+# deployed treasuries, so it must never be a required public PR check.
+# Trigger manually (or from a protected branch) after setting the
+# COHOLD_TESTNET_SECRET_* repository secrets; ids default to the public
+# deployments/testnet.json manifest.
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  matrix:
+    name: Isolation and negatives on deployed treasuries
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run live Testnet matrix
+        run: npm run test:testnet
+        env:
+          COHOLD_TESTNET_SECRET_A: ${{ secrets.COHOLD_TESTNET_SECRET_A }}
+          COHOLD_TESTNET_SECRET_B: ${{ secrets.COHOLD_TESTNET_SECRET_B }}
+          COHOLD_TESTNET_SECRET_C: ${{ secrets.COHOLD_TESTNET_SECRET_C }}
+          COHOLD_TESTNET_SECRET_D: ${{ secrets.COHOLD_TESTNET_SECRET_D }}
