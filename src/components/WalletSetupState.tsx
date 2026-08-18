@@ -1,4 +1,4 @@
-import { AlertTriangle, RefreshCw } from "lucide-react";
+import { AlertTriangle, Info, RefreshCw, Wallet } from "lucide-react";
 import type { ReactNode } from "react";
 import { coholdConfig } from "@/lib/cohold-config";
 import { useWallet } from "@/context/WalletContext";
@@ -6,6 +6,29 @@ import {
   walletCheckLabel,
   type WalletDiagnosticsResult,
 } from "@/lib/wallet-diagnostics";
+
+type SetupTone = "error" | "warning" | "info";
+
+const TONES: Record<
+  SetupTone,
+  { section: string; tile: string; icon: typeof AlertTriangle }
+> = {
+  error: {
+    section: "rounded-3xl border border-rose-500/30 bg-rose-950/20 p-8 sm:p-12",
+    tile: "border-rose-500/30 bg-rose-500/10 text-rose-300",
+    icon: AlertTriangle,
+  },
+  warning: {
+    section: "rounded-3xl border border-amber-500/30 bg-amber-950/20 p-8 sm:p-12",
+    tile: "border-amber-500/30 bg-amber-500/10 text-amber-300",
+    icon: Wallet,
+  },
+  info: {
+    section: "rounded-3xl border border-cyan-500/30 bg-cyan-950/20 p-8 sm:p-12",
+    tile: "border-cyan-500/30 bg-cyan-500/10 text-cyan-300",
+    icon: Info,
+  },
+};
 
 interface WalletSetupStateProps {
   /**
@@ -21,15 +44,17 @@ export function WalletSetupState({ diagnostics, onRetry }: WalletSetupStateProps
   const isConfigured = coholdConfig.walletSetupComplete;
   const isModeConfigured = coholdConfig.modeConfigured;
   const failed = diagnostics?.status === "failed" && diagnostics.failures.length > 0;
+  const tone: SetupTone = !isModeConfigured || failed ? "error" : isConfigured ? "info" : "warning";
+  const { section, tile, icon: ToneIcon } = TONES[tone];
 
   return (
     <section
       aria-labelledby="wallet-setup-title"
-      className="rounded-3xl border border-rose-500/30 bg-rose-950/20 p-8 sm:p-12"
+      className={section}
     >
       <div className="mx-auto max-w-xl space-y-4 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-300">
-          <AlertTriangle className="h-6 w-6" />
+        <div className={`mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border ${tile}`}>
+          <ToneIcon className="h-6 w-6" />
         </div>
         <h1 id="wallet-setup-title" className="text-xl font-bold text-white">
           {!isModeConfigured
@@ -46,7 +71,7 @@ export function WalletSetupState({ diagnostics, onRetry }: WalletSetupStateProps
             : failed
             ? "Stellar Testnet resource checks failed. Contribute, propose, approve, and execute stay disabled until every check passes. Demo fixture treasuries are not shown as a substitute."
             : isConfigured
-            ? "The Testnet contract and token identifiers are configured. Create Treasury and demo reset stay in demo mode; wallet-mode creation is out of this change. State-changing controls remain disabled so fixture data cannot be mistaken for chain state."
+            ? "The Testnet contract and token identifiers are configured, so treasuries, proposals, and activity can be viewed. Deposits, proposals, approvals, and execution stay disabled in wallet mode; run the app in demo mode for the fixture walkthrough."
             : "Cohold is running in wallet mode, but its Testnet contract and token identifiers are not configured. Spending, deposits, proposals, and approvals are disabled until the setup is complete."}
         </p>
         {failed && (
