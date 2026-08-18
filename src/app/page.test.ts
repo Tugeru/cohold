@@ -11,15 +11,16 @@ describe("public landing", () => {
     expect(landingSource).not.toMatch(/WalletProvider/);
   });
 
-  it("offers View Demo and Create Treasury on the demo path", () => {
-    expect(landingSource).toContain("View Demo");
-    expect(landingSource).toContain("Create Treasury");
-    expect(landingSource).toContain("createTreasuryHref");
-    expect(landingSource).toContain("APP_ROUTES.overview");
+  it("hosts the persona connect island as the demo entry", () => {
+    expect(landingSource).toContain("<LandingConnect />");
+    expect(landingSource).not.toContain("View Demo");
+    expect(landingSource).not.toContain("createTreasuryHref");
+    expect(landingSource).not.toContain("APP_ROUTES.overview");
   });
-  it("offers a configured-treasury path in wallet mode", () => {
-    expect(landingSource).toContain("Open Treasuries");
-    expect(landingSource).toContain("coholdConfig.modeConfigured");
-    expect(landingSource).toContain("APP_ROUTES.treasuries");
+  it("hosts the single connect island in wallet mode too", () => {
+    expect(landingSource).toContain("<LandingConnect />");
+    expect(landingSource).not.toContain("Open Treasuries");
+    expect(landingSource).not.toContain("Open Wallet");
+    expect(landingSource).not.toContain("APP_ROUTES");
   });
 });

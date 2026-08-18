@@ -9,7 +9,8 @@ import {
   loadWalletTreasury,
   stellarCoholdRpc,
 } from "@/lib/contract-adapter";
-import { coholdConfig, resolveWalletProposalTreasury } from "@/lib/cohold-config";
+import { coholdConfig } from "@/lib/cohold-config";
+import { resolveWalletTreasuryForProposal } from "@/lib/treasury-registry";
 import { formatBaseAmount, parseBaseUnits, parseNonNegativeBaseUnits } from "@/lib/money";
 import { APP_ROUTES, walletExplorerUrl } from "@/lib/app-routes";
 import { useWallet } from "@/context/WalletContext";
@@ -57,7 +58,7 @@ export function WalletProposalView({ id }: { id: string }) {
   // Extra configured contracts carry their contract ID in the URL; anything
   // else (or an unconfigured value) falls back to the primary contract.
   const contractId = useMemo(
-    () => resolveWalletProposalTreasury(config, treasuryParam),
+    () => resolveWalletTreasuryForProposal(config, treasuryParam),
     [config, treasuryParam],
   );
   const { freighterAddress, canPerformStateChange, walletActionBlockReason } = useWallet();

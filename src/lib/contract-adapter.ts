@@ -493,6 +493,23 @@ export function currentUserApprovalState(input: {
   return hasApproved ? "approved" : "not-approved";
 }
 
+/**
+ * Whether the connected wallet is a member of a treasury. The contract
+ * requires the creator to be a member, so this also covers treasuries the
+ * wallet created. Membership is only claimed when the chain read was
+ * authoritative: an unverified member list never yields a positive answer.
+ */
+export function isWalletMemberOfTreasury(
+  view: Pick<ChainTreasuryView, "members" | "membersAuthoritative">,
+  walletAddress: string | null,
+): boolean {
+  if (!walletAddress || !view.membersAuthoritative || view.members.length === 0) {
+    return false;
+  }
+  const target = walletAddress.toUpperCase();
+  return view.members.some((member) => member.toUpperCase() === target);
+}
+
 export function buildProposalView(input: {
   treasuryId: string;
   record: ChainProposalRecord;

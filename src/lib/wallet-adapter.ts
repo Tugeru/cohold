@@ -143,8 +143,11 @@ export async function restoreFreighter(
 
     const addressResult = await api.getAddress();
     if (addressResult.error) return failedResult(addressResult.error, "Wallet connection cancelled");
-    if (!isValidStellarAddress(addressResult.address)) {
-      return { status: "error", message: "Freighter returned an invalid public address" };
+    // getAddress returns an empty address until this site has been granted
+    // access. A missing grant is "not connected", not an error — the app
+    // must show the Connect screen, not a failure state.
+    if (!addressResult.address || !isValidStellarAddress(addressResult.address)) {
+      return { status: "not-installed", message: "Freighter is not connected to this site yet" };
     }
 
     const network = await readNetwork(api);

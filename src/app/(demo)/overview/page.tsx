@@ -4,8 +4,10 @@ import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { DemoGate } from "@/components/DemoGate";
 import { OverviewView } from "@/components/OverviewView";
+import { WalletOverviewView } from "@/components/WalletOverviewView";
 import { OverviewSkeleton } from "@/components/Skeletons";
 import { useDemoData } from "@/context/DemoDataContext";
+import { coholdConfig } from "@/lib/cohold-config";
 import { APP_ROUTES, shouldOpenCreateTreasury } from "@/lib/app-routes";
 
 function OverviewPageInner() {
@@ -26,6 +28,10 @@ function OverviewPageInner() {
     setCreateTreasuryOpen(true);
     router.replace(APP_ROUTES.overview);
   }, [canMutate, router, searchParams, setCreateTreasuryOpen]);
+
+  if (coholdConfig.mode === "wallet") {
+    return <WalletOverviewView />;
+  }
 
   return (
     <DemoGate>

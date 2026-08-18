@@ -3,12 +3,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   type ChainTreasuryView,
+  isWalletMemberOfTreasury,
   loadWalletTreasury,
   stellarCoholdRpc,
 } from "@/lib/contract-adapter";
-import { configuredContractIds, coholdConfig } from "@/lib/cohold-config";
+import { coholdConfig } from "@/lib/cohold-config";
+import { walletTreasuryContractIds } from "@/lib/treasury-registry";
 import { formatBaseAmount } from "@/lib/money";
-import { walletExplorerUrl } from "@/lib/app-routes";
+import { createTreasuryHref, walletExplorerUrl } from "@/lib/app-routes";
 import { useWallet } from "@/context/WalletContext";
 import { useWalletResourceGate } from "@/components/WalletSetupState";
 import { TreasuryCardSkeleton } from "@/components/Skeletons";
@@ -19,7 +21,15 @@ type ListItem =
   | { status: "ready"; view: ChainTreasuryView }
   | { status: "error"; message: string };
 
-function TreasuryCard({ item, onRefresh }: { item: ListItem; onRefresh: () => void }) {
+function TreasuryCard({
+  item,
+  walletAddress,
+  onRefresh,
+}: {
+  item: ListItem;
+  walletAddress: string | null;
+  onRefresh: () => void;
+}) {
   if (item.status === "loading") {
     return <TreasuryCardSkeleton />;
   }
@@ -58,6 +68,12 @@ function TreasuryCard({ item, onRefresh }: { item: ListItem; onRefresh: () => vo
           Testnet · chain
         </span>
       </div>
+      {walletAddress &&
+        view.creator.toUpperCase() === walletAddress.toUpperCase() && (
+          <p className="mt-2 inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-300">
+            <ShieldCheck className="h-3 w-3" /> You created this treasury
+          </p>
+        )}
       <div className="mt-5 grid grid-cols-3 gap-4">
         <div>
           <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Balance</p>
@@ -106,7 +122,7 @@ function TreasuryCard({ item, onRefresh }: { item: ListItem; onRefresh: () => vo
 
 export function WalletTreasuriesList() {
   const config = coholdConfig;
-  const contractIds = useMemo(() => configuredContractIds(config), [config]);
+  const contractIds = useMemo(() => walletTreasuryContractIds(config), [config]);
   const { freighterAddress } = useWallet();
   const walletGate = useWalletResourceGate();
   const rpc = useMemo(() => stellarCoholdRpc(), []);
@@ -152,9 +168,25 @@ export function WalletTreasuriesList() {
     };
   }, [rpc, contractIds, loadKey]);
 
+  const memberIds = useMemo(() => {
+    if (!freighterAddress) return new Set<string>();
+    const ids = new Set<string>();
+    for (const [id, item] of Object.entries(items)) {
+      if (item.status === "ready" && isWalletMemberOfTreasury(item.view, freighterAddress)) {
+        ids.add(id);
+      }
+    }
+    return ids;
+  }, [items, freighterAddress]);
+
   if (walletGate) {
     return walletGate;
   }
+
+  const visibleIds = contractIds.filter(
+    (id) => memberIds.has(id) || items[id]?.status === "error",
+  );
+  const isMemberOfAny = memberIds.size > 0;
 
   return (
     <div className="space-y-6">
@@ -162,8 +194,7 @@ export function WalletTreasuriesList() {
         <div>
           <h1 className="text-2xl font-semibold text-slate-100">Treasuries</h1>
           <p className="mt-1 text-sm text-slate-400">
-            Read-only view of the configured treasury
-            {contractIds.length > 1 ? " contracts" : " contract"} on Stellar Testnet.
+            Your treasuries on Stellar Testnet — created by you or where you are a member.
           </p>
         </div>
         <button
@@ -175,16 +206,37 @@ export function WalletTreasuriesList() {
         </button>
       </div>
 
+      {freighterAddress && !isMemberOfAny && (
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-8 text-center">
+          <h2 className="text-lg font-semibold text-slate-100">No treasuries yet</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm text-slate-400">
+            You are not a member of any treasury on Testnet yet. Create one — it deploys a real
+            contract from your wallet in a few signatures.
+          </p>
+          <a
+            href={createTreasuryHref()}
+            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-400"
+          >
+            Create a treasury
+          </a>
+        </div>
+      )}
+
       <div className="grid gap-5 md:grid-cols-2">
-        {contractIds.map((id) => (
-          <TreasuryCard key={id} item={items[id] ?? { status: "loading" }} onRefresh={refresh} />
+        {visibleIds.map((id) => (
+          <TreasuryCard
+            key={id}
+            item={items[id] ?? { status: "loading" }}
+            walletAddress={freighterAddress}
+            onRefresh={refresh}
+          />
         ))}
       </div>
 
       {freighterAddress && (
         <p className="text-xs text-slate-500">
-          Reads use the connected wallet ({freighterAddress.slice(0, 10)}…) for your approval
-          status. Balances, members, and thresholds always come from the contract.
+          Shows treasuries you are a member of (including ones you created), read from the chain
+          with your wallet ({freighterAddress.slice(0, 10)}…).
         </p>
       )}
       <div className="text-xs text-slate-600">

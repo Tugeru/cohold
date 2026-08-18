@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   connectFreighter,
+  restoreFreighter,
   signFreighterTransaction,
   STELLAR_TESTNET_NETWORK_PASSPHRASE,
   type FreighterApi,
@@ -80,6 +81,68 @@ describe("Freighter wallet adapter", () => {
     expect(result).toEqual({
       status: "cancelled",
       message: "Wallet connection cancelled",
+    });
+  });
+
+  describe("restoreFreighter", () => {
+    it("restores an already-granted session without prompting", async () => {
+      const requestAccess = vi.fn();
+      const result = await restoreFreighter(
+        createApi({
+          requestAccess: requestAccess as unknown as FreighterApi["requestAccess"],
+        })
+      );
+
+      expect(result).toMatchObject({
+        status: "connected",
+        address,
+        network: "TESTNET",
+      });
+      expect(requestAccess).not.toHaveBeenCalled();
+    });
+
+    it("reports not-installed when Freighter has no grant for this site", async () => {
+      const result = await restoreFreighter(
+        createApi({
+          isConnected: vi.fn(async () => ({ isConnected: true })),
+          getAddress: vi.fn(async () => ({ address: "" })),
+        })
+      );
+
+      expect(result).toEqual({
+        status: "not-installed",
+        message: "Freighter is not connected to this site yet",
+      });
+    });
+
+    it("reports not-installed when Freighter is not connected at all", async () => {
+      const result = await restoreFreighter(
+        createApi({
+          isConnected: vi.fn(async () => ({ isConnected: false })),
+        })
+      );
+
+      expect(result).toEqual({
+        status: "not-installed",
+        message: "Freighter wallet is not connected",
+      });
+    });
+
+    it("keeps the address when restoring on the wrong network", async () => {
+      const result = await restoreFreighter(
+        createApi({
+          getNetwork: vi.fn(async () => ({
+            network: "PUBLIC",
+            networkPassphrase: "Public Global Stellar Network ; September 2015",
+          })),
+        })
+      );
+
+      expect(result).toMatchObject({
+        status: "wrong-network",
+        address,
+        network: "PUBLIC",
+      });
     });
   });
 

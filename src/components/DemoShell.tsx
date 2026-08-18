@@ -1,14 +1,18 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Navigation } from "@/components/Navigation";
 import { BrandMark } from "@/components/BrandMark";
+import { ConnectScreen } from "@/components/ConnectScreen";
 import { CreateTreasuryModal } from "@/components/CreateTreasuryModal";
 import { DemoTourModal } from "@/components/DemoTourModal";
 import { EnvironmentBadge } from "@/components/EnvironmentBadge";
 import { useDemoData } from "@/context/DemoDataContext";
+import { useWallet } from "@/context/WalletContext";
+import { authenticationBlockReason } from "@/lib/auth-gate";
+import { coholdConfig } from "@/lib/cohold-config";
 import { APP_NAV, APP_ROUTES, navKeyFromPathname, type AppNavKey } from "@/lib/app-routes";
 import {
   LayoutDashboard,
@@ -51,6 +55,42 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
   } = useDemoData();
 
   const pendingProposalsCount = proposals.filter((p) => p.status === "pending").length;
+
+  const {
+    isFreighterConnected,
+    isWalletNetworkAllowed,
+    walletDiagnostics,
+    walletRestoring,
+    demoEntered,
+  } = useWallet();
+  const authBlockReason = useMemo(
+    () =>
+      authenticationBlockReason(coholdConfig, {
+        connected: isFreighterConnected,
+        networkAllowed: isWalletNetworkAllowed,
+        diagnostics: walletDiagnostics,
+        demoEntered,
+      }),
+    [isFreighterConnected, isWalletNetworkAllowed, walletDiagnostics, demoEntered]
+  );
+
+  // The mount-time wallet restore is still running: never flash the connect
+  // screen at a user who already granted access. Resolves in a few hundred
+  // ms to either the dashboard (grant exists) or the connect screen (fresh
+  // visitor).
+  if (walletRestoring) {
+    return (
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-3 bg-slate-950 text-slate-100">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500/30 border-t-emerald-400" />
+        <p className="text-sm text-slate-400">Restoring your wallet session…</p>
+      </div>
+    );
+  }
+
+  // Identity-first entry: the dashboard is unreachable until the visitor is
+  // authenticated (wallet on Testnet with healthy resources, or a demo
+  // persona entered). Connecting from the gate routes to /overview.
+  if (authBlockReason !== null) return <ConnectScreen />;
 
   return (
     <div className="min-h-[100dvh] bg-slate-950 text-slate-100 flex flex-col selection:bg-emerald-500/30 selection:text-emerald-200">

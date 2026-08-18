@@ -71,7 +71,7 @@ export function WalletSetupState({ diagnostics, onRetry }: WalletSetupStateProps
             : failed
             ? "Stellar Testnet resource checks failed. Contribute, propose, approve, and execute stay disabled until every check passes. Demo fixture treasuries are not shown as a substitute."
             : isConfigured
-            ? "The Testnet contract and token identifiers are configured, so treasuries, proposals, and activity can be viewed. Deposits, proposals, approvals, and execution stay disabled in wallet mode; run the app in demo mode for the fixture walkthrough."
+            ? "The Testnet contract and token identifiers are configured and healthy. This demo-specific view stays disabled in wallet mode; wallet-aware treasuries, proposals, and actions open from the dashboard once your Testnet wallet is connected."
             : "Cohold is running in wallet mode, but its Testnet contract and token identifiers are not configured. Spending, deposits, proposals, and approvals are disabled until the setup is complete."}
         </p>
         {failed && (
@@ -128,6 +128,13 @@ export function WalletSetupState({ diagnostics, onRetry }: WalletSetupStateProps
  * Fail-closed gate shared by every wallet-mode view: returns the setup/
  * unavailable state whenever wallet setup is incomplete or a resource check
  * failed, and null when the view may render chain data.
+ *
+ * Responsibility split with the shell gate (`ConnectScreen` in DemoShell):
+ * the shell gate owns identity and network (Freighter connected, Testnet,
+ * persona entry for demo mode); this hook owns contract-health blocking
+ * (missing/incorrect env configuration and failed RPC/contract/token
+ * checks), which stays per-view so a healthy treasury view can render while
+ * an unhealthy one explains its own failure.
  */
 export function useWalletResourceGate(): ReactNode {
   const { walletDiagnostics, runWalletDiagnostics } = useWallet();

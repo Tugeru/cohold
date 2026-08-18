@@ -1042,7 +1042,7 @@ export interface StellarProposalExecutorOptions {
  * Without this, an Err-returning contract would ask the wallet to sign a
  * transaction that fails on submission.
  */
-function simulationErrorOf(
+export function simulationErrorOf(
   tx: contract.AssembledTransaction<unknown>,
 ): Error | null {
   const simulation = tx.simulation as

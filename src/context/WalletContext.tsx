@@ -41,8 +41,22 @@ interface WalletContextType {
   activePersona: Persona;
   setActivePersona: (p: Persona) => void;
   personas: Persona[];
+  /**
+   * Demo-mode "logged in" flag for this browser session: true once a persona
+   * has been picked from the landing or the shell gate. Survives reloads via
+   * sessionStorage; independent of active persona (the switcher may change
+   * which persona acts without re-entering).
+   */
+  demoEntered: boolean;
+  /** Demo-mode connect: pick a persona and mark the session as entered. */
+  enterDemo: (persona: Persona) => void;
   isFreighterConnected: boolean;
   freighterAddress: string | null;
+  /**
+   * True while the mount-time session restore is running (wallet mode).
+   * While true the shell must not ask for a connection.
+   */
+  walletRestoring: boolean;
   connectFreighter: () => Promise<void>;
   disconnectFreighter: () => void;
   walletStatus: WalletStatus;
@@ -72,8 +86,22 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [activePersona, setActivePersonaState] = useState<Persona>(
     () => initialDemoActor(coholdConfig)
   );
+  /**
+   * Demo-mode "logged in" flag. Flips ONLY via `enterDemo` (an explicit
+   * persona pick); never restored from storage — every fresh page load asks
+   * again, so a visitor is never authenticated without having clicked.
+   */
+  const [demoEntered, setDemoEnteredState] = useState<boolean>(false);
   const [isFreighterConnected, setIsFreighterConnected] = useState(false);
   const [freighterAddress, setFreighterAddress] = useState<string | null>(null);
+  /**
+   * True while the mount-time session restore is running (wallet mode).
+   * The shell shows a restoring state instead of the connect screen, so a
+   * reload never asks a user who already granted access to connect again.
+   */
+  const [walletRestoring, setWalletRestoring] = useState(
+    () => coholdConfig.mode === "wallet",
+  );
   const [walletStatus, setWalletStatus] = useState<WalletStatus>("disconnected");
   const [walletNetwork, setWalletNetwork] = useState<string | null>(null);
   const [walletNetworkPassphrase, setWalletNetworkPassphrase] = useState<string | null>(null);
@@ -169,12 +197,18 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     applyConnectionResult(result);
   }, [applyConnectionResult]);
 
+  // Auto-restore the Freighter session on mount (wallet mode): the grant
+  // persists in Freighter, so a reload or a hard navigation must not throw
+  // the user back to the connect screen. The check never prompts —
+  // restoreFreighter only reads the existing grant. Demo mode stays
+  // click-only: the persona picker is the demo login and always asks.
   useEffect(() => {
+    if (coholdConfig.mode !== "wallet") return;
     let cancelled = false;
     void restoreFreighter().then((result) => {
-      if (!cancelled && result.status !== "not-installed") {
-        applyConnectionResult(result);
-      }
+      if (cancelled) return;
+      applyConnectionResult(result);
+      setWalletRestoring(false);
     });
     return () => {
       cancelled = true;
@@ -210,6 +244,15 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       setActivePersonaState(persona);
     }
   }, [isFreighterConnected]);
+
+  const enterDemo = useCallback(
+    (persona: Persona) => {
+      if (coholdConfig.mode !== "demo" || isFreighterConnected) return;
+      setActivePersonaState(persona);
+      setDemoEnteredState(true);
+    },
+    [isFreighterConnected]
+  );
 
   const signTransaction = useCallback(async (transactionXdr: string) => {
     if (!isFreighterConnected || !freighterAddress) {
@@ -281,8 +324,11 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         activePersona,
         setActivePersona,
         personas,
+        demoEntered,
+        enterDemo,
         isFreighterConnected,
         freighterAddress,
+        walletRestoring,
         connectFreighter,
         disconnectFreighter,
         walletStatus,

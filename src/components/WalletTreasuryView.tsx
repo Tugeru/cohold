@@ -8,7 +8,8 @@ import {
   loadWalletTreasury,
   stellarCoholdRpc,
 } from "@/lib/contract-adapter";
-import { coholdConfig, isConfiguredWalletTreasury } from "@/lib/cohold-config";
+import { coholdConfig } from "@/lib/cohold-config";
+import { isKnownWalletTreasury } from "@/lib/treasury-registry";
 import { formatBaseAmount } from "@/lib/money";
 import { APP_ROUTES, walletExplorerUrl, walletProposalHref } from "@/lib/app-routes";
 import { useWallet } from "@/context/WalletContext";
@@ -59,7 +60,7 @@ export function WalletTreasuryView({ id }: { id: string }) {
 
   useEffect(() => {
     // Unknown IDs must not trigger chain reads at all.
-    if (!isConfiguredWalletTreasury(config, id)) return;
+    if (!isKnownWalletTreasury(config, id)) return;
     let cancelled = false;
     async function load() {
       setState({ status: "loading" });
@@ -108,11 +109,11 @@ export function WalletTreasuryView({ id }: { id: string }) {
   if (walletGate) {
     return walletGate;
   }
-  if (!isConfiguredWalletTreasury(config, id)) {
+  if (!isKnownWalletTreasury(config, id)) {
     return (
       <NotFoundStatus
         title="Treasury not found"
-        message="This contract is not in the configured wallet treasury list. Only the contract IDs in your environment configuration are available."
+        message="This contract is not a treasury you know about — check that its id is in your environment configuration or that it was created from this browser."
         href={APP_ROUTES.treasuries}
         hrefLabel="Back to treasuries"
       />

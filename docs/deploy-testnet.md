@@ -4,6 +4,12 @@ One command deploys two initialized Testnet treasuries from the reviewed Cohold
 Wasm, records a secret-free manifest, and prints the `NEXT_PUBLIC_*` values for
 wallet mode.
 
+> **Not the only path.** The app itself can create a treasury on Testnet from
+> a connected Freighter wallet (Create Treasury on `/overview` — upload
+> Wasm, create instance, initialize), which registers the id locally without
+> env edits. The bootstrap below is for scripted, canonical setups and
+> power users.
+
 ## Prerequisites
 
 - `stellar` CLI 27+ on `PATH` (`stellar --version`).

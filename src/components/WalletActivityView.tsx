@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { coholdConfig, configuredContractIds } from "@/lib/cohold-config";
+import { coholdConfig } from "@/lib/cohold-config";
+import { walletTreasuryContractIds } from "@/lib/treasury-registry";
 import {
   loadWalletActivity,
   stellarCoholdRpc,
@@ -117,7 +118,7 @@ export function WalletActivityView() {
 
   const refresh = useCallback(() => setLoadKey((key) => key + 1), []);
   const contractIds = useMemo(
-    () => configuredContractIds(config),
+    () => walletTreasuryContractIds(config),
     [config],
   );
 

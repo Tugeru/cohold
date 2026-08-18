@@ -51,6 +51,9 @@ port).
 
 Demo mode requires no wallet, no Postgres, and no deployed contract:
 
+- The landing page is the entry: pick a persona to enter (the demo login);
+  the dashboard routes are gated until then. Entry is click-only for the
+  current page load — a reload or fresh visit asks you to pick again.
 - Deterministic fixture treasuries/proposals load from the in-memory mock
   (leave `DATABASE_URL` empty).
 - Persona switching is available; every demo mutation (treasury, proposal,
@@ -59,7 +62,8 @@ Demo mode requires no wallet, no Postgres, and no deployed contract:
 - Demo reset restores the canonical dataset. Use **Wallet / Settings →
   Reset to Default State** (demo mode only), or
   `POST /api/stellar/reset-demo`. The UI states that no Testnet balance
-  changed: the reset touches fixtures only.
+  changed: the reset touches fixtures only. Reset does not clear the persona
+  entry state.
 - The shell shows a visible Demo / Testnet-simulation status.
 
 One demo-mode exception: the **Get Testnet XLM (Friendbot)** button on
@@ -83,6 +87,24 @@ action or confirmation.
 Wallet mode drives state through configured Soroban contracts on Stellar
 Testnet with Freighter signatures and Stellar RPC reads.
 
+Entry is identity-first: the landing page hosts the Connect Wallet action and
+the dashboard routes stay gated until Freighter is connected on Testnet with
+healthy resource checks (demo mode uses the persona picker instead — see §2).
+In wallet mode the Freighter grant is restored automatically on every page
+load (`restoreFreighter` reads the existing grant without prompting), so a
+reload or a hard navigation — e.g. clicking into a treasury card — never asks
+an already-connected user to connect again; fresh visitors without a grant
+see the Connect screen. Demo mode stays click-only per page load. Both modes
+route to `/overview` after connecting: demo renders the persona dashboard,
+wallet mode renders the chain-driven wallet overview — the connected wallet's
+treasuries (where it is a member; created ones included) and their proposals
+read from RPC, with per-treasury actions (add funds, propose,
+approve, execute) reachable from the treasury and proposal routes it links
+to. `/treasuries` lists exactly the treasuries the connected wallet is a
+member of (the contract locks the creator in as a member, so created
+treasuries are included, marked "You created this"); every card opens the
+treasury's `/treasuries/[id]` page.
+
 ### 3.1 Install and configure Freighter
 
 1. Install the Freighter browser extension.
@@ -102,9 +124,13 @@ NEXT_PUBLIC_STELLAR_TOKEN_ID=C...      # Testnet SAC token contract
 ```
 
 Contract IDs are the `C...` addresses printed by the Soroban/Stellar CLI
-workflow that deployed the contracts. **Each contract instance is one
+workflow that deployed the contracts, **or** the id returned by the in-app
+**Create Treasury** flow on `/overview`, which deploys a Cohold instance
+from the connected Freighter wallet (three signed transactions; the new id is
+registered locally and needs no env edit). **Each contract instance is one
 treasury**; a multi-treasury setup uses one contract per treasury via
-`NEXT_PUBLIC_STELLAR_CONTRACT_ID` + `NEXT_PUBLIC_STELLAR_CONTRACT_IDS`.
+`NEXT_PUBLIC_STELLAR_CONTRACT_ID` + `NEXT_PUBLIC_STELLAR_CONTRACT_IDS`,
+or simply creates them in-app.
 
 ### 3.3 Fund the wallet
 
@@ -134,9 +160,10 @@ adapters only and never override chain financial or governance state.
 
 Out of scope in this MVP slice:
 
-- **Create Treasury stays demo-only.** Wallet-mode creation is deferred until
-  a follow-on deploy/factory change. Do not present it as a working on-chain
-  action.
+- **In-app Create Treasury is wallet-mode supported** (deploys a real
+  contract from the Freighter wallet — three signed transactions: upload
+  Wasm, create instance, initialize). It stays demo-only for synthetic
+  fixtures, which remain unavailable in wallet mode.
 - Fixture personas and synthetic success paths are unavailable in wallet
   mode. State-changing controls are disabled until contract/token IDs are
   configured (`WalletSetupState` explains the exact gap).

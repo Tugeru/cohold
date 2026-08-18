@@ -85,6 +85,25 @@ Landing
 → Dashboard
 ```
 
+Implemented by the `wallet-connect-gate` change: the landing page hosts the
+Connect Wallet action and every dashboard route is gated behind identity —
+Freighter connected on Testnet with healthy resources in wallet mode, persona
+entry in demo mode. The wallet grant is restored automatically on every page
+load (no prompt), so a reload or a hard navigation never re-asks an
+already-connected user to connect. Both modes route to `/overview` after
+entry: demo renders the persona dashboard, wallet mode renders the
+chain-driven wallet overview, which reads the wallet's treasuries — where it
+is a member, created ones included (the contract locks the creator into the
+member list) — and their proposals from RPC and
+links into the on-chain actions (add funds, propose, approve, execute). The
+`/treasuries` page shows the same member-scoped set (with a "You created
+this" mark on created treasuries) and every card opens the treasury detail
+page `/treasuries/[id]`.
+
+Demo mode equivalent: the landing persona picker is the demo login. Entry is
+click-only for the current page load — a reload or fresh visit asks to pick
+again, and a visitor is never authenticated without clicking.
+
 If demo mode has no treasury:
 
 ```text
@@ -107,8 +126,16 @@ Demo mode must allow a user to create a fixture treasury with:
 - approval threshold;
 - configured demo asset.
 
-Wallet-mode on-chain Create Treasury is deferred in this MVP; wallet mode
-opens configured Testnet treasury contracts instead.
+Wallet mode creates treasuries in-app: **Create Treasury** on `/overview`
+deploys a real Cohold treasury instance on Testnet from the connected
+Freighter wallet. Deployment is three signed transactions — upload the
+contract code, create the instance, initialize members/threshold/name — each
+simulated before signing, with Testnet XLM fees paid from the wallet (never
+real money). On success the new contract id is registered locally and
+appears on the overview, `/treasuries`, `/activity`, and proposal routes
+immediately — no env edit or server restart. CLI deployment
+(`npm run testnet:bootstrap`, `docs/deploy-testnet.md`) remains available for
+scripted setups but is not required.
 
 Example:
 

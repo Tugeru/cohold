@@ -4,6 +4,7 @@ import {
   buildProposalView,
   buildTreasuryView,
   currentUserApprovalState,
+  isWalletMemberOfTreasury,
   loadWalletActivity,
   loadWalletProposal,
   loadWalletProposalViews,
@@ -266,6 +267,52 @@ describe("buildTreasuryView", () => {
     expect(view.membersAuthoritative).toBe(false);
     expect(view.tokenSymbol).toBeNull();
     expect(view.tokenDecimals).toBeNull();
+  });
+});
+
+describe("isWalletMemberOfTreasury", () => {
+  const view = buildTreasuryView({
+    contractId: CONTRACT,
+    config,
+    balance: 0n,
+    members: [MEMBER_ONE, MEMBER_TWO],
+    token: null,
+  });
+
+  it("is true when the wallet is in the member list, case-insensitively", () => {
+    expect(isWalletMemberOfTreasury(view, MEMBER_TWO)).toBe(true);
+    expect(isWalletMemberOfTreasury(view, MEMBER_TWO.toLowerCase())).toBe(true);
+  });
+
+  it("is false for a wallet outside the member list", () => {
+    expect(isWalletMemberOfTreasury(view, OUTSIDER)).toBe(false);
+  });
+
+  it("is false without a connected wallet", () => {
+    expect(isWalletMemberOfTreasury(view, null)).toBe(false);
+    expect(isWalletMemberOfTreasury(view, "")).toBe(false);
+  });
+
+  it("never claims membership from an unverified member list", () => {
+    const unverified = buildTreasuryView({
+      contractId: CONTRACT,
+      config,
+      balance: 0n,
+      members: null,
+      token: null,
+    });
+    expect(isWalletMemberOfTreasury(unverified, MEMBER_ONE)).toBe(false);
+  });
+
+  it("is false for an empty member list", () => {
+    const empty = buildTreasuryView({
+      contractId: CONTRACT,
+      config,
+      balance: 0n,
+      members: [],
+      token: null,
+    });
+    expect(isWalletMemberOfTreasury(empty, MEMBER_ONE)).toBe(false);
   });
 });
 

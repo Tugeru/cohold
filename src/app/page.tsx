@@ -1,8 +1,6 @@
-import Link from "next/link";
 import { BrandMark } from "@/components/BrandMark";
 import { EnvironmentBadge } from "@/components/EnvironmentBadge";
-import { coholdConfig } from "@/lib/cohold-config";
-import { APP_ROUTES, createTreasuryHref } from "@/lib/app-routes";
+import { LandingConnect } from "@/components/LandingConnect";
 
 export default function LandingPage() {
   return (
@@ -33,36 +31,7 @@ export default function LandingPage() {
             Execution happens after the threshold, not after one officer decides.
           </p>
           <div className="flex flex-wrap items-center gap-3">
-            {coholdConfig.modeConfigured && coholdConfig.mode === "demo" ? (
-              <Link
-                href={APP_ROUTES.overview}
-                className="inline-flex items-center rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-500"
-              >
-                View Demo
-              </Link>
-            ) : (
-              <Link
-                href={APP_ROUTES.treasuries}
-                className="inline-flex items-center rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-500"
-              >
-                Open Treasuries
-              </Link>
-            )}
-            {coholdConfig.modeConfigured && coholdConfig.mode === "demo" ? (
-              <Link
-                href={createTreasuryHref()}
-                className="inline-flex items-center rounded-xl border border-slate-700 bg-slate-900 px-5 py-2.5 text-sm font-semibold text-slate-100 hover:border-slate-500"
-              >
-                Create Treasury
-              </Link>
-            ) : (
-              <Link
-                href={APP_ROUTES.wallet}
-                className="inline-flex items-center rounded-xl border border-slate-700 bg-slate-900 px-5 py-2.5 text-sm font-semibold text-slate-100 hover:border-slate-500"
-              >
-                Open Wallet
-              </Link>
-            )}
+            <LandingConnect />
           </div>
         </section>
 
@@ -79,12 +48,12 @@ export default function LandingPage() {
           </p>
           <dl className="mt-6 grid gap-3 text-xs text-slate-400">
             <div className="flex items-center justify-between border-t border-slate-800 pt-3">
-              <dt>Public landing</dt>
-              <dd className="font-mono text-slate-200">no wallet required</dd>
+              <dt>Entry</dt>
+              <dd className="font-mono text-slate-200">connect to enter</dd>
             </div>
             <div className="flex items-center justify-between border-t border-slate-800 pt-3">
-              <dt>Demo data</dt>
-              <dd className="font-mono text-slate-200">fixture treasuries</dd>
+              <dt>Dashboard</dt>
+              <dd className="font-mono text-slate-200">after identity check</dd>
             </div>
           </dl>
         </aside>
