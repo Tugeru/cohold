@@ -31,6 +31,10 @@ const WASM_CANDIDATES = [
   join(ROOT, "target", "wasm32v1-none", "release", "cohold.wasm"),
   join(ROOT, "target", "wasm32-unknown-unknown", "release", "cohold.wasm"),
 ];
+const FACTORY_WASM_CANDIDATES = [
+  join(ROOT, "target", "wasm32v1-none", "release", "cohold_factory.wasm"),
+  join(ROOT, "target", "wasm32-unknown-unknown", "release", "cohold_factory.wasm"),
+];
 const MANIFEST_PATH = join(ROOT, "deployments", "testnet.json");
 const MANIFEST_BACKUP_DIR = join(ROOT, "deployments", "archive");
 
@@ -73,6 +77,7 @@ export function buildManifest({
   tokenId,
   gitSha,
   wasmSha256,
+  factoryId,
   timestamp,
   identities,
   treasuries,
@@ -84,6 +89,7 @@ export function buildManifest({
     tokenId,
     gitSha,
     wasmSha256,
+    factoryId,
     timestamp,
     identities,
     treasuries,
@@ -261,26 +267,39 @@ function verifyTreasury(spec, pub, contractId, tokenId) {
 
 function usage() {
   console.log(
-    `Usage: node scripts/testnet-bootstrap.mjs [--force]
+    `Usage: node scripts/testnet-bootstrap.mjs [--force | --factory-only]
 
 Deploys and initializes two Testnet treasuries from the reviewed Cohold Wasm,
-writes deployments/testnet.json (refuses to overwrite without --force), and
-prints the NEXT_PUBLIC_* values for .env. See docs/deploy-testnet.md.`,
+deploys the CoholdFactory contract, writes deployments/testnet.json (refuses
+to overwrite without --force), and prints the NEXT_PUBLIC_* values for .env.
+--factory-only deploys just the factory and updates an existing manifest.
+See docs/deploy-testnet.md.`,
   );
 }
 
 function main() {
   const force = process.argv.includes("--force");
+  const factoryOnly = process.argv.includes("--factory-only");
 
-  if (existsSync(MANIFEST_PATH)) {
-    if (!force) {
-      throw new Error(
-        `${MANIFEST_PATH} already exists. Treasuries are not re-deployed by ` +
-          "accident: pass --force to deploy fresh instances and overwrite the " +
-          "manifest (previous instances become orphans; a backup is kept).",
-      );
-    }
-    const prev = JSON.parse(readFileSync(MANIFEST_PATH, "utf8"));
+  const existingManifest = existsSync(MANIFEST_PATH)
+    ? JSON.parse(readFileSync(MANIFEST_PATH, "utf8"))
+    : null;
+  if (factoryOnly && !existingManifest) {
+    throw new Error(
+      `${MANIFEST_PATH} not found. Run the full bootstrap first so the ` +
+        "manifest exists; --factory-only then adds/updates only the factory.",
+    );
+  }
+  if (existingManifest && !factoryOnly && !force) {
+    throw new Error(
+      `${MANIFEST_PATH} already exists. Treasuries are not re-deployed by ` +
+        "accident: pass --force to deploy fresh instances and overwrite the " +
+        "manifest (previous instances become orphans; a backup is kept), or " +
+        "pass --factory-only to deploy just the factory.",
+    );
+  }
+  if (existingManifest && !factoryOnly) {
+    const prev = existingManifest;
     mkdirSync(MANIFEST_BACKUP_DIR, { recursive: true });
     const backup = join(
       MANIFEST_BACKUP_DIR,
@@ -323,39 +342,58 @@ function main() {
   ]).trim();
 
   const treasuries = [];
-  for (const spec of TREASURIES) {
-    console.log(`Deploying treasury ${spec.key} (${spec.name})...`);
-    const contractId = deploy(wasmPath);
-    console.log(`  contract ${contractId}`);
-    console.log(`Initializing ${spec.key}...`);
-    initialize(spec, pub, contractId, tokenId);
-    verifyTreasury(spec, pub, contractId, tokenId);
-    console.log(`  sanity ok (config, members, balance).`);
-    treasuries.push({
-      key: spec.key,
-      name: spec.name,
-      id: contractId,
-      creator: pub[spec.creator],
-      members: spec.members.map((role) => pub[role]),
-      threshold: spec.threshold,
-    });
+  if (!factoryOnly) {
+    for (const spec of TREASURIES) {
+      console.log(`Deploying treasury ${spec.key} (${spec.name})...`);
+      const contractId = deploy(wasmPath);
+      console.log(`  contract ${contractId}`);
+      console.log(`Initializing ${spec.key}...`);
+      initialize(spec, pub, contractId, tokenId);
+      verifyTreasury(spec, pub, contractId, tokenId);
+      console.log(`  sanity ok (config, members, balance).`);
+      treasuries.push({
+        key: spec.key,
+        name: spec.name,
+        id: contractId,
+        creator: pub[spec.creator],
+        members: spec.members.map((role) => pub[role]),
+        threshold: spec.threshold,
+      });
+    }
   }
+
+  console.log("Building CoholdFactory Wasm...");
+  run("stellar", ["contract", "build", "--package", "cohold-factory"]);
+  const factoryWasmPath = FACTORY_WASM_CANDIDATES.find((path) => existsSync(path));
+  if (!factoryWasmPath) {
+    throw new Error(
+      `expected built factory Wasm at one of: ${FACTORY_WASM_CANDIDATES.join(", ")}`,
+    );
+  }
+  console.log("Deploying CoholdFactory...");
+  const factoryId = deploy(factoryWasmPath);
+  console.log(`  factory ${factoryId}`);
 
   const manifest = buildManifest({
     rpc,
     tokenId,
     gitSha,
     wasmSha256,
-    timestamp: new Date().toISOString(),
+    factoryId,
+    timestamp: factoryOnly ? existingManifest.timestamp : new Date().toISOString(),
     identities: pub,
-    treasuries,
+    treasuries: factoryOnly ? existingManifest.treasuries : treasuries,
   });
   mkdirSync(dirname(MANIFEST_PATH), { recursive: true });
   writeFileSync(MANIFEST_PATH, `${JSON.stringify(manifest, null, 2)}\n`);
   console.log(`Manifest written to ${MANIFEST_PATH}.`);
 
-  const primary = treasuries.find((t) => t.key === "A").id;
-  const extras = treasuries.map((t) => t.id).join(",");
+  const primary = (factoryOnly ? existingManifest.treasuries : treasuries).find(
+    (t) => t.key === "A",
+  ).id;
+  const extras = (factoryOnly ? existingManifest.treasuries : treasuries)
+    .map((t) => t.id)
+    .join(",");
   console.log("");
   console.log("Add to .env for wallet mode:");
   console.log("NEXT_PUBLIC_COHOLD_MODE=wallet");
@@ -363,6 +401,7 @@ function main() {
   console.log(`NEXT_PUBLIC_STELLAR_CONTRACT_ID=${primary}`);
   console.log(`NEXT_PUBLIC_STELLAR_CONTRACT_IDS=${extras}`);
   console.log(`NEXT_PUBLIC_STELLAR_TOKEN_ID=${tokenId}`);
+  console.log(`NEXT_PUBLIC_COHOLD_FACTORY_ID=${factoryId}`);
 }
 
 const isMain =

@@ -121,13 +121,17 @@ NEXT_PUBLIC_STELLAR_NETWORK=TESTNET
 NEXT_PUBLIC_STELLAR_CONTRACT_ID=C...   # deployed Cohold treasury contract
 NEXT_PUBLIC_STELLAR_CONTRACT_IDS=      # optional extra treasuries, comma-separated
 NEXT_PUBLIC_STELLAR_TOKEN_ID=C...      # Testnet SAC token contract
+NEXT_PUBLIC_COHOLD_FACTORY_ID=C...     # CoholdFactory; required for in-app creation
 ```
 
 Contract IDs are the `C...` addresses printed by the Soroban/Stellar CLI
 workflow that deployed the contracts, **or** the id returned by the in-app
-**Create Treasury** flow on `/overview`, which deploys a Cohold instance
-from the connected Freighter wallet (three signed transactions; the new id is
-registered locally and needs no env edit). **Each contract instance is one
+**Create Treasury** flow on `/overview`, which asks Freighter for one
+signature: the CoholdFactory contract deploys a fresh Cohold instance from
+the already-uploaded Cohold Wasm and initializes members/threshold/name in
+the same call. The new id is registered locally (no env edit, no restart)
+and listed on-chain by the factory, so it appears on any other device for
+the same wallet or its co-members. **Each contract instance is one
 treasury**; a multi-treasury setup uses one contract per treasury via
 `NEXT_PUBLIC_STELLAR_CONTRACT_ID` + `NEXT_PUBLIC_STELLAR_CONTRACT_IDS`,
 or simply creates them in-app.
@@ -160,10 +164,10 @@ adapters only and never override chain financial or governance state.
 
 Out of scope in this MVP slice:
 
-- **In-app Create Treasury is wallet-mode supported** (deploys a real
-  contract from the Freighter wallet — three signed transactions: upload
-  Wasm, create instance, initialize). It stays demo-only for synthetic
-  fixtures, which remain unavailable in wallet mode.
+- **In-app Create Treasury is wallet-mode supported** (one Freighter
+  signature: the CoholdFactory deploys and initializes the instance from
+  the on-ledger Cohold Wasm). It stays demo-only for synthetic fixtures,
+  which remain unavailable in wallet mode.
 - Fixture personas and synthetic success paths are unavailable in wallet
   mode. State-changing controls are disabled until contract/token IDs are
   configured (`WalletSetupState` explains the exact gap).

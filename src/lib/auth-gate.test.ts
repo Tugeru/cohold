@@ -16,6 +16,7 @@ const walletConfig: CoholdConfig = {
   tokenId: "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC",
   rpcUrl: null,
   walletSetupComplete: true,
+  factoryId: null,
 };
 
 const demoConfig: CoholdConfig = { ...walletConfig, mode: "demo" };

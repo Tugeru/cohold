@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { coholdConfig } from "@/lib/cohold-config";
+import { coholdConfig, configuredRpcUrl } from "@/lib/cohold-config";
+import { ensureFactoryTreasuryDiscovery } from "@/lib/treasury-discovery";
 import { walletTreasuryContractIds } from "@/lib/treasury-registry";
 import {
   loadWalletActivity,
@@ -111,16 +112,32 @@ type ActivityState =
 export function WalletActivityView() {
   const config = coholdConfig;
   const walletGate = useWalletResourceGate();
+  const { freighterAddress } = useWallet();
   const rpc = useMemo(() => stellarCoholdRpc(), []);
   const [state, setState] = useState<ActivityState>({ status: "loading" });
   const [loadKey, setLoadKey] = useState(0);
   const [filter, setFilter] = useState<ActivityFilter>("all");
 
   const refresh = useCallback(() => setLoadKey((key) => key + 1), []);
-  const contractIds = useMemo(
-    () => walletTreasuryContractIds(config),
-    [config],
+  const [contractIds, setContractIds] = useState(() =>
+    walletTreasuryContractIds(config),
   );
+
+  // Factory-created treasuries appear after one discovery read; the load
+  // effect below re-runs because contractIds is part of its deps.
+  useEffect(() => {
+    let cancelled = false;
+    void ensureFactoryTreasuryDiscovery(
+      config,
+      freighterAddress,
+      configuredRpcUrl(config),
+    ).then(() => {
+      if (!cancelled) setContractIds(walletTreasuryContractIds(config));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [config, freighterAddress]);
 
   useEffect(() => {
     let cancelled = false;

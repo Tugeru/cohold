@@ -3,8 +3,9 @@
   "rpc": "https://soroban-testnet.stellar.org/",
   "asset": "native",
   "tokenId": "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC",
-  "gitSha": "a3ac5612fae5068938179574471afec8940785c5",
+  "gitSha": "cb32427cd1e73f84481a77185a44cec00fc3217f",
   "wasmSha256": "aa33eea8aa948a1b9043d0fcfa86fc057f1d649abab45fccc8bd070e63ff7616",
+  "factoryId": "CC5JTHXOPHXL4XWSNGSOCZF5QGGLK7J2NQ44SRGQTMIZKQUHBJMNHVQS",
   "timestamp": "2026-08-17T22:30:04.669Z",
   "identities": {
     "deployer": "GD35TQ5Y7NU2OSL6CZ7ZVSDBMDIETPRZDQNK4DBV24Y3NLP6SY2C5PXX",

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["contracts/cohold"]
+members = ["contracts/cohold", "contracts/cohold-factory"]
 
 [workspace.package]
 edition = "2021"

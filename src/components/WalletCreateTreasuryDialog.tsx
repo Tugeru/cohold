@@ -28,12 +28,10 @@ import {
   X,
 } from "lucide-react";
 
-const STAGE_ORDER: TreasuryDeployStageName[] = ["upload", "create", "initialize"];
+const STAGE_ORDER: TreasuryDeployStageName[] = ["create"];
 
 const STAGE_LABELS: Record<TreasuryDeployStageName, string> = {
-  upload: "Deploy the Cohold contract code",
   create: "Create your treasury on-chain",
-  initialize: "Set up members and rules",
 };
 
 const TX_STATE_LABELS: Record<TreasuryTxState, string> = {
@@ -89,12 +87,14 @@ function outcomeMessage(outcome: TreasuryDeployOutcome): string {
 }
 
 /**
- * Wallet-mode "Create Treasury" dialog. Deploys a real Cohold treasury
- * instance on Stellar Testnet from the connected Freighter wallet: three
- * signed transactions (upload contract code, create the instance, initialize
- * members/threshold/name), each simulated before signing. On success the new
- * contract id is registered locally so the overview and treasury list pick it
- * up immediately — no env edit, no restart.
+ * Wallet-mode "Create Treasury" dialog. Creates a real Cohold treasury
+ * instance on Stellar Testnet from the connected Freighter wallet with one
+ * signed transaction: the CoholdFactory contract deploys a fresh Cohold
+ * instance and initializes members/threshold/name in a single call, simulated
+ * before signing. On success the new contract id is registered locally so the
+ * overview and treasury list pick it up immediately — no env edit, no
+ * restart — and the factory's on-chain treasury list makes it discoverable
+ * on any other device for the same wallet or its co-members.
  */
 export function WalletCreateTreasuryDialog({
   onClose,
@@ -113,6 +113,7 @@ export function WalletCreateTreasuryDialog({
       createTreasuryDeployFlow({
         executor: stellarTreasuryDeployExecutor({
           rpcUrl: configuredRpcUrl(coholdConfig),
+          factoryId: coholdConfig.factoryId,
         }),
         fetchWasm: fetchCoholdWasm,
         signTransaction,
@@ -162,6 +163,12 @@ export function WalletCreateTreasuryDialog({
       return;
     }
     if (!creatorAddress || !coholdConfig.tokenId) return;
+    if (!coholdConfig.factoryId) {
+      setFormError(
+        "The treasury factory is not configured on this deployment (NEXT_PUBLIC_COHOLD_FACTORY_ID).",
+      );
+      return;
+    }
 
     busyRef.current = true;
     setFormError(null);
@@ -338,8 +345,8 @@ export function WalletCreateTreasuryDialog({
                   <ShieldCheck className="h-3.5 w-3.5 text-emerald-300" />
                   What happens
                 </div>
-                Three transactions are signed in Freighter: deploy the treasury contract, create
-                your instance, and set up members and rules. Your wallet pays the fees in Testnet
+                One transaction is signed in Freighter: the factory deploys your treasury and
+                sets up members and rules in the same call. Your wallet pays the fee in Testnet
                 XLM — no real money is ever used.
               </div>
             </div>
@@ -363,51 +370,22 @@ export function WalletCreateTreasuryDialog({
 
         {stage.kind === "deploying" && (
           <div className="space-y-4 p-5">
-            <ol className="space-y-3">
-              {STAGE_ORDER.map((stageName, index) => {
-                const isActive = index === stage.stageIndex;
-                const isDone = index < stage.stageIndex;
-                return (
-                  <li key={stageName} className="flex items-start gap-3">
-                    <span
-                      className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
-                        isDone
-                          ? "bg-emerald-500/20 text-emerald-300"
-                          : isActive
-                            ? "bg-emerald-500 text-white"
-                            : "bg-slate-800 text-slate-500"
-                      }`}
-                    >
-                      {isDone ? (
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                      ) : isActive ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <span className="text-[10px] font-bold">{index + 1}</span>
-                      )}
-                    </span>
-                    <div className="min-w-0">
-                      <div
-                        className={`text-xs font-semibold ${
-                          isDone || isActive ? "text-white" : "text-slate-500"
-                        }`}
-                      >
-                        {STAGE_LABELS[stageName]}
-                      </div>
-                      {isActive && (
-                        <div className="text-[11px] text-emerald-300">
-                          {TX_STATE_LABELS[stage.txState]}
-                        </div>
-                      )}
-                      {isDone && <div className="text-[11px] text-slate-500">Done</div>}
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              </span>
+              <div className="min-w-0">
+                <div className="text-xs font-semibold text-white">
+                  {STAGE_LABELS[STAGE_ORDER[stage.stageIndex]]}
+                </div>
+                <div className="text-[11px] text-emerald-300">
+                  {TX_STATE_LABELS[stage.txState]}
+                </div>
+              </div>
+            </div>
             <p className="text-[11px] text-slate-500">
-              Keep Freighter open — you&apos;ll be asked to approve each step. Nothing is created
-              until the last one confirms.
+              Keep Freighter open — you&apos;ll be asked to approve one signature. Nothing is
+              created until the transaction confirms.
             </p>
           </div>
         )}

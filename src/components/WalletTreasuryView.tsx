@@ -8,7 +8,8 @@ import {
   loadWalletTreasury,
   stellarCoholdRpc,
 } from "@/lib/contract-adapter";
-import { coholdConfig } from "@/lib/cohold-config";
+import { coholdConfig, configuredRpcUrl } from "@/lib/cohold-config";
+import { ensureFactoryTreasuryDiscovery } from "@/lib/treasury-discovery";
 import { isKnownWalletTreasury } from "@/lib/treasury-registry";
 import { formatBaseAmount } from "@/lib/money";
 import { APP_ROUTES, walletExplorerUrl, walletProposalHref } from "@/lib/app-routes";
@@ -55,12 +56,30 @@ export function WalletTreasuryView({ id }: { id: string }) {
   const [loadKey, setLoadKey] = useState(0);
   const [isContributeOpen, setIsContributeOpen] = useState(false);
   const [isCreateProposalOpen, setIsCreateProposalOpen] = useState(false);
+  // True once the factory treasury list has been read (or failed open), so
+  // an unknown id is only reported missing after discovery had its chance.
+  const [discoverySettled, setDiscoverySettled] = useState(false);
 
   const refresh = useCallback(() => setLoadKey((key) => key + 1), []);
 
   useEffect(() => {
-    // Unknown IDs must not trigger chain reads at all.
-    if (!isKnownWalletTreasury(config, id)) return;
+    let cancelled = false;
+    void ensureFactoryTreasuryDiscovery(
+      config,
+      freighterAddress,
+      configuredRpcUrl(config),
+    ).then(() => {
+      if (!cancelled) setDiscoverySettled(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [config, freighterAddress]);
+
+  useEffect(() => {
+    // Unknown IDs must not trigger chain reads at all. A factory-created
+    // treasury becomes known as soon as discovery settles.
+    if (!isKnownWalletTreasury(config, id) || !discoverySettled) return;
     let cancelled = false;
     async function load() {
       setState({ status: "loading" });
@@ -104,12 +123,15 @@ export function WalletTreasuryView({ id }: { id: string }) {
     return () => {
       cancelled = true;
     };
-  }, [rpc, id, config, freighterAddress, loadKey]);
+  }, [rpc, id, config, freighterAddress, loadKey, discoverySettled]);
 
   if (walletGate) {
     return walletGate;
   }
   if (!isKnownWalletTreasury(config, id)) {
+    if (!discoverySettled) {
+      return <DetailSkeleton />;
+    }
     return (
       <NotFoundStatus
         title="Treasury not found"

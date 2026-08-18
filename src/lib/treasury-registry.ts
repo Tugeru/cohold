@@ -1,5 +1,6 @@
 import type { CoholdConfig } from "@/lib/cohold-config";
 import { configuredContractIds } from "@/lib/cohold-config";
+import { factoryTreasuryIds } from "@/lib/treasury-discovery";
 import { isValidContractAddress } from "@/lib/stellar";
 
 // ---------------------------------------------------------------------------
@@ -82,9 +83,18 @@ export function isRegisteredTreasury(id: string | null | undefined): boolean {
   return Boolean(requested && registeredTreasuryIds().includes(requested));
 }
 
-/** Every treasury the wallet UI reads: env-configured plus locally created. */
+/**
+ * Every treasury the wallet UI reads: env-configured, locally created, and
+ * factory-created (discovered from the CoholdFactory on-chain list).
+ */
 export function walletTreasuryContractIds(config: CoholdConfig): string[] {
-  return [...new Set([...configuredContractIds(config), ...registeredTreasuryIds()])];
+  return [
+    ...new Set([
+      ...configuredContractIds(config),
+      ...registeredTreasuryIds(),
+      ...factoryTreasuryIds(),
+    ]),
+  ];
 }
 
 /** Configured or locally created treasury? Drives detail/proposal routing. */

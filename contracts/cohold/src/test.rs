@@ -2,7 +2,8 @@
 use super::*;
 use soroban_sdk::{
     testutils::{Address as _, MockAuth, MockAuthInvoke},
-    token::StellarAssetClient, vec, Address, Env, IntoVal, String, Vec,
+    token::StellarAssetClient,
+    vec, Address, Env, IntoVal, String, Vec,
 };
 
 const NAME: &str = "Test Treasury";
@@ -29,7 +30,9 @@ fn smoke_initialize_stores_treasury_state() {
     let creator = Address::generate(&env);
     let member_a = Address::generate(&env);
     let member_b = Address::generate(&env);
-    let token = env.register_stellar_asset_contract_v2(creator.clone()).address();
+    let token = env
+        .register_stellar_asset_contract_v2(creator.clone())
+        .address();
     let members = member_list(&env, &creator, &member_a, &member_b);
 
     let (_, client) = deploy(&env);
@@ -67,7 +70,9 @@ fn initialize_rejects_invalid_inputs() {
     env.mock_all_auths();
     let creator = Address::generate(&env);
     let member_a = Address::generate(&env);
-    let token = env.register_stellar_asset_contract_v2(creator.clone()).address();
+    let token = env
+        .register_stellar_asset_contract_v2(creator.clone())
+        .address();
     let name = String::from_str(&env, NAME);
 
     let (_, client) = deploy(&env);
@@ -121,11 +126,19 @@ fn getters_reflect_contributions_and_proposals() {
     let member_a = Address::generate(&env);
     let member_b = Address::generate(&env);
     let recipient = Address::generate(&env);
-    let token = env.register_stellar_asset_contract_v2(creator.clone()).address();
+    let token = env
+        .register_stellar_asset_contract_v2(creator.clone())
+        .address();
     let members = member_list(&env, &creator, &member_a, &member_b);
 
     let (_, client) = deploy(&env);
-    client.initialize(&creator, &token, &members, &2u32, &String::from_str(&env, NAME));
+    client.initialize(
+        &creator,
+        &token,
+        &members,
+        &2u32,
+        &String::from_str(&env, NAME),
+    );
 
     let token_client = StellarAssetClient::new(&env, &token);
     token_client.mint(&member_a, &1000i128);
@@ -202,11 +215,19 @@ fn execute_rejects_insufficient_balance() {
     env.mock_all_auths();
     let creator = Address::generate(&env);
     let recipient = Address::generate(&env);
-    let token = env.register_stellar_asset_contract_v2(creator.clone()).address();
+    let token = env
+        .register_stellar_asset_contract_v2(creator.clone())
+        .address();
     let members = vec![&env, creator.clone()];
 
     let (_, client) = deploy(&env);
-    client.initialize(&creator, &token, &members, &1u32, &String::from_str(&env, NAME));
+    client.initialize(
+        &creator,
+        &token,
+        &members,
+        &1u32,
+        &String::from_str(&env, NAME),
+    );
 
     // Threshold 1: the proposal is Approved at creation, but the treasury is empty.
     let proposal_id = client.create_proposal(
@@ -235,7 +256,9 @@ fn treasuries_do_not_share_balances() {
     let creator_a = Address::generate(&env);
     let member_a = Address::generate(&env);
     let creator_b = Address::generate(&env);
-    let token = env.register_stellar_asset_contract_v2(creator_a.clone()).address();
+    let token = env
+        .register_stellar_asset_contract_v2(creator_a.clone())
+        .address();
     let token_client = StellarAssetClient::new(&env, &token);
     token_client.mint(&member_a, &1000i128);
 
@@ -292,7 +315,9 @@ fn mutating_functions_require_actor_authorization() {
     let creator = Address::generate(&env);
     let member_a = Address::generate(&env);
     let recipient = Address::generate(&env);
-    let token = env.register_stellar_asset_contract_v2(creator.clone()).address();
+    let token = env
+        .register_stellar_asset_contract_v2(creator.clone())
+        .address();
     let members = vec![&env, creator.clone(), member_a.clone()];
     let name = String::from_str(&env, NAME);
     let desc = String::from_str(&env, "Auth-gated spend");
@@ -329,16 +354,14 @@ fn mutating_functions_require_actor_authorization() {
 
     // Same member, same arguments — but invocation not authorized: rejected.
     assert!(client.try_contribute(&member_a, &100i128).is_err());
-    assert!(
-        client
-            .try_create_proposal(
-                &member_a,
-                &recipient,
-                &100i128,
-                &String::from_str(&env, "Not authorized"),
-            )
-            .is_err()
-    );
+    assert!(client
+        .try_create_proposal(
+            &member_a,
+            &recipient,
+            &100i128,
+            &String::from_str(&env, "Not authorized"),
+        )
+        .is_err());
     assert!(client.try_approve(&member_a, &proposal_id).is_err());
 
     // Nothing was written by the rejected calls.
@@ -360,11 +383,19 @@ fn contribute_and_proposal_creation_reject_non_members_and_zero_amounts() {
     let member_a = Address::generate(&env);
     let outsider = Address::generate(&env);
     let recipient = Address::generate(&env);
-    let token = env.register_stellar_asset_contract_v2(creator.clone()).address();
+    let token = env
+        .register_stellar_asset_contract_v2(creator.clone())
+        .address();
     let members = vec![&env, creator.clone(), member_a.clone()];
 
     let (_, client) = deploy(&env);
-    client.initialize(&creator, &token, &members, &2u32, &String::from_str(&env, NAME));
+    client.initialize(
+        &creator,
+        &token,
+        &members,
+        &2u32,
+        &String::from_str(&env, NAME),
+    );
 
     // Non-member cannot contribute or propose, even with valid auth.
     assert_eq!(
@@ -425,12 +456,20 @@ fn failed_contribute_transfer_leaves_state_unchanged() {
     env.mock_all_auths();
     let creator = Address::generate(&env);
     let member_a = Address::generate(&env);
-    let token = env.register_stellar_asset_contract_v2(creator.clone()).address();
+    let token = env
+        .register_stellar_asset_contract_v2(creator.clone())
+        .address();
     let members = vec![&env, creator.clone(), member_a.clone()];
     let token_client = StellarAssetClient::new(&env, &token);
 
     let (contract_id, client) = deploy(&env);
-    client.initialize(&creator, &token, &members, &2u32, &String::from_str(&env, NAME));
+    client.initialize(
+        &creator,
+        &token,
+        &members,
+        &2u32,
+        &String::from_str(&env, NAME),
+    );
 
     // First failure: member has no tokens at all. The SAC transfer traps and
     // the whole call fails without touching treasury bookkeeping.
@@ -462,12 +501,20 @@ fn proposal_terms_immutable_and_threshold_one_is_approved_at_creation() {
     env.mock_all_auths();
     let creator = Address::generate(&env);
     let recipient = Address::generate(&env);
-    let token = env.register_stellar_asset_contract_v2(creator.clone()).address();
+    let token = env
+        .register_stellar_asset_contract_v2(creator.clone())
+        .address();
     let members = vec![&env, creator.clone()];
     let token_client = StellarAssetClient::new(&env, &token);
 
     let (_, client) = deploy(&env);
-    client.initialize(&creator, &token, &members, &1u32, &String::from_str(&env, NAME));
+    client.initialize(
+        &creator,
+        &token,
+        &members,
+        &1u32,
+        &String::from_str(&env, NAME),
+    );
 
     let amount: i128 = 123;
     let desc = String::from_str(&env, "Fixed terms");
@@ -511,12 +558,20 @@ fn execute_rejected_until_threshold_and_creator_cannot_bypass() {
     let creator = Address::generate(&env);
     let member_a = Address::generate(&env);
     let recipient = Address::generate(&env);
-    let token = env.register_stellar_asset_contract_v2(creator.clone()).address();
+    let token = env
+        .register_stellar_asset_contract_v2(creator.clone())
+        .address();
     let members = vec![&env, creator.clone(), member_a.clone()];
     let token_client = StellarAssetClient::new(&env, &token);
 
     let (_, client) = deploy(&env);
-    client.initialize(&creator, &token, &members, &2u32, &String::from_str(&env, NAME));
+    client.initialize(
+        &creator,
+        &token,
+        &members,
+        &2u32,
+        &String::from_str(&env, NAME),
+    );
 
     // Fund the treasury so balance is never the reason for rejection.
     token_client.mint(&creator, &500i128);
@@ -528,7 +583,10 @@ fn execute_rejected_until_threshold_and_creator_cannot_bypass() {
         &200i128,
         &String::from_str(&env, "Needs two signatures"),
     );
-    assert_eq!(client.get_proposal(&proposal_id).status, ProposalStatus::Pending);
+    assert_eq!(
+        client.get_proposal(&proposal_id).status,
+        ProposalStatus::Pending
+    );
 
     // Creator with a single self-approval cannot execute below threshold.
     assert_eq!(
@@ -550,9 +608,15 @@ fn execute_rejected_until_threshold_and_creator_cannot_bypass() {
 
     // Second approval unlocks the exact same proposal.
     client.approve(&member_a, &proposal_id);
-    assert_eq!(client.get_proposal(&proposal_id).status, ProposalStatus::Approved);
+    assert_eq!(
+        client.get_proposal(&proposal_id).status,
+        ProposalStatus::Approved
+    );
     client.execute(&member_a, &proposal_id);
-    assert_eq!(client.get_proposal(&proposal_id).status, ProposalStatus::Executed);
+    assert_eq!(
+        client.get_proposal(&proposal_id).status,
+        ProposalStatus::Executed
+    );
 }
 
 #[test]
@@ -564,12 +628,20 @@ fn execute_pays_exact_amount_and_accounted_balance_matches_tokens() {
     let member_b = Address::generate(&env);
     let stranger = Address::generate(&env);
     let recipient = Address::generate(&env);
-    let token = env.register_stellar_asset_contract_v2(creator.clone()).address();
+    let token = env
+        .register_stellar_asset_contract_v2(creator.clone())
+        .address();
     let members = member_list(&env, &creator, &member_a, &member_b);
     let token_client = StellarAssetClient::new(&env, &token);
 
     let (contract_id, client) = deploy(&env);
-    client.initialize(&creator, &token, &members, &2u32, &String::from_str(&env, NAME));
+    client.initialize(
+        &creator,
+        &token,
+        &members,
+        &2u32,
+        &String::from_str(&env, NAME),
+    );
 
     token_client.mint(&member_a, &1000i128);
     client.contribute(&member_a, &1000i128);
@@ -584,7 +656,10 @@ fn execute_pays_exact_amount_and_accounted_balance_matches_tokens() {
         &String::from_str(&env, "Pay the plumber"),
     );
     client.approve(&member_b, &proposal_id);
-    assert_eq!(client.get_proposal(&proposal_id).status, ProposalStatus::Approved);
+    assert_eq!(
+        client.get_proposal(&proposal_id).status,
+        ProposalStatus::Approved
+    );
 
     // Execute is permissionless: a non-member stranger runs it.
     client.execute(&stranger, &proposal_id);
@@ -593,7 +668,10 @@ fn execute_pays_exact_amount_and_accounted_balance_matches_tokens() {
     assert_eq!(token_client.balance(&recipient), 400);
     assert_eq!(token_client.balance(&contract_id), 600);
     assert_eq!(client.get_balance(), 600);
-    assert_eq!(client.get_proposal(&proposal_id).status, ProposalStatus::Executed);
+    assert_eq!(
+        client.get_proposal(&proposal_id).status,
+        ProposalStatus::Executed
+    );
 
     // Books and tokens still agree after the payment; nothing above the
     // accounted balance left the treasury.

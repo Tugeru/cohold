@@ -7,7 +7,8 @@ import {
   loadWalletTreasury,
   stellarCoholdRpc,
 } from "@/lib/contract-adapter";
-import { coholdConfig } from "@/lib/cohold-config";
+import { coholdConfig, configuredRpcUrl } from "@/lib/cohold-config";
+import { ensureFactoryTreasuryDiscovery } from "@/lib/treasury-discovery";
 import { walletTreasuryContractIds } from "@/lib/treasury-registry";
 import { formatBaseAmount } from "@/lib/money";
 import { createTreasuryHref, walletExplorerUrl } from "@/lib/app-routes";
@@ -122,7 +123,9 @@ function TreasuryCard({
 
 export function WalletTreasuriesList() {
   const config = coholdConfig;
-  const contractIds = useMemo(() => walletTreasuryContractIds(config), [config]);
+  const [contractIds, setContractIds] = useState(() =>
+    walletTreasuryContractIds(config),
+  );
   const { freighterAddress } = useWallet();
   const walletGate = useWalletResourceGate();
   const rpc = useMemo(() => stellarCoholdRpc(), []);
@@ -132,6 +135,34 @@ export function WalletTreasuriesList() {
   const [loadKey, setLoadKey] = useState(0);
 
   const refresh = useCallback(() => setLoadKey((key) => key + 1), []);
+
+  // Factory-created treasuries appear after one discovery read; the load
+  // effect below re-runs because contractIds is part of its deps.
+  useEffect(() => {
+    let cancelled = false;
+    void ensureFactoryTreasuryDiscovery(
+      config,
+      freighterAddress,
+      configuredRpcUrl(config),
+    ).then(() => {
+      if (!cancelled) setContractIds(walletTreasuryContractIds(config));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [config, freighterAddress]);
+
+  // Newly discovered factory treasuries start as loading rows; the load
+  // effect below fills them in.
+  useEffect(() => {
+    setItems((prev) => {
+      const missing = contractIds.filter((id) => !(id in prev));
+      if (missing.length === 0) return prev;
+      const seeded = { ...prev };
+      for (const id of missing) seeded[id] = { status: "loading" as const };
+      return seeded;
+    });
+  }, [contractIds]);
 
   useEffect(() => {
     let cancelled = false;

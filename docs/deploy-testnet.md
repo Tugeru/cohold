@@ -5,10 +5,12 @@ Wasm, records a secret-free manifest, and prints the `NEXT_PUBLIC_*` values for
 wallet mode.
 
 > **Not the only path.** The app itself can create a treasury on Testnet from
-> a connected Freighter wallet (Create Treasury on `/overview` — upload
-> Wasm, create instance, initialize), which registers the id locally without
-> env edits. The bootstrap below is for scripted, canonical setups and
-> power users.
+> a connected Freighter wallet (Create Treasury on `/overview` — one
+> signature via the CoholdFactory contract, which deploys and initializes
+> the instance from the on-ledger Cohold Wasm). That registers the id
+> locally without env edits, and the factory's on-chain treasury list makes
+> it visible on every device. The bootstrap below is for scripted, canonical
+> setups and power users.
 
 ## Prerequisites
 
@@ -64,7 +66,8 @@ non-zero exit before the manifest is written.
 
 `deployments/testnet.json` records `network`, `rpc`, `asset`, `tokenId`, `git
 SHA`, `wasmSha256`, `timestamp`, both treasuries (contract id, name, creator,
-members, threshold), and the identity public keys. No secrets.
+members, threshold), the `factoryId` (CoholdFactory), and the identity public
+keys. No secrets.
 
 The script prints lines to paste into `.env`:
 
@@ -74,6 +77,7 @@ NEXT_PUBLIC_STELLAR_NETWORK=TESTNET
 NEXT_PUBLIC_STELLAR_CONTRACT_ID=C…
 NEXT_PUBLIC_STELLAR_CONTRACT_IDS=C…,C…
 NEXT_PUBLIC_STELLAR_TOKEN_ID=CDLZ…
+NEXT_PUBLIC_COHOLD_FACTORY_ID=C…
 ```
 
 Treasury A is the primary `NEXT_PUBLIC_STELLAR_CONTRACT_ID`; both are listed in

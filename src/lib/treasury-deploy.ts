@@ -1,6 +1,6 @@
 import * as StellarSdk from "@stellar/stellar-sdk";
 import { contract } from "@stellar/stellar-sdk";
-import { Client } from "cohold-contract";
+import { Client as FactoryClient } from "cohold-factory-contract";
 import {
   STELLAR_TESTNET_NETWORK_PASSPHRASE,
   STELLAR_TESTNET_RPC_URL,
@@ -12,18 +12,23 @@ import { signatureError, simulationErrorOf } from "@/lib/proposal-flow";
 import type { ProposalError } from "@/lib/proposal-flow";
 
 // ---------------------------------------------------------------------------
-// Create a treasury on Testnet from the browser. Deploying a treasury is
-// three signed transactions, in order: upload the contract Wasm, create the
-// contract instance from that Wasm, then initialize it with members,
-// threshold, and name. Every transaction is simulated before the wallet is
-// asked to sign; the connected Freighter account pays the fees and is the
-// contract creator. The contract enforces that the creator is a member, so
-// validation requires the connected wallet in the member list. After
-// initialize confirms, the flow registers the new contract id locally so the
-// app renders it without an env edit or restart.
+// Create a treasury on Testnet from the browser. Creation is one signed
+// transaction: the CoholdFactory contract deploys a fresh Cohold instance
+// from the uploaded Cohold Wasm (hash passed as an argument) and initializes
+// it with members, threshold, and name in the same call. The simulation
+// gathers the creator's authorization for both the factory call and the
+// nested initialize, so Freighter asks for exactly one signature. After the
+// transaction confirms, the flow registers the new contract id locally so
+// the app renders it immediately; the factory's on-chain treasury list makes
+// it discoverable on every other device.
+//
+// The Cohold Wasm must already be installed on the ledger — the Testnet
+// bootstrap deploys treasuries from it, which uploads the code. The app
+// passes the Wasm's sha256 (computed from the bundled public/cohold.wasm) as
+// `wasm_hash`; creation fails if that hash is not on-chain.
 // ---------------------------------------------------------------------------
 
-export type TreasuryDeployStageName = "upload" | "create" | "initialize";
+export type TreasuryDeployStageName = "create";
 
 export type TreasuryTxState =
   | "preparing"
@@ -41,7 +46,7 @@ export type TreasuryDeployOutcome =
   | {
       status: "deployed";
       contractId: string;
-      hashes: { upload: string; create: string; initialize: string };
+      hash: string;
     }
   | { status: "validation"; message: string }
   | { status: "wasm-unavailable"; message: string }
@@ -55,17 +60,9 @@ export type TreasuryDeployOutcome =
   | { status: "confirm-failed"; stage: TreasuryDeployStageName; message: string };
 
 export interface TreasuryDeployExecutor {
-  uploadWasm(
-    wasm: Uint8Array,
-    publicKey: string,
-  ): Promise<{ preparedTxXdr: string }>;
-  createContract(
-    wasmHash: string,
-    publicKey: string,
-  ): Promise<{ preparedTxXdr: string; contractId: string }>;
-  initializeTreasury(
+  createTreasury(
     params: {
-      contractId: string;
+      wasmHash: string;
       creator: string;
       tokenId: string;
       members: string[];
@@ -73,7 +70,7 @@ export interface TreasuryDeployExecutor {
       name: string;
     },
     publicKey: string,
-  ): Promise<{ preparedTxXdr: string }>;
+  ): Promise<{ preparedTxXdr: string; contractId: string }>;
   submitInvocation(signedTxXdr: string): Promise<{ hash: string }>;
   confirmInvocation(hash: string): Promise<"success" | "failed" | "pending">;
 }
@@ -160,27 +157,26 @@ export function createTreasuryDeployFlow(deps: TreasuryDeployFlowDeps): Treasury
   const { executor, fetchWasm, signTransaction, registerTreasury } = deps;
 
   async function runStage(
-    stage: TreasuryDeployStageName,
     onStage: ((stage: TreasuryDeployStageName, state: TreasuryTxState) => void) | undefined,
     prepare: () => Promise<{ preparedTxXdr: string; contractId?: string }>,
   ): Promise<StageOk | StageFail> {
-    onStage?.(stage, "preparing");
+    onStage?.("create", "preparing");
     let prepared: { preparedTxXdr: string; contractId?: string };
     try {
       prepared = await prepare();
     } catch (error) {
       return {
         status: "simulation-failed",
-        stage,
+        stage: "create",
         message: error instanceof Error ? error.message : String(error),
       };
     }
-    onStage?.(stage, "awaiting-signature");
+    onStage?.("create", "awaiting-signature");
     const signature = await signTransaction(prepared.preparedTxXdr);
     if (signature.status !== "signed") {
-      return { status: "sign-failed", stage, error: signatureError(signature) };
+      return { status: "sign-failed", stage: "create", error: signatureError(signature) };
     }
-    onStage?.(stage, "submitting");
+    onStage?.("create", "submitting");
     let hash: string;
     try {
       hash = (await executor.submitInvocation(signature.signedTxXdr)).hash;
@@ -191,9 +187,9 @@ export function createTreasuryDeployFlow(deps: TreasuryDeployFlowDeps): Treasury
         const candidate: unknown = error.hash;
         if (typeof candidate === "string" && candidate.length > 0) errorHash = candidate;
       }
-      return { status: "send-failed", stage, error: { message, hash: errorHash } };
+      return { status: "send-failed", stage: "create", error: { message, hash: errorHash } };
     }
-    onStage?.(stage, "confirming");
+    onStage?.("create", "confirming");
     const confirmed = await executor.confirmInvocation(hash);
     if (confirmed === "success") {
       return { status: "ok", hash, contractId: prepared.contractId };
@@ -201,13 +197,13 @@ export function createTreasuryDeployFlow(deps: TreasuryDeployFlowDeps): Treasury
     if (confirmed === "failed") {
       return {
         status: "confirm-failed",
-        stage,
+        stage: "create",
         message: "The network rejected the transaction — nothing was created.",
       };
     }
     return {
       status: "confirm-failed",
-      stage,
+      stage: "create",
       message: "Confirmation timed out. Check the treasury list before trying again.",
     };
   }
@@ -221,6 +217,9 @@ export function createTreasuryDeployFlow(deps: TreasuryDeployFlowDeps): Treasury
     const creator = creatorAddress?.trim().toUpperCase();
     const validation = validateTreasuryDetails(details, creator);
     if (validation) return { status: "validation", message: validation };
+    if (!creator) {
+      return { status: "validation", message: "Connect Freighter before creating a treasury." };
+    }
 
     let wasm: Uint8Array;
     try {
@@ -237,27 +236,10 @@ export function createTreasuryDeployFlow(deps: TreasuryDeployFlowDeps): Treasury
     const wasmHash = await sha256Hex(wasm);
     const normalized = normalizeTreasuryDetails(details);
 
-    const upload = await runStage("upload", onStage, () =>
-      executor.uploadWasm(wasm, creator),
-    );
-    if (upload.status !== "ok") return upload;
-
-    const create = await runStage("create", onStage, () =>
-      executor.createContract(wasmHash, creator),
-    );
-    if (create.status !== "ok") return create;
-    if (!create.contractId) {
-      return {
-        status: "simulation-failed",
-        stage: "create",
-        message: "Deployment did not return a contract id.",
-      };
-    }
-
-    const initialize = await runStage("initialize", onStage, () =>
-      executor.initializeTreasury(
+    const created = await runStage(onStage, () =>
+      executor.createTreasury(
         {
-          contractId: create.contractId!,
+          wasmHash,
           creator,
           tokenId,
           members: normalized.members,
@@ -267,13 +249,20 @@ export function createTreasuryDeployFlow(deps: TreasuryDeployFlowDeps): Treasury
         creator,
       ),
     );
-    if (initialize.status !== "ok") return initialize;
+    if (created.status !== "ok") return created;
+    if (!created.contractId) {
+      return {
+        status: "simulation-failed",
+        stage: "create",
+        message: "Creation did not return a contract id.",
+      };
+    }
 
-    registerTreasury({ id: create.contractId, name: normalized.name });
+    registerTreasury({ id: created.contractId, name: normalized.name });
     return {
       status: "deployed",
-      contractId: create.contractId,
-      hashes: { upload: upload.hash, create: create.hash, initialize: initialize.hash },
+      contractId: created.contractId,
+      hash: created.hash,
     };
   }
 
@@ -288,6 +277,8 @@ export function createTreasuryDeployFlow(deps: TreasuryDeployFlowDeps): Treasury
 export interface TreasuryDeployExecutorOptions {
   rpcUrl?: string;
   networkPassphrase?: string;
+  /** CoholdFactory contract id. Required: creation goes through the factory. */
+  factoryId?: string | null;
 }
 
 export function stellarTreasuryDeployExecutor(
@@ -296,58 +287,19 @@ export function stellarTreasuryDeployExecutor(
   const rpcUrl = options.rpcUrl ?? STELLAR_TESTNET_RPC_URL;
   const networkPassphrase =
     options.networkPassphrase ?? STELLAR_TESTNET_NETWORK_PASSPHRASE;
+  const factoryId = options.factoryId?.trim().toUpperCase() ?? null;
+  if (!factoryId || !isValidContractAddress(factoryId)) {
+    throw new Error(
+      "The Cohold factory is not configured (NEXT_PUBLIC_COHOLD_FACTORY_ID).",
+    );
+  }
+  // Narrowed copy: the guard's narrowing does not survive into closures.
+  const configuredFactoryId = factoryId;
   const server = new StellarSdk.rpc.Server(rpcUrl);
 
-  async function uploadWasm(wasm: Uint8Array, publicKey: string) {
-    const tx = await contract.AssembledTransaction.buildWithOp(
-      StellarSdk.Operation.uploadContractWasm({ wasm }),
-      {
-        rpcUrl,
-        networkPassphrase,
-        publicKey,
-        contractId: "ignored",
-        method: "upload_contract_wasm",
-        parseResultXdr: (result) => result,
-        simulate: true,
-      },
-    );
-    const rejected = simulationErrorOf(tx);
-    if (rejected) throw rejected;
-    return { preparedTxXdr: tx.toXDR() };
-  }
-
-  async function createContract(wasmHash: string, publicKey: string) {
-    // Deploy a fresh instance: contract id is derived from the deployer
-    // address, a random salt, and the wasm hash. `Client.deploy` fetches the
-    // spec from the uploaded wasm and returns a client bound to the new id.
-    // The Cohold wasm has no `#[constructor]`, so constructor args must be
-    // `null`: any truthy object (e.g. `{}`) makes the SDK look up
-    // `__constructor` in the spec and throw "no such entry: __constructor"
-    // before a transaction is ever built.
-    const tx = await contract.Client.deploy(
-      null,
-      {
-        wasmHash,
-        address: publicKey,
-        rpcUrl,
-        networkPassphrase,
-        publicKey,
-        simulate: true,
-      },
-    );
-    const rejected = simulationErrorOf(tx);
-    if (rejected) throw rejected;
-    const deployed = tx.result as unknown as { options: { contractId: string } };
-    const contractId = deployed.options.contractId;
-    if (!isValidContractAddress(contractId)) {
-      throw new Error("Deployment returned an unexpected contract id.");
-    }
-    return { preparedTxXdr: tx.toXDR(), contractId };
-  }
-
-  async function initializeTreasury(
+  async function createTreasury(
     params: {
-      contractId: string;
+      wasmHash: string;
       creator: string;
       tokenId: string;
       members: string[];
@@ -356,15 +308,14 @@ export function stellarTreasuryDeployExecutor(
     },
     publicKey: string,
   ) {
-    const client = new Client({
-      contractId: params.contractId,
+    const client = new FactoryClient({
+      contractId: configuredFactoryId,
       rpcUrl,
       networkPassphrase,
-      // The invoker is the wallet creator; their sequence/account drives the
-      // simulation and their envelope signature authorizes `require_auth`.
       publicKey,
     });
-    const tx = await client.initialize({
+    const tx = await client.create({
+      wasm_hash: Buffer.from(params.wasmHash, "hex"),
       creator: params.creator,
       token: params.tokenId,
       members: params.members,
@@ -373,7 +324,17 @@ export function stellarTreasuryDeployExecutor(
     });
     const rejected = simulationErrorOf(tx);
     if (rejected) throw rejected;
-    return { preparedTxXdr: tx.toXDR() };
+    let contractId: string;
+    try {
+      const result = tx.result as unknown as { unwrap: () => string };
+      contractId = result.unwrap();
+    } catch {
+      throw new Error("Creation did not return a contract id.");
+    }
+    if (!isValidContractAddress(contractId)) {
+      throw new Error("Creation returned an unexpected contract id.");
+    }
+    return { preparedTxXdr: tx.toXDR(), contractId };
   }
 
   async function submitInvocation(signedTxXdr: string) {
@@ -403,5 +364,5 @@ export function stellarTreasuryDeployExecutor(
     return "pending";
   }
 
-  return { uploadWasm, createContract, initializeTreasury, submitInvocation, confirmInvocation };
+  return { createTreasury, submitInvocation, confirmInvocation };
 }

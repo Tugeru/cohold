@@ -9,7 +9,8 @@ import {
   loadWalletTreasury,
   stellarCoholdRpc,
 } from "@/lib/contract-adapter";
-import { coholdConfig } from "@/lib/cohold-config";
+import { coholdConfig, configuredRpcUrl } from "@/lib/cohold-config";
+import { ensureFactoryTreasuryDiscovery } from "@/lib/treasury-discovery";
 import { resolveWalletTreasuryForProposal } from "@/lib/treasury-registry";
 import { formatBaseAmount, parseBaseUnits, parseNonNegativeBaseUnits } from "@/lib/money";
 import { APP_ROUTES, walletExplorerUrl } from "@/lib/app-routes";
@@ -57,13 +58,12 @@ export function WalletProposalView({ id }: { id: string }) {
   const treasuryParam = searchParams.get("treasury");
   // Extra configured contracts carry their contract ID in the URL; anything
   // else (or an unconfigured value) falls back to the primary contract.
-  const contractId = useMemo(
-    () => resolveWalletTreasuryForProposal(config, treasuryParam),
-    [config, treasuryParam],
-  );
   const { freighterAddress, canPerformStateChange, walletActionBlockReason } = useWallet();
   const walletGate = useWalletResourceGate();
   const rpc = useMemo(() => stellarCoholdRpc(), []);
+  const [contractId, setContractId] = useState(() =>
+    resolveWalletTreasuryForProposal(config, treasuryParam),
+  );
   const [state, setState] = useState<ProposalDetailState>({ status: "loading" });
   const [loadKey, setLoadKey] = useState(0);
   const [isApproveOpen, setIsApproveOpen] = useState(false);
@@ -71,6 +71,22 @@ export function WalletProposalView({ id }: { id: string }) {
   const readyState = state.status === "ready" ? state : null;
 
   const refresh = useCallback(() => setLoadKey((key) => key + 1), []);
+
+  // A factory-created treasury linked from another device resolves only
+  // after discovery lands; the load effect below re-runs on the new id.
+  useEffect(() => {
+    let cancelled = false;
+    void ensureFactoryTreasuryDiscovery(
+      config,
+      freighterAddress,
+      configuredRpcUrl(config),
+    ).then(() => {
+      if (!cancelled) setContractId(resolveWalletTreasuryForProposal(config, treasuryParam));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [config, freighterAddress, treasuryParam]);
   const validId = PROPOSAL_ID_PATTERN.test(id) && Number(id) > 0 && Number.isSafeInteger(Number(id));
 
   useEffect(() => {

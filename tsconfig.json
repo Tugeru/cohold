@@ -24,6 +24,9 @@
       ],
       "cohold-contract": [
         "./packages/cohold-contract/src/index.ts"
+      ],
+      "cohold-factory-contract": [
+        "./packages/cohold-factory-contract/src/index.ts"
       ]
     },
     "plugins": [

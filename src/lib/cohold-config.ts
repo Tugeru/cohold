@@ -9,6 +9,7 @@ export interface CoholdEnv {
   NEXT_PUBLIC_STELLAR_CONTRACT_IDS?: string;
   NEXT_PUBLIC_STELLAR_TOKEN_ID?: string;
   NEXT_PUBLIC_STELLAR_RPC_URL?: string;
+  NEXT_PUBLIC_COHOLD_FACTORY_ID?: string;
 }
 
 export interface CoholdConfig {
@@ -19,6 +20,12 @@ export interface CoholdConfig {
   /** Optional additional treasury contracts shown in wallet mode. */
   extraContractIds: string[];
   tokenId: string | null;
+  /**
+   * CoholdFactory contract id. When configured, the create-treasury flow
+   * deploys through the factory (one signature) and factory-created
+   * treasuries are discoverable on every device via `get_treasuries`.
+   */
+  factoryId: string | null;
   /**
    * RPC endpoint override, or null for the public Testnet default. Only
    * http(s) URLs are accepted; anything else parses to null so the wallet
@@ -61,6 +68,11 @@ export function isConfiguredWalletTreasury(
   return Boolean(requested && configuredContractIds(config).includes(requested));
 }
 
+/** The CoholdFactory contract id, or null when not configured. */
+export function configuredFactoryId(config: CoholdConfig): string | null {
+  return config.factoryId;
+}
+
 /**
  * Resolve which configured treasury a wallet-mode proposal belongs to. A
  * `treasury` query param wins only when it names a configured contract ID;
@@ -83,6 +95,7 @@ export function resolveCoholdConfig(env: CoholdEnv): CoholdConfig {
   const modeConfigured = !rawMode || rawMode === "demo" || rawMode === "wallet";
   const contractId = normalizeIdentifier(env.NEXT_PUBLIC_STELLAR_CONTRACT_ID);
   const tokenId = normalizeIdentifier(env.NEXT_PUBLIC_STELLAR_TOKEN_ID);
+  const factoryId = normalizeIdentifier(env.NEXT_PUBLIC_COHOLD_FACTORY_ID);
   const extraContractIds = normalizeIdentifierList(env.NEXT_PUBLIC_STELLAR_CONTRACT_IDS);
   const configuredNetwork = env.NEXT_PUBLIC_STELLAR_NETWORK?.trim().toUpperCase();
   const isTestnet = configuredNetwork === "TESTNET";
@@ -98,6 +111,7 @@ export function resolveCoholdConfig(env: CoholdEnv): CoholdConfig {
     contractId,
     extraContractIds,
     tokenId,
+    factoryId,
     rpcUrl,
     modeConfigured,
     walletSetupComplete:
@@ -121,6 +135,7 @@ export const coholdConfig = resolveCoholdConfig({
   NEXT_PUBLIC_STELLAR_CONTRACT_IDS: process.env.NEXT_PUBLIC_STELLAR_CONTRACT_IDS,
   NEXT_PUBLIC_STELLAR_TOKEN_ID: process.env.NEXT_PUBLIC_STELLAR_TOKEN_ID,
   NEXT_PUBLIC_STELLAR_RPC_URL: process.env.NEXT_PUBLIC_STELLAR_RPC_URL,
+  NEXT_PUBLIC_COHOLD_FACTORY_ID: process.env.NEXT_PUBLIC_COHOLD_FACTORY_ID,
 });
 
 /**

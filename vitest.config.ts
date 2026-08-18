@@ -8,6 +8,10 @@ export default defineConfig({
         "./packages/cohold-contract/src/index.ts",
         import.meta.url,
       ).pathname,
+      "cohold-factory-contract": new URL(
+        "./packages/cohold-factory-contract/src/index.ts",
+        import.meta.url,
+      ).pathname,
     },
   },
 });
