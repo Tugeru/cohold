@@ -52,7 +52,7 @@ this manifest before exercising any flow (drift fails loudly).
 | Treasury A | `CCYKPLZE4OT7LIBUPWRQ4UGARQTOVBORYLV3ZQIKSKVI77Z5JVV3CVR2` |
 | Treasury B | `CABEVCDWFZ2W4W3H75T3DIOTEGHAVEPM2KETRROZNVHT2OVGUV4UVCYZ` |
 
-Evidence capture commits: walkthrough run at `e3828ba` (this slice's
+Evidence capture commits: walkthrough run at `614a5e6` (this slice's
 stabilized walkthrough test); isolation/negatives matrix run at `911a275`
 (matrix suite unchanged through this slice).
 
@@ -90,22 +90,22 @@ are driven through the exact flow modules the UI uses
 (`contribute-flow`, `proposal-flow`) by
 `src/lib/mvp-walkthrough.testnet.test.ts`, which records every hash and
 balance to `deployments/walkthrough.json` (rewritten at
-`2026-08-18T01:52:07.456Z`, captured at commit `e3828ba`). The Freighter
+`2026-08-18T02:02:43.923Z`, captured at commit `614a5e6`). The Freighter
 steps below are the browser-side form of the same sequence.
 
 | # | Step | Wallet | Result | Evidence |
 |---|---|---|---|---|
 | 1 | Connect Freighter on Testnet; verify the network badge | member A | connected | manual (wrong network blocks actions — matrix §5) |
-| 2 | Fund the treasury with 2.5000000 XLM | member A | confirmed; balance 9.5000000 → 12.0000000 XLM | `96ddb89bba27ce80e546ae78299a1d9ce3b322fafc15a86dea3c2f0a87d12870` |
-| 3 | Create proposal #33: 2.5000000 XLM → recipient | member A | confirmed; `approval_count = 1` (creation is the proposer's approval), status `pending`, progress 1/3 | `cf15b571c1b17353daae36cfbfd1c2b5b42b34749cc45075f7b207206c36a6db` |
-| 4 | Approve | member B | confirmed; 2/3, still `pending` | `4cc0ffbd6c887a1c681241f43e1ee4ee44fe4a1dc81ce231b37990c26ddfa0c9` |
+| 2 | Fund the treasury with 2.5000000 XLM | member A | confirmed; balance 9.5000000 → 12.0000000 XLM | `b6880aef04f7e77a3c1527fa4dbbd2b97a594a0e68c351c8dad7913e7cdae053` |
+| 3 | Create proposal #34: 2.5000000 XLM → recipient | member A | confirmed; `approval_count = 1` (creation is the proposer's approval), status `pending`, progress 1/3 | `de514744a8e6dcf7a4d3b572355b667f30ed96e87c1c773060e2cdb356b8d1e7` |
+| 4 | Approve | member B | confirmed; 2/3, still `pending` | `d41a971b871e7e25b6d591184a3d154f935dc13fc1db7b84c9a634a9233bce1d` |
 | 5 | Attempt execute at 2/3 | member D | **rejected** `ThresholdNotReached` (contract #7); proposal `pending`, balances unchanged | walkthrough.json step `execute` #1 |
-| 6 | Approve | member D | confirmed; 3/3 → `approved` | `cf74f8ec042aa0bae117ab371d62bfc87216309aaa102b4137be6a2d87cd7ed9` |
-| 7 | Execute | member D (permissionless) | confirmed; treasury 12.0000000 → 9.5000000 XLM; recipient 10084.5000000 → 10087.0000000 XLM (exact +2.5000000) | `c62de74ce9625139fd8a36ce605734e4139435e8735adcb3c33b7f163e8e85bc` |
+| 6 | Approve | member D | confirmed; 3/3 → `approved` | `b46e8933f09d2b12709e35131960aac5cc640bb531f60f878ee73dd2aacae710` |
+| 7 | Execute | member D (permissionless) | confirmed; treasury 12.0000000 → 9.5000000 XLM; recipient 10087.0000000 → 10089.5000000 XLM (exact +2.5000000) | `eae760007d471d8440eeb457d680d06ca83247dcc515a9ec9d9f7bbbfe7de4f5` |
 | 8 | Attempt execute again | member D | **rejected** `AlreadyExecuted` (contract #11); balances unchanged | walkthrough.json step `execute` #2 |
 
-Recipient balance before the walkthrough: 10084.5000000 XLM; after:
-10087.0000000 XLM. Proposal #33 terms are immutable on-chain: amount
+Recipient balance before the walkthrough: 10087.0000000 XLM; after:
+10089.5000000 XLM. Proposal #34 terms are immutable on-chain: amount
 2.5000000 XLM, recipient (non-member) — re-read from the contract after
 each step.
 
@@ -132,7 +132,7 @@ All amounts in XLM (native, 7 decimals), base units in
 | Balance | Before | After |
 |---|---|---|
 | Treasury A | 9.5000000 (funded to 12.0000000) | 9.5000000 |
-| Recipient (non-member) | 10084.5000000 | 10087.0000000 |
+| Recipient (non-member) | 10087.0000000 | 10089.5000000 |
 
 Contribution `2.5000000` XLM brings the treasury to `12.0000000`;
 execute debits exactly `2.5000000` from treasury A and credits exactly
