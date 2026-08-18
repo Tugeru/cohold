@@ -12,7 +12,9 @@
     "contract:build": "stellar contract build --package cohold",
 "contract:build": "stellar contract build --package cohold",
     "contract:bindings": "npm run contract:build && stellar contract bindings typescript --wasm target/wasm32v1-none/release/cohold.wasm --output-dir packages/cohold-contract --overwrite",
-    "testnet:bootstrap": "node scripts/testnet-bootstrap.mjs"
+    "testnet:bootstrap": "node scripts/testnet-bootstrap.mjs",
+    "testnet:matrix": "node scripts/testnet-matrix.mjs",
+    "test:testnet": "npm run testnet:matrix"
   },
   "dependencies": {
     "@stellar/freighter-api": "^6.0.1",

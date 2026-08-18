@@ -173,6 +173,38 @@ npm test -- src/lib/proposal-flow.testnet.test.ts
 Secrets stay out of the repo (keyring only, per `deploy-testnet.md`); the
 test spends real Testnet XLM and is not part of CI.
 
+### 3.6 Live Testnet readiness matrix
+
+`npm run test:testnet` runs the full isolation-and-negatives matrix against
+the two deployed treasuries (`deployments/testnet.json`), driving the exact
+flow modules the UI uses and re-reading contract state as the source of
+truth. It proves the live negatives from the readiness guide — wrong network,
+rejected signature, wallet cancel, outsider writes, duplicate approval,
+under-threshold execute, approved over-balance execute leaving the proposal
+`Approved`, double execute, competing proposals — plus permissionless execute
+by a non-member fee-payer and cross-treasury isolation (treasury A churn
+never moves treasury B and vice versa). The suite skips itself unless the
+secret keys are set:
+
+```sh
+export COHOLD_TESTNET_SECRET_A="$(stellar keys secret cohold-member-a)"
+export COHOLD_TESTNET_SECRET_B="$(stellar keys secret cohold-member-b)"
+export COHOLD_TESTNET_SECRET_C="$(stellar keys secret cohold-outsider)"  # non-member
+export COHOLD_TESTNET_SECRET_D="$(stellar keys secret cohold-member-d)"
+npm run test:testnet
+```
+
+Treasury/token ids default to the public manifest
+(`COHOLD_TESTNET_CONTRACT_ID`, `COHOLD_TESTNET_CONTRACT_ID_B`,
+`COHOLD_TESTNET_TOKEN_ID` override them). The runner refuses to start when any
+secret is missing and the suite asserts live config matches the manifest, so
+a stale deployment fails loudly.
+
+The GitHub workflow `.github/workflows/testnet-live.yml` runs the same command
+from `workflow_dispatch` using `COHOLD_TESTNET_SECRET_*` repository secrets —
+it is protected by design (not triggered on PRs) and is not a required
+public PR check.
+
 ## 4. RPC history limits
 
 Stellar RPC methods (`getTransaction`, `getEvents`, ...) only cover **the
