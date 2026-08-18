@@ -19,6 +19,24 @@
       "skillPath": "skills/engineering/domain-modeling/SKILL.md",
       "computedHash": "683744795bdc9fbfb6c0c2122c4b8119c950e2fe5bcbbf44237dd28aaea34b67"
     },
+    "herdr": {
+      "source": "herdrdev/herdr",
+      "sourceType": "github",
+      "skillPath": "skills/herdr/SKILL.md",
+      "computedHash": "489d2c6ff7e951e47071fbc5446d99d20ea215fcc5e55b9e4ceaa5a578f22d06"
+    },
+    "orchestrate-slices": {
+      "source": "Tugeru/tuge-skills",
+      "sourceType": "github",
+      "skillPath": "orchestrate-slices/SKILL.md",
+      "computedHash": "17ae6c87468bc91d4b1a3c7e95fa6584e4502b60d7463ceac2a10c92d7d5a379"
+    },
+    "ship-slice": {
+      "source": "Tugeru/tuge-skills",
+      "sourceType": "github",
+      "skillPath": "ship-slice/SKILL.md",
+      "computedHash": "485a1c278c058c5e561afe01ee5ae7c074e0ae6ddf35b6c4101fe313fc97a410"
+    },
     "tdd": {
       "source": "mattpocock/skills",
       "sourceType": "github",
