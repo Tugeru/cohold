@@ -1,12 +1,11 @@
 @import "tailwindcss";
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
+@layer components {
+  .brand-mark {
+    @apply flex-shrink-0 rounded-xl bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 p-1.5 shadow-md shadow-emerald-500/30 group-hover:scale-105 transition-transform;
+  }
+
+  .brand-mark img {
+    @apply block rounded-[7px] bg-white;
   }
 }
