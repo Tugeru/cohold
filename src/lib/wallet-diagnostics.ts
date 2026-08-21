@@ -53,6 +53,16 @@ async function readOrNull<T>(read: () => Promise<T | null>): Promise<T | null> {
   }
 }
 
+const RPC_HEALTH_MAX_ATTEMPTS = 2;
+
+async function probeRpcHealth(rpc: CoholdRpc): Promise<boolean> {
+  for (let attempt = 0; attempt < RPC_HEALTH_MAX_ATTEMPTS; attempt += 1) {
+    const healthy = await readOrNull(() => rpc.getHealth());
+    if (healthy === true) return true;
+  }
+  return false;
+}
+
 /**
  * Run every wallet resource check and collect all failures. A healthy result
  * means: config is wallet-mode Testnet, the RPC endpoint is reachable, every
@@ -75,7 +85,7 @@ export async function diagnoseWalletResources(
     });
   }
 
-  const rpcHealthy = await readOrNull(() => rpc.getHealth());
+  const rpcHealthy = await probeRpcHealth(rpc);
   if (rpcHealthy !== true) {
     failures.push({
       id: "rpc",

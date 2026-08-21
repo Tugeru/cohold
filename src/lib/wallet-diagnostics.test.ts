@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   diagnoseWalletResources,
   firstFailureMessage,
@@ -90,6 +90,45 @@ describe("diagnoseWalletResources", () => {
       rpc: fakeRpc(),
     });
     expect(result).toEqual({ status: "healthy", checkedContractIds: [CONTRACT] });
+  });
+
+  it("recovers when the first RPC health probe is transiently unavailable", async () => {
+    const getHealth = vi
+      .fn<() => Promise<boolean>>()
+      .mockRejectedValueOnce(new Error("ECONNREFUSED"))
+      .mockResolvedValueOnce(true);
+    const result = await diagnoseWalletResources({
+      config: walletConfig(),
+      rpc: fakeRpc({ getHealth }),
+    });
+
+    expect(result.status).toBe("healthy");
+    expect(getHealth).toHaveBeenCalledTimes(2);
+  });
+
+  it("recovers when the first RPC health response is unhealthy", async () => {
+    const getHealth = vi
+      .fn<() => Promise<boolean>>()
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true);
+    const result = await diagnoseWalletResources({
+      config: walletConfig(),
+      rpc: fakeRpc({ getHealth }),
+    });
+
+    expect(result.status).toBe("healthy");
+    expect(getHealth).toHaveBeenCalledTimes(2);
+  });
+
+  it("still fails closed when every RPC health probe is unhealthy", async () => {
+    const getHealth = vi.fn<() => Promise<boolean>>().mockResolvedValue(false);
+    const result = await diagnoseWalletResources({
+      config: walletConfig(),
+      rpc: fakeRpc({ getHealth }),
+    });
+
+    expect(failureIds(result)).toContain("rpc");
+    expect(getHealth).toHaveBeenCalledTimes(2);
   });
 
   it("checks every configured contract, including extras", async () => {
