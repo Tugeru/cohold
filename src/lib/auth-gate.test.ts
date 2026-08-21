@@ -64,17 +64,18 @@ describe("isAuthenticated", () => {
     );
   });
 
-  it("blocks wallet mode with failed diagnostics", () => {
+  it("does not block shell on failed diagnostics — per-view gate owns contract health", () => {
     const s = session({ diagnostics: failed });
-    expect(isAuthenticated(walletConfig, s)).toBe(false);
-    expect(authenticationBlockReason(walletConfig, s)).toBe("RPC unreachable");
+    expect(isAuthenticated(walletConfig, s)).toBe(true);
+    expect(authenticationBlockReason(walletConfig, s)).toBeNull();
   });
 
-  it("blocks wallet mode while diagnostics are still checking", () => {
+  it("does not block shell while diagnostics are still checking — treasury remains reachable", () => {
     const s = session({ diagnostics: null });
-    expect(isAuthenticated(walletConfig, s)).toBe(false);
-    expect(authenticationBlockReason(walletConfig, s)).toContain("Verifying");
+    expect(isAuthenticated(walletConfig, s)).toBe(true);
+    expect(authenticationBlockReason(walletConfig, s)).toBeNull();
   });
+
 
   it("blocks wallet mode when not connected", () => {
     const s = session({ connected: false });

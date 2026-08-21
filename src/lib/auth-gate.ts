@@ -1,14 +1,13 @@
 import type { CoholdConfig } from "@/lib/cohold-config";
-import {
-  firstFailureMessage,
-  type WalletDiagnosticsResult,
-} from "@/lib/wallet-diagnostics";
+import type { WalletDiagnosticsResult } from "@/lib/wallet-diagnostics";
 
 /**
- * Identity state the auth gate reads. Wallet mode is authenticated only when
- * Freighter is connected, on Stellar Testnet, and wallet resource diagnostics
- * are healthy; demo mode is authenticated once a persona has been entered for
- * the current browser session.
+ * Identity state the auth gate reads. Wallet mode is authenticated when
+ * Freighter is connected on Stellar Testnet (and setup is complete). Contract
+ * health (walletDiagnostics) is a per-view concern owned by
+ * useWalletResourceGate — the shell gate must not re-ask for wallet after
+ * the user is already connected on Testnet just because RPC probes are
+ * pending or failed.
  */
 export interface AuthSession {
   connected: boolean;
@@ -20,8 +19,10 @@ export interface AuthSession {
 /**
  * Mode-aware identity predicate. A null block reason means the dashboard is
  * reachable; anything else explains why the visitor is on the connect screen.
- * Precedence mirrors the wallet action gate: setup incomplete -> diagnostics
- * failed -> diagnostics checking -> not connected -> wrong network.
+ * ponytail: diagnostics stays non-blocking at the shell — per-view gate shows
+ * WalletSetupState with retry; add diagnostics back here only if you truly
+ * want the whole dashboard gated on contract health (then update repro +
+ * WalletSetupState split).
  */
 export function authenticationBlockReason(
   config: CoholdConfig,
@@ -33,15 +34,6 @@ export function authenticationBlockReason(
 
   if (!config.walletSetupComplete) {
     return "Wallet setup is incomplete; the Testnet contract and token identifiers must be configured.";
-  }
-  if (session.diagnostics?.status === "failed") {
-    return (
-      firstFailureMessage(session.diagnostics) ??
-      "Wallet resource checks failed; the dashboard is unavailable."
-    );
-  }
-  if (session.diagnostics === null) {
-    return "Verifying Stellar Testnet resources…";
   }
   if (!session.connected) {
     return "Connect Freighter to continue.";
