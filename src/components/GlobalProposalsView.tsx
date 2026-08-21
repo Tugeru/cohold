@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { Proposal, Treasury } from "@/types";
 import { useWallet } from "@/context/WalletContext";
-import { formatAmount, formatAddress, formatDate, timeAgo, prefersReducedMotion } from "@/lib/utils";
+import { APP_ROUTES } from "@/lib/app-routes";
+import { formatAmount, formatAddress, timeAgo, prefersReducedMotion } from "@/lib/utils";
 import { getStellarExpertUrl } from "@/lib/stellar";
 import { ExecutionConfirmDialog } from "./ExecutionConfirmDialog";
 import confetti from "canvas-confetti";
@@ -25,14 +27,12 @@ import {
 interface GlobalProposalsViewProps {
   proposals: (Proposal & { treasury?: Partial<Treasury> })[];
   treasuries: Treasury[];
-  onSelectTreasury: (id: string) => void;
   onRefresh: () => void;
 }
 
 export function GlobalProposalsView({
   proposals,
   treasuries,
-  onSelectTreasury,
   onRefresh,
 }: GlobalProposalsViewProps) {
   const {
@@ -69,7 +69,6 @@ export function GlobalProposalsView({
     return false;
   };
 
-  // Filter proposals
   const filteredProposals = proposals.filter((p) => {
     const approvals = p.approvals || [];
     const hasApproved = approvals.some(
@@ -85,7 +84,6 @@ export function GlobalProposalsView({
     return true;
   });
 
-  // Handle Approve
   const handleApprove = async (p: Proposal) => {
     if (!walletActionAllowed()) return;
     setActionLoading(`approve-${p.id}`);
@@ -126,7 +124,6 @@ export function GlobalProposalsView({
     }
   };
 
-  // Handle Execute Confirm
   const handleExecuteConfirmed = async () => {
     if (!executingProposal) return;
     if (!walletActionAllowed()) return;
@@ -174,7 +171,6 @@ export function GlobalProposalsView({
 
   return (
     <div className="space-y-6">
-      {/* Toast */}
       {toastMessage && (
         <div
           className={`rounded-2xl border p-4 text-xs flex items-start gap-3 shadow-xl animate-in fade-in ${
@@ -201,12 +197,9 @@ export function GlobalProposalsView({
         </div>
       )}
 
-      {/* Header & Filter Pills */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
-            Spending Proposals
-          </h1>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">Spending Proposals</h1>
           <p className="text-xs text-slate-400">
             Consolidated review and approval status across all shared treasuries
           </p>
@@ -215,7 +208,6 @@ export function GlobalProposalsView({
           </span>
         </div>
 
-        {/* Tab Filters */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
           <button
             onClick={() => setActiveFilter("needs_my_approval")}
@@ -276,15 +268,12 @@ export function GlobalProposalsView({
         </div>
       </div>
 
-      {/* Proposals Content */}
       {filteredProposals.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-slate-800 bg-slate-950/40 p-12 text-center space-y-3">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-slate-500">
             <FileSpreadsheet className="h-6 w-6" />
           </div>
-          <h3 className="text-sm font-semibold text-white">
-            No proposals found for this view
-          </h3>
+          <h3 className="text-sm font-semibold text-white">No proposals found for this view</h3>
           <p className="text-xs text-slate-400 max-w-sm mx-auto">
             {activeFilter === "needs_my_approval"
               ? "You have already reviewed all pending proposals, or no proposals are currently requesting your approval."
@@ -315,10 +304,8 @@ export function GlobalProposalsView({
                     : "border-slate-800 hover:border-slate-700"
                 }`}
               >
-                {/* Top header row */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
                   <div className="flex items-center gap-2 flex-wrap">
-                    {/* Status Badge */}
                     {isPending && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-bold text-amber-400 border border-amber-500/20">
                         <Clock className="h-3.5 w-3.5" />
@@ -338,16 +325,14 @@ export function GlobalProposalsView({
                       </span>
                     )}
 
-                    <button
-                      onClick={() => onSelectTreasury(p.treasuryId)}
+                    <Link
+                      href={APP_ROUTES.treasury(p.treasuryId)}
                       className="rounded-md bg-slate-800 hover:bg-slate-700 px-2 py-0.5 text-[11px] font-semibold text-emerald-400 border border-slate-700 transition"
                     >
                       {matchingTreasury?.name || "Treasury"}
-                    </button>
+                    </Link>
 
-                    <span className="text-[11px] text-slate-400">
-                      Created {timeAgo(p.createdAt)}
-                    </span>
+                    <span className="text-[11px] text-slate-400">Created {timeAgo(p.createdAt)}</span>
                   </div>
 
                   <div className="text-left sm:text-right">
@@ -357,15 +342,11 @@ export function GlobalProposalsView({
                   </div>
                 </div>
 
-                {/* Title & Description */}
                 <div>
                   <h3 className="text-base font-bold text-white">{p.title}</h3>
-                  <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                    {p.description}
-                  </p>
+                  <p className="text-xs text-slate-300 mt-1 leading-relaxed">{p.description}</p>
                 </div>
 
-                {/* Recipient & Quorum bar */}
                 <div className="rounded-xl border border-slate-800/80 bg-slate-950/60 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                   <div>
                     <span className="text-slate-400">Recipient: </span>
@@ -385,7 +366,6 @@ export function GlobalProposalsView({
                   </div>
                 </div>
 
-                {/* Action Buttons */}
                 <div className="pt-2 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2">
                   <div className="text-xs text-slate-400">
                     {hasActiveUserApproved && isPending && (
@@ -397,12 +377,12 @@ export function GlobalProposalsView({
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => onSelectTreasury(p.treasuryId)}
+                    <Link
+                      href={APP_ROUTES.treasury(p.treasuryId)}
                       className="rounded-xl bg-slate-800 hover:bg-slate-750 px-3.5 py-2 text-xs font-semibold text-slate-200 transition"
                     >
                       View Treasury Details
-                    </button>
+                    </Link>
 
                     {isPending && !hasActiveUserApproved && (
                       <button
@@ -441,7 +421,6 @@ export function GlobalProposalsView({
         </div>
       )}
 
-      {/* Execution Confirmation Dialog */}
       {executingProposal && (
         <ExecutionConfirmDialog
           isOpen={Boolean(executingProposal)}

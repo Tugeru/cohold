@@ -38,11 +38,8 @@ function OverviewPageInner() {
       <OverviewView
         treasuries={treasuries}
         proposals={proposals}
-        onSelectTreasury={(id) => router.push(APP_ROUTES.treasury(id))}
         onCreateTreasury={openCreateTreasury}
         onOpenDemoTour={openDemoTour}
-        onNavigateToProposals={() => router.push(APP_ROUTES.proposals)}
-        onNavigateToTreasuries={() => router.push(APP_ROUTES.treasuries)}
       />
     </DemoGate>
   );

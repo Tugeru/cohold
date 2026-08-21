@@ -1,10 +1,12 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { Treasury, Proposal } from "@/types";
 import { useWallet } from "@/context/WalletContext";
 import { formatAmount, formatAddress, timeAgo } from "@/lib/utils";
 import { parseNonNegativeBaseUnits } from "@/lib/money";
+import { APP_ROUTES } from "@/lib/app-routes";
 import {
   Coins,
   ShieldCheck,
@@ -27,25 +29,18 @@ import {
 interface OverviewViewProps {
   treasuries: Treasury[];
   proposals: Proposal[];
-  onSelectTreasury: (id: string) => void;
   onCreateTreasury: () => void;
   onOpenDemoTour: () => void;
-  onNavigateToProposals: () => void;
-  onNavigateToTreasuries: () => void;
 }
 
 export function OverviewView({
   treasuries,
   proposals,
-  onSelectTreasury,
   onCreateTreasury,
   onOpenDemoTour,
-  onNavigateToProposals,
-  onNavigateToTreasuries,
 }: OverviewViewProps) {
   const { activePersona } = useWallet();
 
-  // Calculate totals
   const totalBalance = treasuries.reduce((acc, treasury) => {
     try {
       return acc + parseNonNegativeBaseUnits(treasury.balance);
@@ -55,7 +50,6 @@ export function OverviewView({
   }, 0n);
   const activeTreasuriesCount = treasuries.length;
 
-  // Proposals that need active persona's approval
   const needsMyApproval = proposals.filter((p) => {
     if (p.status !== "pending") return false;
     const approvals = p.approvals || [];
@@ -65,17 +59,14 @@ export function OverviewView({
     return !hasApproved;
   });
 
-  // Ready to execute proposals
   const readyToExecute = proposals.filter((p) => p.status === "approved");
 
-  // Recently executed proposals
   const recentlyExecuted = proposals
     .filter((p) => p.status === "executed")
     .slice(0, 5);
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      {/* Welcome Banner */}
       <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-r from-slate-900 via-slate-900/90 to-slate-950 p-5 sm:p-8 shadow-xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1.5 max-w-xl">
@@ -110,9 +101,7 @@ export function OverviewView({
         </div>
       </div>
 
-      {/* Primary KPI Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Total Treasury Balance */}
         <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 space-y-1.5 shadow-sm">
           <div className="flex items-center justify-between text-xs text-slate-400">
             <span>Total Treasury Funds</span>
@@ -121,12 +110,9 @@ export function OverviewView({
           <div className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-white tracking-tight">
             {formatAmount(totalBalance, "DEMO_UNITS")}
           </div>
-          <div className="text-[11px] text-emerald-400 font-medium">
-            DEMO_UNITS on Stellar Testnet
-          </div>
+          <div className="text-[11px] text-emerald-400 font-medium">DEMO_UNITS on Stellar Testnet</div>
         </div>
 
-        {/* Card 2: Active Treasuries */}
         <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 space-y-1.5 shadow-sm">
           <div className="flex items-center justify-between text-xs text-slate-400">
             <span>Active Treasuries</span>
@@ -135,12 +121,9 @@ export function OverviewView({
           <div className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-white tracking-tight">
             {activeTreasuriesCount}
           </div>
-          <div className="text-[11px] text-slate-400 font-medium">
-            Governed by Soroban Contracts
-          </div>
+          <div className="text-[11px] text-slate-400 font-medium">Governed by Soroban Contracts</div>
         </div>
 
-        {/* Card 3: Needs My Approval */}
         <div className="rounded-2xl border border-amber-500/30 bg-amber-950/10 p-5 space-y-1.5 shadow-sm">
           <div className="flex items-center justify-between text-xs text-amber-300">
             <span>Needs My Approval</span>
@@ -149,12 +132,9 @@ export function OverviewView({
           <div className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-amber-300 tracking-tight">
             {needsMyApproval.length}
           </div>
-          <div className="text-[11px] text-amber-400/80 font-medium">
-            Awaiting your signature
-          </div>
+          <div className="text-[11px] text-amber-400/80 font-medium">Awaiting your signature</div>
         </div>
 
-        {/* Card 4: Ready to Execute */}
         <div className="rounded-2xl border border-emerald-500/30 bg-emerald-950/10 p-5 space-y-1.5 shadow-sm">
           <div className="flex items-center justify-between text-xs text-emerald-300">
             <span>Ready to Disburse</span>
@@ -163,17 +143,12 @@ export function OverviewView({
           <div className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-emerald-300 tracking-tight">
             {readyToExecute.length}
           </div>
-          <div className="text-[11px] text-emerald-400/80 font-medium">
-            Quorum threshold achieved
-          </div>
+          <div className="text-[11px] text-emerald-400/80 font-medium">Quorum threshold achieved</div>
         </div>
       </div>
 
-      {/* Actionable Sections Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Needs My Approval & Actionable Proposals */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Section: Needs My Approval */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -182,13 +157,13 @@ export function OverviewView({
                   Needs My Approval ({needsMyApproval.length})
                 </h2>
               </div>
-              <button
-                onClick={onNavigateToProposals}
+              <Link
+                href={APP_ROUTES.proposals}
                 className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
               >
                 <span>View all proposals</span>
                 <ChevronRight className="h-3.5 w-3.5" />
-              </button>
+              </Link>
             </div>
 
             {needsMyApproval.length === 0 ? (
@@ -202,10 +177,10 @@ export function OverviewView({
                 {needsMyApproval.slice(0, 3).map((p) => {
                   const matchingTreasury = treasuries.find((t) => t.id === p.treasuryId);
                   return (
-                    <div
+                    <Link
                       key={p.id}
-                      onClick={() => onSelectTreasury(p.treasuryId)}
-                      className="group cursor-pointer rounded-2xl border border-slate-800 bg-slate-900/80 p-4 sm:p-5 hover:border-amber-500/50 transition space-y-3"
+                      href={APP_ROUTES.treasury(p.treasuryId)}
+                      className="group block rounded-2xl border border-slate-800 bg-slate-900/80 p-4 sm:p-5 hover:border-amber-500/50 transition space-y-3"
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
                         <div>
@@ -233,14 +208,13 @@ export function OverviewView({
                           <ArrowRight className="h-3.5 w-3.5" />
                         </span>
                       </div>
-                    </div>
+                    </Link>
                   );
                 })}
               </div>
             )}
           </div>
 
-          {/* Section: Active Treasuries Preview */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -249,21 +223,21 @@ export function OverviewView({
                   Active Shared Treasuries ({treasuries.length})
                 </h2>
               </div>
-              <button
-                onClick={onNavigateToTreasuries}
+              <Link
+                href={APP_ROUTES.treasuries}
                 className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
               >
                 <span>View all treasuries</span>
                 <ChevronRight className="h-3.5 w-3.5" />
-              </button>
+              </Link>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {treasuries.slice(0, 4).map((t) => (
-                <div
+                <Link
                   key={t.id}
-                  onClick={() => onSelectTreasury(t.id)}
-                  className="group cursor-pointer rounded-2xl border border-slate-800 bg-slate-900/80 p-4 hover:border-emerald-500/50 transition space-y-2 flex flex-col justify-between"
+                  href={APP_ROUTES.treasury(t.id)}
+                  className="group rounded-2xl border border-slate-800 bg-slate-900/80 p-4 hover:border-emerald-500/50 transition space-y-2 flex flex-col justify-between"
                 >
                   <div>
                     <div className="flex items-center justify-between text-[11px] text-slate-400">
@@ -283,32 +257,24 @@ export function OverviewView({
                     <span>{t.memberCount} Authorized Members</span>
                     <ArrowRight className="h-3.5 w-3.5 text-slate-500 group-hover:text-emerald-400 transition transform group-hover:translate-x-1" />
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Right 1 Col: Recently Executed Payments & Governance Quick Facts */}
         <div className="space-y-6">
-          {/* Recently Disbursed Payments */}
           <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 space-y-4 shadow-sm">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2">
                 <Receipt className="h-4 w-4 text-emerald-400" />
-                <h3 className="text-sm font-bold text-white">
-                  Recently Executed
-                </h3>
+                <h3 className="text-sm font-bold text-white">Recently Executed</h3>
               </div>
-              <span className="text-[11px] text-slate-400">
-                {recentlyExecuted.length} Completed
-              </span>
+              <span className="text-[11px] text-slate-400">{recentlyExecuted.length} Completed</span>
             </div>
 
             {recentlyExecuted.length === 0 ? (
-              <p className="text-xs text-slate-400 py-4 text-center">
-                No payments executed yet.
-              </p>
+              <p className="text-xs text-slate-400 py-4 text-center">No payments executed yet.</p>
             ) : (
               <div className="space-y-3">
                 {recentlyExecuted.map((p) => (
@@ -317,9 +283,7 @@ export function OverviewView({
                     className="rounded-xl border border-slate-800/80 bg-slate-950 p-3 text-xs space-y-1"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-white truncate max-w-[140px]">
-                        {p.title}
-                      </span>
+                      <span className="font-bold text-white truncate max-w-[140px]">{p.title}</span>
                       <span className="font-mono tabular-nums font-bold text-emerald-400">
                         {formatAmount(p.amount, "DEMO")}
                       </span>
@@ -334,16 +298,14 @@ export function OverviewView({
             )}
           </div>
 
-          {/* Core Trust Model Card */}
           <div className="rounded-2xl border border-emerald-500/20 bg-emerald-950/10 p-5 space-y-3 text-xs">
             <div className="flex items-center gap-2 font-bold text-emerald-300">
               <ShieldCheck className="h-4 w-4 text-emerald-400" />
               <span>Core Cohold Thesis</span>
             </div>
             <p className="text-slate-300 leading-relaxed text-[11px]">
-              &ldquo;Shared money should require shared permission.&rdquo; Funds can
-              leave a treasury only when a cryptographic quorum of members
-              explicitly signs the proposal.
+              &ldquo;Shared money should require shared permission.&rdquo; Funds can leave a treasury only when a
+              cryptographic quorum of members explicitly signs the proposal.
             </p>
             <div className="pt-2 border-t border-emerald-500/20 flex items-center justify-between text-[11px] text-slate-400">
               <span>Smart Contract Custody</span>

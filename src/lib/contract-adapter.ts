@@ -539,6 +539,24 @@ export function buildProposalView(input: {
 // Assembled read flows.
 // ---------------------------------------------------------------------------
 
+// ponytail: concurrency 8 caps Testnet pressure. Remove cap when RPC rate-limit rises.
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const out: R[] = new Array(items.length) as R[];
+  let next = 0;
+  const workers = new Array(Math.min(concurrency, items.length)).fill(0).map(async () => {
+    while (next < items.length) {
+      const idx = next++;
+      out[idx] = await fn(items[idx], idx);
+    }
+  });
+  await Promise.all(workers);
+  return out;
+}
+
 async function readTokenMetadata(
   rpc: CoholdRpc,
   tokenAddress: string,
@@ -558,19 +576,11 @@ export async function loadWalletTreasury(
   if (!config) {
     throw new Error("The configured contract is not initialized or is not a Cohold treasury on this network.");
   }
-  let balance: bigint | null = null;
-  try {
-    balance = await rpc.getBalance(contractId);
-  } catch {
-    balance = null;
-  }
-  let members: string[] | null = null;
-  try {
-    members = await rpc.getMemberList(contractId);
-  } catch {
-    members = null;
-  }
-  const token = await readTokenMetadata(rpc, config.tokenAddress);
+  const [balance, members, token] = await Promise.all([
+    rpc.getBalance(contractId).catch(() => null) as Promise<bigint | null>,
+    rpc.getMemberList(contractId).catch(() => null) as Promise<string[] | null>,
+    readTokenMetadata(rpc, config.tokenAddress),
+  ]);
   return buildTreasuryView({ contractId, config, balance, members, token });
 }
 
@@ -581,34 +591,30 @@ export async function loadWalletProposalViews(
 ): Promise<ChainProposalView[]> {
   const config = await rpc.getConfig(contractId);
   if (!config) {
-    // An uninitialized/missing contract must not render as "no proposals".
     throw new Error(
       "The configured contract is not initialized or is not a Cohold treasury on this network.",
     );
   }
   const count = await rpc.getProposalCount(contractId);
   if (count === null) {
-    // An unreadable count must not masquerade as "no proposals".
     throw new Error("The contract's proposal count could not be read.");
   }
-  const token = await readTokenMetadata(rpc, config.tokenAddress);
-  let isMember: boolean | null = null;
-  if (userAddress) {
-    try {
-      isMember = await rpc.isMember(contractId, userAddress);
-    } catch {
-      isMember = null;
-    }
-  }
-  const views: ChainProposalView[] = [];
-  for (let proposalId = 1; proposalId <= count; proposalId += 1) {
+  if (count === 0) return [];
+  const [token, isMember] = await Promise.all([
+    readTokenMetadata(rpc, config.tokenAddress),
+    userAddress
+      ? rpc.isMember(contractId, userAddress).catch(() => null as boolean | null)
+      : Promise.resolve(null as boolean | null),
+  ]);
+  const ids = Array.from({ length: count }, (_, i) => i + 1);
+  const raws = await mapWithConcurrency(ids, 8, async (proposalId) => {
     let record: ChainProposalRecord | null = null;
     try {
       record = await rpc.getProposal(contractId, proposalId);
     } catch {
       throw new Error("A proposal could not be read from Stellar RPC. Retry.");
     }
-    if (!record) continue;
+    if (!record) return null as unknown as { record: null; hasApproved: null };
     let hasApproved: boolean | null = null;
     if (userAddress && isMember) {
       try {
@@ -617,16 +623,22 @@ export async function loadWalletProposalViews(
         hasApproved = null;
       }
     }
+    return { record, hasApproved };
+  });
+  const views: ChainProposalView[] = [];
+  for (let i = 0; i < raws.length; i++) {
+    const row = raws[i] as { record: ChainProposalRecord | null; hasApproved: boolean | null } | null;
+    if (!row || !row.record) continue;
     views.push(
       buildProposalView({
         treasuryId: contractId,
-        record,
+        record: row.record,
         threshold: config.threshold,
         token,
         currentUserApproval: currentUserApprovalState({
           userAddress,
           isMember,
-          hasApproved,
+          hasApproved: row.hasApproved,
         }),
       }),
     );
@@ -640,6 +652,7 @@ export async function loadWalletProposal(
   proposalId: number,
   userAddress: string | null = null,
 ): Promise<ChainProposalView | null> {
+
   const config = await rpc.getConfig(contractId);
   if (!config) {
     throw new Error("The configured contract is not initialized or is not a Cohold treasury on this network.");
@@ -658,15 +671,10 @@ export async function loadWalletProposal(
   if (!record) {
     throw new Error("The proposal could not be read from Stellar RPC.");
   }
-  const token = await readTokenMetadata(rpc, config.tokenAddress);
-  let isMember: boolean | null = null;
-  if (userAddress) {
-    try {
-      isMember = await rpc.isMember(contractId, userAddress);
-    } catch {
-      isMember = null;
-    }
-  }
+  const [token, isMember] = await Promise.all([
+    readTokenMetadata(rpc, config.tokenAddress),
+    userAddress ? rpc.isMember(contractId, userAddress).catch(() => null as boolean | null) : Promise.resolve(null as boolean | null),
+  ]);
   let hasApproved: boolean | null = null;
   if (userAddress && isMember) {
     try {
@@ -687,6 +695,7 @@ export async function loadWalletProposal(
     }),
   });
 }
+
 
 /**
  * Wallet-mode activity for one treasury: confirmed contract events plus the
@@ -755,12 +764,22 @@ export function stellarCoholdRpc(
   };
   const coholdClients = new Map<string, Client>();
   const tokenClients = new Map<string, Promise<contract.Client & SacClientSpec>>();
-
+  // ponytail: in-memory TTL for immutable reads (config, token). Add SWR/persist when cross-tab sync needed.
+  const cfgCache = new Map<string, { v: unknown; e: number }>();
+  const tokenCache = new Map<string, { v: unknown; e: number }>();
+  const TTL_MS = 30_000;
+  function cached<T>(map: Map<string, { v: unknown; e: number }>, key: string): T | undefined {
+    const r = map.get(key);
+    if (!r || Date.now() > r.e) {
+      if (r) map.delete(key);
+      return undefined;
+    }
+    return r.v as T;
+  }
   function coholdClient(contractId: string): Client {
     let client = coholdClients.get(contractId);
     if (!client) {
       client = new Client({ ...clientOptions, contractId });
-      coholdClients.set(contractId, client);
     }
     return client;
   }
@@ -810,16 +829,22 @@ export function stellarCoholdRpc(
     },
 
     async getConfig(contractId) {
+      const ck = `cfg:${contractId}`;
+      const hit = cached<ReturnType<typeof normalizeTreasuryConfigResult>>(cfgCache, ck);
+      if (hit !== undefined) return hit;
       try {
         const client = coholdClient(contractId);
         const tx = await client.get_config();
         const result = unwrapResultValue(tx.result);
         if (result === null) return null;
-        return normalizeTreasuryConfigResult(result);
+        const parsed = normalizeTreasuryConfigResult(result);
+        if (parsed) cfgCache.set(ck, { v: parsed, e: Date.now() + TTL_MS });
+        return parsed;
       } catch {
         throw new Error("The treasury configuration could not be read from Stellar RPC. Retry.");
       }
     },
+
 
     async getBalance(contractId) {
       try {
@@ -878,7 +903,6 @@ export function stellarCoholdRpc(
       const tx = await client.is_member({ address });
       return tx.result === true;
     },
-
     async hasApproved(contractId, proposalId, address) {
       const client = coholdClient(contractId);
       const tx = await client.has_approved({
@@ -889,6 +913,9 @@ export function stellarCoholdRpc(
     },
 
     async getTokenInfo(tokenAddress) {
+      const tk = `tok:${tokenAddress}`;
+      const hit = cached<ChainTokenInfo>(tokenCache, tk);
+      if (hit !== undefined) return hit;
       const client = await tokenClient(tokenAddress);
       const [symbolTx, decimalsTx] = await Promise.all([
         client.symbol(),
@@ -899,7 +926,9 @@ export function stellarCoholdRpc(
       if (decimals === null) {
         throw new Error("Token contract returned invalid decimals");
       }
-      return { symbol, decimals };
+      const info: ChainTokenInfo = { symbol, decimals };
+      tokenCache.set(tk, { v: info, e: Date.now() + TTL_MS });
+      return info;
     },
 
     async getRecentEvents(contractId, startLedger) {

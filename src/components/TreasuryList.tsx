@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { Treasury, TreasuryCategory } from "@/types";
-import { formatAmount, formatAddress, timeAgo } from "@/lib/utils";
+import { APP_ROUTES } from "@/lib/app-routes";
+import { formatAmount } from "@/lib/utils";
 import {
   ShieldCheck,
   Coins,
@@ -22,14 +24,12 @@ import {
 
 interface TreasuryListProps {
   treasuries: Treasury[];
-  onSelectTreasury: (id: string) => void;
   onCreateTreasury: () => void;
   onOpenDemoTour: () => void;
 }
 
 export function TreasuryList({
   treasuries,
-  onSelectTreasury,
   onCreateTreasury,
   onOpenDemoTour,
 }: TreasuryListProps) {
@@ -76,13 +76,12 @@ export function TreasuryList({
       case "project_team":
         return "Project Team";
       default:
-        return "Shared Treasury";
+        return "Treasury";
     }
   };
 
   return (
     <div className="space-y-8">
-      {/* Hero Section */}
       <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-b from-slate-900 via-slate-900/90 to-slate-950 p-6 sm:p-10 shadow-2xl">
         <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-emerald-500/10 blur-3xl" />
         <div className="absolute -left-16 -bottom-16 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl" />
@@ -101,8 +100,8 @@ export function TreasuryList({
           </h1>
 
           <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
-            Replace individual bank account custody with cryptographic group governance.
-            Treasury funds can leave only when your team reaches its agreed approval threshold.
+            Replace individual bank account custody with cryptographic group governance. Treasury funds can leave
+            only when your team reaches its agreed approval threshold.
           </p>
 
           <div className="flex flex-wrap items-center gap-3 pt-3">
@@ -124,7 +123,6 @@ export function TreasuryList({
           </div>
         </div>
 
-        {/* Feature Points Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-8 mt-8 border-t border-slate-800/80">
           <div className="space-y-1">
             <div className="text-xs font-bold text-white flex items-center gap-1.5">
@@ -158,9 +156,7 @@ export function TreasuryList({
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        {/* Category Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
           <button
             onClick={() => setSelectedCategory("all")}
@@ -214,7 +210,6 @@ export function TreasuryList({
           </button>
         </div>
 
-        {/* Search Input */}
         <div className="relative min-w-[240px]">
           <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-500" />
           <input
@@ -227,19 +222,17 @@ export function TreasuryList({
         </div>
       </div>
 
-      {/* Treasuries Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {filtered.map((t) => {
           const quorumPercent = Math.round((t.threshold / t.memberCount) * 100);
 
           return (
-            <div
+            <Link
               key={t.id}
-              onClick={() => onSelectTreasury(t.id)}
-              className="group cursor-pointer rounded-2xl border border-slate-800 bg-slate-900/80 p-5 shadow-lg hover:border-emerald-500/50 hover:bg-slate-850/90 transition duration-200 flex flex-col justify-between"
+              href={APP_ROUTES.treasury(t.id)}
+              className="group rounded-2xl border border-slate-800 bg-slate-900/80 p-5 shadow-lg hover:border-emerald-500/50 hover:bg-slate-850/90 transition duration-200 flex flex-col justify-between"
             >
               <div className="space-y-3">
-                {/* Category & Status */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 rounded-md bg-slate-800 px-2 py-0.5 text-xs font-semibold text-slate-300">
                     {getCategoryIcon(t.category)}
@@ -250,7 +243,6 @@ export function TreasuryList({
                   </span>
                 </div>
 
-                {/* Name & Description */}
                 <div>
                   <h3 className="text-base font-bold text-white group-hover:text-emerald-400 transition">
                     {t.name}
@@ -262,20 +254,15 @@ export function TreasuryList({
                   )}
                 </div>
 
-                {/* Balance & Quorum Rule */}
                 <div className="rounded-xl border border-slate-800 bg-slate-950 p-3 flex items-center justify-between">
                   <div>
-                    <div className="text-[10px] text-slate-400 uppercase font-semibold">
-                      Contract Balance
-                    </div>
+                    <div className="text-[10px] text-slate-400 uppercase font-semibold">Contract Balance</div>
                     <div className="text-lg font-bold font-mono tabular-nums text-emerald-400">
                       {formatAmount(t.balance, t.tokenSymbol)}
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-[10px] text-slate-400 uppercase font-semibold">
-                      Quorum Rule
-                    </div>
+                    <div className="text-[10px] text-slate-400 uppercase font-semibold">Quorum Rule</div>
                     <div className="text-sm font-bold font-mono tabular-nums text-slate-200">
                       {t.threshold} of {t.memberCount} ({quorumPercent}%)
                     </div>
@@ -283,13 +270,10 @@ export function TreasuryList({
                 </div>
               </div>
 
-              {/* Footer */}
               <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
                 <div className="flex items-center gap-1 text-slate-300">
                   <FileSpreadsheet className="h-3.5 w-3.5 text-cyan-400" />
-                  <span>
-                    {(t as unknown as { proposalsCount?: number }).proposalsCount || 0} Proposals
-                  </span>
+                  <span>{(t as unknown as { proposalsCount?: number }).proposalsCount || 0} Proposals</span>
                 </div>
 
                 <div className="flex items-center gap-1 text-emerald-400 font-semibold group-hover:translate-x-1 transition transform">
@@ -297,13 +281,15 @@ export function TreasuryList({
                   <ArrowRight className="h-3.5 w-3.5" />
                 </div>
               </div>
-            </div>
+            </Link>
           );
         })}
 
-        {/* Create Treasury CTA Card */}
         <div
+          role="button"
+          tabIndex={0}
           onClick={onCreateTreasury}
+          onKeyDown={(e) => e.key === "Enter" && onCreateTreasury()}
           className="group cursor-pointer rounded-2xl border-2 border-dashed border-slate-800 bg-slate-950/40 p-6 flex flex-col items-center justify-center text-center space-y-3 hover:border-emerald-500/50 hover:bg-slate-900/40 transition min-h-[220px]"
         >
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 border border-slate-800 text-slate-400 group-hover:text-emerald-400 group-hover:border-emerald-500/40 transition">

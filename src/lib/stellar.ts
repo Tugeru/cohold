@@ -67,11 +67,12 @@ export async function fetchStellarAccountBalances(
   try {
     const res = await fetch(
       `${STELLAR_TESTNET_HORIZON_URL}/accounts/${publicKey}`,
-      { cache: "no-store" }
+      { next: { revalidate: 15 } } as RequestInit,
     );
     if (!res.ok) return [];
-    const data = await res.json();
-    return data.balances || [];
+    const data: unknown = await res.json();
+    if (!data || typeof data !== "object" || !("balances" in data) || !Array.isArray((data as { balances: unknown }).balances)) return [];
+    return (data as { balances: AccountBalance[] }).balances;
   } catch {
     return [];
   }

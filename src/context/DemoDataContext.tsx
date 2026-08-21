@@ -26,11 +26,19 @@ interface DemoDataValue {
 
 const DemoDataContext = createContext<DemoDataValue | null>(null);
 
-export function DemoDataProvider({ children }: { children: React.ReactNode }) {
+export function DemoDataProvider({
+  children,
+  initialTreasuries,
+  initialProposals,
+}: {
+  children: React.ReactNode;
+  initialTreasuries?: Treasury[];
+  initialProposals?: DemoProposal[];
+}) {
   const canMutate = isDemoMutationAllowed(coholdConfig);
-  const [treasuries, setTreasuries] = useState<Treasury[]>([]);
-  const [proposals, setProposals] = useState<DemoProposal[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [treasuries, setTreasuries] = useState<Treasury[]>(() => initialTreasuries ?? []);
+  const [proposals, setProposals] = useState<DemoProposal[]>(() => initialProposals ?? []);
+  const [loading, setLoading] = useState(() => !initialTreasuries || !initialProposals);
   const [error, setError] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
   const [isCreateTreasuryOpen, setCreateTreasuryOpen] = useState(false);
@@ -39,10 +47,7 @@ export function DemoDataProvider({ children }: { children: React.ReactNode }) {
   const refresh = useCallback(async () => {
     try {
       setLoading(true);
-      const [tRes, pRes] = await Promise.all([
-        fetch("/api/treasuries"),
-        fetch("/api/proposals"),
-      ]);
+      const [tRes, pRes] = await Promise.all([fetch("/api/treasuries"), fetch("/api/proposals")]);
       const tData = await tRes.json();
       const pData = await pRes.json();
 
@@ -66,11 +71,12 @@ export function DemoDataProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!canMutate) return;
+    if (initialTreasuries && initialProposals) return;
     const timer = window.setTimeout(() => {
       void refresh();
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [canMutate, refresh]);
+  }, [canMutate, refresh, initialTreasuries, initialProposals]);
 
   const retry = useCallback(() => {
     setError(null);
@@ -117,7 +123,7 @@ export function DemoDataProvider({ children }: { children: React.ReactNode }) {
 export function useDemoData() {
   const context = useContext(DemoDataContext);
   if (!context) {
-    throw new Error("useDemoData must be used within DemoDataProvider");
+    throw new Error("useDemoData must be used within a DemoDataProvider");
   }
   return context;
 }

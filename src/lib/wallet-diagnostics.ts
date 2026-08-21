@@ -94,39 +94,43 @@ export async function diagnoseWalletResources(
     });
   }
 
-  for (const contractId of contractIds) {
-    const chainConfig = await readOrNull(() => rpc.getConfig(contractId));
-    if (chainConfig === null) {
-      failures.push({
-        id: "contract",
-        contractId,
-        message: `Contract ${contractId} is not initialized or is not a Cohold treasury on this network.`,
-      });
-      // Token and readability checks depend on a parsed config; skip them
-      // for this contract and report the shape failure.
-      continue;
-    }
-
-    const configuredToken = config.tokenId?.toUpperCase() ?? null;
-    const chainToken = chainConfig.tokenAddress.toUpperCase();
-    if (configuredToken === null || chainToken !== configuredToken) {
-      failures.push({
-        id: "token",
-        contractId,
-        message: `Contract ${contractId} holds ${chainToken}, but ${configuredToken ?? "no token"} is configured.`,
-      });
-    }
-
-    const members = await readOrNull(() => rpc.getMemberList(contractId));
-    const balance = await readOrNull(() => rpc.getBalance(contractId));
-    if (members === null || balance === null) {
-      failures.push({
-        id: "readable",
-        contractId,
-        message: `Members, threshold, or balance could not be read for contract ${contractId}.`,
-      });
-    }
-  }
+  // ponytail: contracts checked in parallel; serial was ~500ms per contract.
+  const contractFailures = await Promise.all(
+    contractIds.map(async (contractId) => {
+      const local: WalletCheckFailure[] = [];
+      const chainConfig = await readOrNull(() => rpc.getConfig(contractId));
+      if (chainConfig === null) {
+        local.push({
+          id: "contract",
+          contractId,
+          message: `Contract ${contractId} is not initialized or is not a Cohold treasury on this network.`,
+        });
+        return local;
+      }
+      const configuredToken = config.tokenId?.toUpperCase() ?? null;
+      const chainToken = chainConfig.tokenAddress.toUpperCase();
+      if (configuredToken === null || chainToken !== configuredToken) {
+        local.push({
+          id: "token",
+          contractId,
+          message: `Contract ${contractId} holds ${chainToken}, but ${configuredToken ?? "no token"} is configured.`,
+        });
+      }
+      const [members, balance] = await Promise.all([
+        readOrNull(() => rpc.getMemberList(contractId)),
+        readOrNull(() => rpc.getBalance(contractId)),
+      ]);
+      if (members === null || balance === null) {
+        local.push({
+          id: "readable",
+          contractId,
+          message: `Members, threshold, or balance could not be read for contract ${contractId}.`,
+        });
+      }
+      return local;
+    }),
+  );
+  for (const bucket of contractFailures) failures.push(...bucket);
 
   if (failures.length === 0) {
     return { status: "healthy", checkedContractIds: contractIds };
