@@ -108,7 +108,10 @@ export function WalletCreateTreasuryDialog({
   const { freighterAddress, signTransaction } = useWallet();
   const creatorAddress = freighterAddress?.toUpperCase() ?? null;
 
-  const flow = useMemo(
+  // Built lazily inside deploy(): the executor constructor throws when the
+  // factory id is missing, and a render-time throw would crash the whole
+  // route into the error boundary instead of showing the form error below.
+  const buildFlow = useCallback(
     () =>
       createTreasuryDeployFlow({
         executor: stellarTreasuryDeployExecutor({
@@ -174,7 +177,7 @@ export function WalletCreateTreasuryDialog({
     setFormError(null);
     setStage({ kind: "deploying", stageIndex: 0, txState: "preparing" });
 
-    const outcome = await flow.deploy(
+    const outcome = await buildFlow().deploy(
       details,
       creatorAddress,
       coholdConfig.tokenId,
@@ -193,7 +196,7 @@ export function WalletCreateTreasuryDialog({
     } else {
       setStage({ kind: "failed", outcome });
     }
-  }, [details, creatorAddress, flow]);
+  }, [details, creatorAddress, buildFlow]);
 
   const openTreasury = useCallback(
     (contractId: string) => {
