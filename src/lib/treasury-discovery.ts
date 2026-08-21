@@ -36,8 +36,9 @@ export function ensureFactoryTreasuryDiscovery(
   rpcUrl: string,
 ): Promise<string[]> {
   const factoryId = configuredFactoryId(config);
-  if (!factoryId || !publicKey) return Promise.resolve([]);
-  inFlight ??= loadFactoryTreasuries(factoryId, publicKey, rpcUrl)
+  if (!factoryId || !publicKey) return Promise.resolve(cachedFactoryIds);
+  if (inFlight) return inFlight;
+  inFlight = loadFactoryTreasuries(factoryId, publicKey, rpcUrl)
     .then((ids) => {
       cachedFactoryIds = ids;
       return ids;
@@ -46,6 +47,33 @@ export function ensureFactoryTreasuryDiscovery(
       inFlight = null;
     });
   return inFlight;
+}
+
+/** Force a fresh factory discovery (e.g. Refresh button) — always refetches. */
+export function refreshFactoryTreasuryDiscovery(
+  config: CoholdConfig,
+  publicKey: string | null | undefined,
+  rpcUrl: string,
+): Promise<string[]> {
+  const factoryId = configuredFactoryId(config);
+  if (!factoryId || !publicKey) return Promise.resolve(cachedFactoryIds);
+  // Drop any in-flight coalescing so Refresh is not swallowed by a prior
+  // failed/empty fetch that is still settling.
+  inFlight = loadFactoryTreasuries(factoryId, publicKey, rpcUrl)
+    .then((ids) => {
+      cachedFactoryIds = ids;
+      return ids;
+    })
+    .finally(() => {
+      inFlight = null;
+    });
+  return inFlight;
+}
+
+/** Test seam — reset discovery cache. */
+export function __resetFactoryDiscoveryForTests(): void {
+  cachedFactoryIds = [];
+  inFlight = null;
 }
 
 async function loadFactoryTreasuries(

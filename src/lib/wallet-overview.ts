@@ -77,6 +77,7 @@ export function memberSlicesOnly(
   return slices.filter(
     (slice) =>
       slice.treasury === null ||
+      slice.treasury.membersAuthoritative === false ||
       isWalletMemberOfTreasury(slice.treasury, walletAddress),
   );
 }

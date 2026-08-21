@@ -8,15 +8,17 @@ import {
   stellarCoholdRpc,
 } from "@/lib/contract-adapter";
 import { coholdConfig, configuredRpcUrl } from "@/lib/cohold-config";
-import { ensureFactoryTreasuryDiscovery } from "@/lib/treasury-discovery";
+import {
+  ensureFactoryTreasuryDiscovery,
+  refreshFactoryTreasuryDiscovery,
+} from "@/lib/treasury-discovery";
 import { walletTreasuryContractIds } from "@/lib/treasury-registry";
 import { formatBaseAmount } from "@/lib/money";
 import { createTreasuryHref, walletExplorerUrl } from "@/lib/app-routes";
 import { useWallet } from "@/context/WalletContext";
 import { useWalletResourceGate } from "@/components/WalletSetupState";
 import { TreasuryCardSkeleton } from "@/components/Skeletons";
-import { ShieldCheck, Users, Coins, RefreshCw, AlertTriangle } from "lucide-react";
-
+import { AlertTriangle, Coins, RefreshCw, ShieldCheck, Users } from "lucide-react";
 type ListItem =
   | { status: "loading" }
   | { status: "ready"; view: ChainTreasuryView }
@@ -126,6 +128,7 @@ export function WalletTreasuriesList() {
   const [contractIds, setContractIds] = useState(() =>
     walletTreasuryContractIds(config),
   );
+  const [discovering, setDiscovering] = useState(false);
   const { freighterAddress } = useWallet();
   const walletGate = useWalletResourceGate();
   const rpc = useMemo(() => stellarCoholdRpc(), []);
@@ -134,24 +137,42 @@ export function WalletTreasuriesList() {
   );
   const [loadKey, setLoadKey] = useState(0);
 
-  const refresh = useCallback(() => setLoadKey((key) => key + 1), []);
+  const refresh = useCallback(async () => {
+    if (!freighterAddress) {
+      setLoadKey((key) => key + 1);
+      return;
+    }
+    setDiscovering(true);
+    try {
+      await refreshFactoryTreasuryDiscovery(config, freighterAddress, configuredRpcUrl(config));
+      setContractIds(walletTreasuryContractIds(config));
+    } finally {
+      setDiscovering(false);
+      setLoadKey((key) => key + 1);
+    }
+  }, [config, freighterAddress]);
 
   // Factory-created treasuries appear after one discovery read; the load
   // effect below re-runs because contractIds is part of its deps.
   useEffect(() => {
     let cancelled = false;
+     
+    setDiscovering(true);
     void ensureFactoryTreasuryDiscovery(
       config,
       freighterAddress,
       configuredRpcUrl(config),
-    ).then(() => {
-      if (!cancelled) setContractIds(walletTreasuryContractIds(config));
-    });
+    )
+      .then(() => {
+        if (!cancelled) setContractIds(walletTreasuryContractIds(config));
+      })
+      .finally(() => {
+        if (!cancelled) setDiscovering(false);
+      });
     return () => {
       cancelled = true;
     };
   }, [config, freighterAddress]);
-
   // Newly discovered factory treasuries start as loading rows; the load
   // effect below fills them in.
   useEffect(() => {
@@ -203,9 +224,12 @@ export function WalletTreasuriesList() {
     if (!freighterAddress) return new Set<string>();
     const ids = new Set<string>();
     for (const [id, item] of Object.entries(items)) {
-      if (item.status === "ready" && isWalletMemberOfTreasury(item.view, freighterAddress)) {
+      if (item.status === "ready" && isWalletMemberOfTreasury(item.view, freighterAddress))
         ids.add(id);
-      }
+      // Keep unauthenticated treasuries visible with degraded UI so an RPC
+      // blip does not hide the user's funds (membersAuthoritative gate in
+      // isWalletMemberOfTreasury would otherwise return false).
+      if (item.status === "ready" && !item.view.membersAuthoritative) ids.add(id);
     }
     return ids;
   }, [items, freighterAddress]);
@@ -214,10 +238,12 @@ export function WalletTreasuriesList() {
     return walletGate;
   }
 
+  const anyLoading = Object.values(items).some((i) => i.status === "loading");
   const visibleIds = contractIds.filter(
     (id) => memberIds.has(id) || items[id]?.status === "error",
   );
   const isMemberOfAny = memberIds.size > 0;
+  const showEmpty = Boolean(freighterAddress && !isMemberOfAny && !discovering && !anyLoading);
 
   return (
     <div className="space-y-6">
@@ -229,15 +255,16 @@ export function WalletTreasuriesList() {
           </p>
         </div>
         <button
-          onClick={refresh}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800"
+          onClick={() => void refresh()}
+          disabled={discovering}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800 disabled:opacity-50"
         >
-          <RefreshCw className="h-3.5 w-3.5" />
+          <RefreshCw className={`h-3.5 w-3.5 ${discovering ? "animate-spin" : ""}`} />
           Refresh from chain
         </button>
       </div>
 
-      {freighterAddress && !isMemberOfAny && (
+      {showEmpty && (
         <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-8 text-center">
           <h2 className="text-lg font-semibold text-slate-100">No treasuries yet</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-slate-400">

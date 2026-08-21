@@ -9,7 +9,10 @@ import {
   stellarCoholdRpc,
 } from "@/lib/contract-adapter";
 import { coholdConfig, configuredRpcUrl } from "@/lib/cohold-config";
-import { ensureFactoryTreasuryDiscovery } from "@/lib/treasury-discovery";
+import {
+  ensureFactoryTreasuryDiscovery,
+  refreshFactoryTreasuryDiscovery,
+} from "@/lib/treasury-discovery";
 import { walletTreasuryContractIds } from "@/lib/treasury-registry";
 import { formatBaseAmount } from "@/lib/money";
 import {
@@ -38,7 +41,6 @@ import {
   Users,
   Zap,
 } from "lucide-react";
-
 type OverviewState =
   | { status: "loading" }
   | { status: "ready"; data: WalletOverviewData }
@@ -73,6 +75,7 @@ export function WalletOverviewView() {
   const [contractIds, setContractIds] = useState(() =>
     walletTreasuryContractIds(config),
   );
+  const [discovering, setDiscovering] = useState(false);
   const { freighterAddress } = useWallet();
   const walletGate = useWalletResourceGate();
   const rpc = useMemo(() => stellarCoholdRpc(), []);
@@ -80,24 +83,42 @@ export function WalletOverviewView() {
   const [loadKey, setLoadKey] = useState(0);
   const [isCreateTreasuryOpen, setIsCreateTreasuryOpen] = useState(false);
 
-  const refresh = useCallback(() => setLoadKey((key) => key + 1), []);
+  const refresh = useCallback(async () => {
+    if (!freighterAddress) {
+      setLoadKey((k) => k + 1);
+      return;
+    }
+    setDiscovering(true);
+    try {
+      await refreshFactoryTreasuryDiscovery(config, freighterAddress, configuredRpcUrl(config));
+      setContractIds(walletTreasuryContractIds(config));
+    } finally {
+      setDiscovering(false);
+      setLoadKey((k) => k + 1);
+    }
+  }, [config, freighterAddress]);
 
   // Factory-created treasuries appear after one discovery read; the load
   // effect below re-runs because contractIds is part of its deps.
   useEffect(() => {
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- discovery is an external RPC read; the loading flag controls the empty-state gate
+    setDiscovering(true);
     void ensureFactoryTreasuryDiscovery(
       config,
       freighterAddress,
       configuredRpcUrl(config),
-    ).then(() => {
-      if (!cancelled) setContractIds(walletTreasuryContractIds(config));
-    });
+    )
+      .then(() => {
+        if (!cancelled) setContractIds(walletTreasuryContractIds(config));
+      })
+      .finally(() => {
+        if (!cancelled) setDiscovering(false);
+      });
     return () => {
       cancelled = true;
     };
   }, [config, freighterAddress]);
-
   useEffect(() => {
     let cancelled = false;
     async function load() {
@@ -251,10 +272,11 @@ export function WalletOverviewView() {
               <span>Create Treasury</span>
             </button>
             <button
-              onClick={refresh}
-              className="flex items-center gap-1.5 rounded-xl bg-slate-800 border border-slate-700 px-3.5 py-2.5 text-xs font-semibold text-slate-200 hover:bg-slate-750 transition"
+              onClick={() => void refresh()}
+              disabled={discovering}
+              className="flex items-center gap-1.5 rounded-xl bg-slate-800 border border-slate-700 px-3.5 py-2.5 text-xs font-semibold text-slate-200 hover:bg-slate-750 transition disabled:opacity-50"
             >
-              <RefreshCw className="h-4 w-4" />
+              <RefreshCw className={`h-4 w-4 ${discovering ? "animate-spin" : ""}`} />
               <span>Refresh from chain</span>
             </button>
           </div>
