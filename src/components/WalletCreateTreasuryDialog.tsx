@@ -9,10 +9,12 @@ import {
   normalizeTreasuryDetails,
   stellarTreasuryDeployExecutor,
   validateTreasuryDetails,
+  type TreasuryDeployFlow,
   type TreasuryDeployOutcome,
   type TreasuryDeployStageName,
   type TreasuryTxState,
 } from "@/lib/treasury-deploy";
+import { isValidContractAddress } from "@/lib/stellar";
 import { registerTreasury } from "@/lib/treasury-registry";
 import { APP_ROUTES } from "@/lib/app-routes";
 import { useWallet } from "@/context/WalletContext";
@@ -108,9 +110,16 @@ export function WalletCreateTreasuryDialog({
   const { freighterAddress, signTransaction } = useWallet();
   const creatorAddress = freighterAddress?.toUpperCase() ?? null;
 
-  const flow = useMemo(
-    () =>
-      createTreasuryDeployFlow({
+  const factoryMisconfigured =
+    !coholdConfig.factoryId || !isValidContractAddress(coholdConfig.factoryId);
+  const factoryConfigError = factoryMisconfigured
+    ? "The treasury factory is not configured on this deployment (NEXT_PUBLIC_COHOLD_FACTORY_ID)."
+    : null;
+
+  const flow: TreasuryDeployFlow | null = useMemo(() => {
+    if (factoryMisconfigured) return null;
+    try {
+      return createTreasuryDeployFlow({
         executor: stellarTreasuryDeployExecutor({
           rpcUrl: configuredRpcUrl(coholdConfig),
           factoryId: coholdConfig.factoryId,
@@ -118,9 +127,11 @@ export function WalletCreateTreasuryDialog({
         fetchWasm: fetchCoholdWasm,
         signTransaction,
         registerTreasury,
-      }),
-    [signTransaction],
-  );
+      });
+    } catch {
+      return null;
+    }
+  }, [signTransaction, factoryMisconfigured]);
 
   const [stage, setStage] = useState<DialogStage>({ kind: "form" });
   const [name, setName] = useState("");
@@ -157,18 +168,22 @@ export function WalletCreateTreasuryDialog({
 
   const deploy = useCallback(async () => {
     if (busyRef.current) return;
+    if (factoryConfigError) {
+      setFormError(factoryConfigError);
+      return;
+    }
+    if (!flow) {
+      setFormError(
+        "The treasury factory is not configured on this deployment (NEXT_PUBLIC_COHOLD_FACTORY_ID).",
+      );
+      return;
+    }
     const validation = validateTreasuryDetails(details, creatorAddress);
     if (validation) {
       setFormError(validation);
       return;
     }
     if (!creatorAddress || !coholdConfig.tokenId) return;
-    if (!coholdConfig.factoryId) {
-      setFormError(
-        "The treasury factory is not configured on this deployment (NEXT_PUBLIC_COHOLD_FACTORY_ID).",
-      );
-      return;
-    }
 
     busyRef.current = true;
     setFormError(null);
@@ -193,7 +208,7 @@ export function WalletCreateTreasuryDialog({
     } else {
       setStage({ kind: "failed", outcome });
     }
-  }, [details, creatorAddress, flow]);
+  }, [details, creatorAddress, flow, factoryConfigError]);
 
   const openTreasury = useCallback(
     (contractId: string) => {
